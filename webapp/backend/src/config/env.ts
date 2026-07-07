@@ -1,0 +1,129 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+/**
+ * Centralized, validated environment config.
+ * Fails fast at boot if a required variable is missing.
+ */
+function required(key: string): string {
+  const val = process.env[key];
+  if (val === undefined || val === '') {
+    throw new Error(`[env] Missing required environment variable: ${key}`);
+  }
+  return val;
+}
+
+function optional(key: string, fallback: string): string {
+  const val = process.env[key];
+  return val === undefined || val === '' ? fallback : val;
+}
+
+function bool(key: string, fallback = false): boolean {
+  const val = process.env[key];
+  if (val === undefined) return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(val).toLowerCase());
+}
+
+function int(key: string, fallback: number): number {
+  const val = process.env[key];
+  const n = parseInt(val ?? '', 10);
+  return Number.isNaN(n) ? fallback : n;
+}
+
+export interface EmailConfig {
+  enabled: boolean;
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  to: string;
+  from: string;
+}
+
+export interface TelegramConfig {
+  enabled: boolean;
+  botToken: string;
+  chatId: string;
+}
+
+export interface RazorpayConfig {
+  keyId: string;
+  secret: string;
+  readonly enabled: boolean;
+}
+
+export interface AppEnv {
+  nodeEnv: string;
+  isProd: boolean;
+  port: number;
+  corsOrigins: string[];
+  databaseUrl: string;
+  jwt: {
+    accessSecret: string;
+    refreshSecret: string;
+    accessTtl: string;
+    refreshTtl: string;
+  };
+  billing: {
+    trialDays: number;
+    graceDays: number;
+    defaultAmount: number;
+  };
+  razorpay: RazorpayConfig;
+  notify: {
+    email: EmailConfig;
+    telegram: TelegramConfig;
+  };
+}
+
+export const env: AppEnv = {
+  nodeEnv: optional('NODE_ENV', 'development'),
+  isProd: optional('NODE_ENV', 'development') === 'production',
+  port: int('PORT', 4000),
+  corsOrigins: optional('CORS_ORIGINS', '*')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+
+  databaseUrl: required('DATABASE_URL'),
+
+  jwt: {
+    accessSecret: required('JWT_ACCESS_SECRET'),
+    refreshSecret: required('JWT_REFRESH_SECRET'),
+    accessTtl: optional('ACCESS_TOKEN_TTL', '15m'),
+    refreshTtl: optional('REFRESH_TOKEN_TTL', '30d'),
+  },
+
+  billing: {
+    trialDays: int('TRIAL_DAYS', 7),
+    graceDays: int('BILLING_GRACE_DAYS', 2),
+    defaultAmount: int('DEFAULT_PLAN_AMOUNT', 2500),
+  },
+
+  razorpay: {
+    keyId: optional('RAZORPAY_KEY_ID', ''),
+    secret: optional('RAZORPAY_SECRET', ''),
+    get enabled(): boolean {
+      return Boolean(this.keyId && this.secret && !this.keyId.includes('xxxx'));
+    },
+  },
+
+  notify: {
+    email: {
+      enabled: bool('NOTIFY_EMAIL_ENABLED', false),
+      host: optional('SMTP_HOST', ''),
+      port: int('SMTP_PORT', 587),
+      user: optional('SMTP_USER', ''),
+      pass: optional('SMTP_PASS', ''),
+      to: optional('NOTIFY_EMAIL_TO', ''),
+      from: optional('NOTIFY_EMAIL_FROM', 'EdTech OS <no-reply@edtechos.com>'),
+    },
+    telegram: {
+      enabled: bool('NOTIFY_TELEGRAM_ENABLED', false),
+      botToken: optional('TELEGRAM_BOT_TOKEN', ''),
+      chatId: optional('TELEGRAM_CHAT_ID', ''),
+    },
+  },
+};
+
+export default env;
