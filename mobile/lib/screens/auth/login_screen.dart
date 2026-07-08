@@ -13,21 +13,27 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _slugController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   void _handleLogin() async {
-    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final slug = _slugController.text.trim().isEmpty
+        ? null
+        : _slugController.text.trim();
     final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
+    if (phone.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both email and password.')),
+        const SnackBar(content: Text('Please enter phone and password.')),
       );
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).login(email, password);
+    final success = await ref
+        .read(authProvider.notifier)
+        .login(phone, password, slug: slug);
 
     if (success && mounted) {
       Navigator.pushReplacement(
@@ -44,7 +50,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
+    _slugController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -83,17 +90,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const Text(
                 'Sign in to continue to EdTech OS',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 48),
               CustomTextField(
-                label: 'Email',
-                hint: 'Enter your email',
-                prefixIcon: Icons.email_outlined,
-                controller: _emailController,
+                label: 'Phone',
+                hint: 'Enter your phone number',
+                prefixIcon: Icons.phone_outlined,
+                controller: _phoneController,
+              ),
+              const SizedBox(height: 24),
+              CustomTextField(
+                label: 'Slug (Optional)',
+                hint: 'Leave empty for super admin',
+                prefixIcon: Icons.business_outlined,
+                controller: _slugController,
               ),
               const SizedBox(height: 24),
               CustomTextField(
@@ -110,7 +121,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: () {},
                   child: const Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Colors.deepPurple,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
