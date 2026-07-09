@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { query, withTransaction } from '../config/db.js';
 import env from '../config/env.js';
 import ApiError from '../utils/ApiError.js';
+import { writeAudit } from '../utils/audit.js';
 
 export interface RegisterTenantInput {
   name: string;
@@ -37,7 +38,8 @@ interface AdminResult {
  * in a single transaction.
  */
 export async function registerTenant(
-  input: RegisterTenantInput
+  input: RegisterTenantInput,
+  actorUserId: number | null = null
 ): Promise<{ tenant: TenantResult; adminUser: AdminResult }> {
   const {
     name,
@@ -82,6 +84,18 @@ export async function registerTenant(
       )
     ).rows[0];
 
+    await writeAudit(
+      {
+        tenantId: tenant.id,
+        actorUserId,
+        action: 'tenant_created',
+        entity: 'tenant',
+        entityId: tenant.id,
+        meta: { name: tenant.name, slug: tenant.slug, adminPhone },
+      },
+      client
+    );
+
     return { tenant, adminUser: admin };
   });
 }
@@ -112,7 +126,8 @@ export async function listTenants(): Promise<TenantListItem[]> {
 
 export async function setTenantActive(
   id: number,
-  isActive: boolean
+  isActive: boolean,
+  actorUserId: number | null = null
 ): Promise<{ id: number; name: string; isActive: boolean }> {
   const { rows } = await query<{ id: number; name: string; isActive: boolean }>(
     `UPDATE tenants SET is_active = $2 WHERE id = $1
@@ -120,6 +135,15 @@ export async function setTenantActive(
     [id, isActive]
   );
   if (!rows[0]) throw ApiError.notFound('TENANT_NOT_FOUND');
+
+  await writeAudit({
+    tenantId: id,
+    actorUserId,
+    action: isActive ? 'tenant_activated' : 'tenant_suspended',
+    entity: 'tenant',
+    entityId: id,
+  });
+
   return rows[0];
 }
 

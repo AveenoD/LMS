@@ -7,17 +7,25 @@ import {
   markAttendanceSchema,
   createContentSchema,
   createLiveClassSchema,
+  batchIdParamSchema,
+  studentIdParamSchema,
+  doubtLinkQuerySchema,
 } from '../validators/teacher.validators.js';
 
 const router = Router();
 router.use(authMiddleware, roleGuard('teacher'));
 
 router.get('/schedule/today', ctrl.todaySchedule);
-router.get('/batches/:batchId/students', ctrl.batchStudents);
+router.get('/batches/:batchId/students', validate(batchIdParamSchema, 'params'), ctrl.batchStudents);
 router.post('/attendance', validate(markAttendanceSchema), ctrl.markAttendance);
 router.get('/content', ctrl.listContent);
 router.post('/content', validate(createContentSchema), ctrl.createContent);
 router.post('/live-classes', validate(createLiveClassSchema), ctrl.createLiveClass);
-router.get('/doubt-link/:studentId', ctrl.doubtLink);
+router.get(
+  '/doubt-link/:studentId',
+  validate(studentIdParamSchema, 'params'),
+  validate(doubtLinkQuerySchema, 'query'),
+  ctrl.doubtLink
+);
 
 export default router;

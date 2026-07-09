@@ -24,10 +24,16 @@ const app = express();
 
 // ── Security & parsing ──
 app.use(helmet());
+const corsIsWildcard = env.corsOrigins.includes('*');
+if (corsIsWildcard) {
+  logger.warn('CORS_ORIGINS is unset/"*" — allowing all origins WITHOUT credentials (dev only; not permitted in production)');
+}
 app.use(
   cors({
-    origin: env.corsOrigins.includes('*') ? true : env.corsOrigins,
-    credentials: true,
+    origin: corsIsWildcard ? true : env.corsOrigins,
+    // Reflecting any origin ("*") must never be combined with credentials — that
+    // would let any website make authenticated cross-site requests.
+    credentials: !corsIsWildcard,
   })
 );
 app.use(express.json({ limit: '1mb' }));

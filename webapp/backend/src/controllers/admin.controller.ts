@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import * as svc from '../services/admin.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { tenantId } from './helpers.js';
+import { tenantId, userId } from './helpers.js';
 
 export const dashboard = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.dashboard(tenantId(req)))
@@ -12,10 +12,10 @@ export const listTeachers = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.listTeachers(tenantId(req)))
 );
 export const createTeacher = asyncHandler(async (req: Request, res: Response) =>
-  res.status(201).json(await svc.createTeacher(tenantId(req), req.body))
+  res.status(201).json(await svc.createTeacher(tenantId(req), userId(req), req.body))
 );
 export const deleteTeacher = asyncHandler(async (req: Request, res: Response) => {
-  await svc.deleteTeacher(tenantId(req), Number(req.params.id));
+  await svc.deleteTeacher(tenantId(req), userId(req), Number(req.params.id));
   res.json({ success: true });
 });
 
@@ -24,10 +24,10 @@ export const listStudents = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.listStudents(tenantId(req), req.query.batchId ? Number(req.query.batchId) : null))
 );
 export const createStudent = asyncHandler(async (req: Request, res: Response) =>
-  res.status(201).json(await svc.createStudent(tenantId(req), req.body))
+  res.status(201).json(await svc.createStudent(tenantId(req), userId(req), req.body))
 );
 export const deleteStudent = asyncHandler(async (req: Request, res: Response) => {
-  await svc.deleteStudent(tenantId(req), Number(req.params.id));
+  await svc.deleteStudent(tenantId(req), userId(req), Number(req.params.id));
   res.json({ success: true });
 });
 
@@ -56,14 +56,15 @@ export const createTimetable = asyncHandler(async (req: Request, res: Response) 
 );
 
 /* Fees */
-export const listFees = asyncHandler(async (req: Request, res: Response) =>
-  res.json(await svc.listFees(tenantId(req)))
-);
+export const listFees = asyncHandler(async (req: Request, res: Response) => {
+  const status = req.query.status === 'pending' || req.query.status === 'paid' ? req.query.status : null;
+  res.json(await svc.listFees(tenantId(req), status));
+});
 export const createFeeStructure = asyncHandler(async (req: Request, res: Response) =>
-  res.status(201).json(await svc.createFeeStructure(tenantId(req), req.body))
+  res.status(201).json(await svc.createFeeStructure(tenantId(req), userId(req), req.body))
 );
 export const recordPayment = asyncHandler(async (req: Request, res: Response) =>
-  res.status(201).json(await svc.recordPayment(tenantId(req), req.body))
+  res.status(201).json(await svc.recordPayment(tenantId(req), userId(req), req.body))
 );
 export const feeReminder = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.feeReminderLink(tenantId(req), Number(req.params.studentId)))
@@ -79,5 +80,5 @@ export const getBranding = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.getBranding(tenantId(req)))
 );
 export const updateBranding = asyncHandler(async (req: Request, res: Response) =>
-  res.json(await svc.updateBranding(tenantId(req), req.body))
+  res.json(await svc.updateBranding(tenantId(req), userId(req), req.body))
 );

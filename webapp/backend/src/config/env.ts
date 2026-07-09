@@ -13,6 +13,18 @@ function required(key: string): string {
   return val;
 }
 
+/** Required env var that must also be a long random secret (spec: >=64 chars). */
+function requiredSecret(key: string, minLen = 64): string {
+  const val = required(key);
+  if (val.length < minLen) {
+    throw new Error(
+      `[env] ${key} must be at least ${minLen} characters (got ${val.length}). ` +
+        `Generate one with: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
+    );
+  }
+  return val;
+}
+
 function optional(key: string, fallback: string): string {
   const val = process.env[key];
   return val === undefined || val === '' ? fallback : val;
@@ -76,20 +88,32 @@ export interface AppEnv {
   };
 }
 
+const nodeEnv = optional('NODE_ENV', 'development');
+const isProd = nodeEnv === 'production';
+
+// CORS_ORIGINS must be an explicit allowlist in production — never fall back
+// to '*', which (combined with credentials:true) would reflect any origin.
+const corsOriginsRaw = optional('CORS_ORIGINS', '*')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+if (isProd && (corsOriginsRaw.length === 0 || corsOriginsRaw.includes('*'))) {
+  throw new Error(
+    '[env] CORS_ORIGINS must be set to an explicit comma-separated list of allowed origins in production (wildcard "*" is not permitted).'
+  );
+}
+
 export const env: AppEnv = {
-  nodeEnv: optional('NODE_ENV', 'development'),
-  isProd: optional('NODE_ENV', 'development') === 'production',
+  nodeEnv,
+  isProd,
   port: int('PORT', 4000),
-  corsOrigins: optional('CORS_ORIGINS', '*')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean),
+  corsOrigins: corsOriginsRaw,
 
   databaseUrl: required('DATABASE_URL'),
 
   jwt: {
-    accessSecret: required('JWT_ACCESS_SECRET'),
-    refreshSecret: required('JWT_REFRESH_SECRET'),
+    accessSecret: requiredSecret('JWT_ACCESS_SECRET'),
+    refreshSecret: requiredSecret('JWT_REFRESH_SECRET'),
     accessTtl: optional('ACCESS_TOKEN_TTL', '15m'),
     refreshTtl: optional('REFRESH_TOKEN_TTL', '30d'),
   },

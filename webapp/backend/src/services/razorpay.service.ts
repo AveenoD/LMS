@@ -96,6 +96,7 @@ export async function createOrder(tenantId: number): Promise<CreateOrderResult> 
  */
 export async function verifyPayment(
   tenantId: number,
+  actorUserId: number,
   { orderId, paymentId, signature }: VerifyPaymentInput
 ): Promise<VerifyPaymentResult> {
   if (env.razorpay.enabled) {
@@ -120,9 +121,9 @@ export async function verifyPayment(
   );
 
   await query(
-    `INSERT INTO audit_log (tenant_id, action, entity, meta)
-     VALUES ($1,'payment_verified','subscription', $2::jsonb)`,
-    [tenantId, JSON.stringify({ orderId, paymentId })]
+    `INSERT INTO audit_log (tenant_id, actor_user_id, action, entity, meta)
+     VALUES ($1,$2,'payment_verified','subscription', $3::jsonb)`,
+    [tenantId, actorUserId, JSON.stringify({ orderId, paymentId })]
   );
 
   return { status: rows[0].status, nextBillingDate: rows[0].nextBillingDate };

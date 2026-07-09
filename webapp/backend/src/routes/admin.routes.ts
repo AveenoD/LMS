@@ -13,6 +13,8 @@ import {
   createFeeStructureSchema,
   recordPaymentSchema,
   updateBrandingSchema,
+  idParamSchema,
+  studentIdParamSchema,
 } from '../validators/admin.validators.js';
 
 const router = Router();
@@ -28,16 +30,16 @@ router.get('/batches', ctrl.listBatches);
 router.get('/subjects', ctrl.listSubjects);
 router.get('/timetable', ctrl.listTimetable);
 router.get('/fees', ctrl.listFees);
-router.get('/fees/:studentId/remind', ctrl.feeReminder);
+router.post('/fees/:studentId/remind', validate(studentIdParamSchema, 'params'), ctrl.feeReminder);
 router.get('/reports/performance', ctrl.performance);
 router.get('/branding', ctrl.getBranding);
 
 // Writes (blocked by subscriptionGuard when trial expired / past_due)
 router.post('/teachers', subscriptionGuard, validate(createTeacherSchema), ctrl.createTeacher);
-router.delete('/teachers/:id', subscriptionGuard, ctrl.deleteTeacher);
+router.delete('/teachers/:id', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.deleteTeacher);
 
 router.post('/students', subscriptionGuard, validate(createStudentSchema), ctrl.createStudent);
-router.delete('/students/:id', subscriptionGuard, ctrl.deleteStudent);
+router.delete('/students/:id', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.deleteStudent);
 
 router.post('/batches', subscriptionGuard, validate(createBatchSchema), ctrl.createBatch);
 router.post('/subjects', subscriptionGuard, validate(createSubjectSchema), ctrl.createSubject);

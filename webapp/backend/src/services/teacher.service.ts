@@ -158,6 +158,10 @@ export async function createContent(
     const b = await query(`SELECT 1 FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
     if (!b.rowCount) throw ApiError.badRequest('INVALID_BATCH');
   }
+  if (subjectId) {
+    const sub = await query(`SELECT 1 FROM subjects WHERE id=$1 AND tenant_id=$2`, [subjectId, tenantId]);
+    if (!sub.rowCount) throw ApiError.badRequest('INVALID_SUBJECT');
+  }
   const { rows } = await query(
     `INSERT INTO content (tenant_id, batch_id, subject_id, title, youtube_url, created_by)
      VALUES ($1,$2,$3,$4,$5,$6)

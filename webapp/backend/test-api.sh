@@ -47,7 +47,7 @@ ST=$($CURL "$BASE/admin/students" -H "Authorization: Bearer $AA_T")
 SID=$(echo "$ST" | jqf "[0].id")
 
 echo "== 9. Fee reminder wa.me link =="
-FR=$($CURL "$BASE/admin/fees/$SID/remind" -H "Authorization: Bearer $AA_T")
+FR=$($CURL -X POST "$BASE/admin/fees/$SID/remind" -H "Authorization: Bearer $AA_T")
 [[ "$FR" == *'https://wa.me/'* ]] && ok "fee reminder wa.me" || bad "fee reminder" "$FR"
 
 echo "== 10. Admin create batch (subscription active/trial => allowed) =="
@@ -64,8 +64,8 @@ echo "== 12. Student dashboard =="
 SD=$($CURL "$BASE/student/dashboard" -H "Authorization: Bearer $STU_T")
 [[ "$SD" == *'"pendingFees"'* ]] && ok "student dashboard" || bad "student dashboard" "$SD"
 
-echo "== 13. Student ask-doubt wa.me (teacher 2) =="
-AD=$($CURL "$BASE/student/ask-doubt?teacherId=2&chapter=Kinematics" -H "Authorization: Bearer $STU_T")
+echo "== 13. Student ask-doubt wa.me (Apex's teacher) =="
+AD=$($CURL "$BASE/student/ask-doubt?teacherId=3&chapter=Kinematics" -H "Authorization: Bearer $STU_T")
 [[ "$AD" == *'https://wa.me/'* ]] && ok "ask-doubt wa.me" || bad "ask-doubt" "$AD"
 
 echo "== 14. Tenant isolation: student can't hit admin (403) =="
