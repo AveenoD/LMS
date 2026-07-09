@@ -19,6 +19,7 @@ import adminRoutes from './routes/admin.routes.js';
 import teacherRoutes from './routes/teacher.routes.js';
 import studentRoutes from './routes/student.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import publicRoutes from './routes/public.routes.js';
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.get('/health', async (_req: Request, res: Response) => {
 const api = express.Router();
 api.use('/auth', authRoutes);
 api.use('/leads', leadRoutes); // public demo bookings
+api.use('/public', publicRoutes); // unauthenticated public data (plans etc.)
 api.use('/superadmin', superadminRoutes);
 api.use('/admin', adminRoutes);
 api.use('/teacher', teacherRoutes);

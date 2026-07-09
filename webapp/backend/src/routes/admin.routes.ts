@@ -3,6 +3,7 @@ import * as ctrl from '../controllers/admin.controller.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleGuard } from '../middleware/roleGuard.js';
 import { subscriptionGuard } from '../middleware/subscriptionGuard.js';
+import { featureGuard } from '../middleware/featureGuard.js';
 import { validate } from '../middleware/validate.js';
 import {
   createTeacherSchema,
@@ -22,7 +23,7 @@ const router = Router();
 // All routes require a coaching_admin token.
 router.use(authMiddleware, roleGuard('coaching_admin'));
 
-// Reads (always allowed, even after trial expiry — soft lock)
+// ── Reads (always allowed, even after trial expiry — soft lock) ───────────────
 router.get('/dashboard', ctrl.dashboard);
 router.get('/teachers', ctrl.listTeachers);
 router.get('/students', ctrl.listStudents);
@@ -30,12 +31,29 @@ router.get('/batches', ctrl.listBatches);
 router.get('/subjects', ctrl.listSubjects);
 router.get('/timetable', ctrl.listTimetable);
 router.get('/fees', ctrl.listFees);
-router.post('/fees/:studentId/remind', validate(studentIdParamSchema, 'params'), ctrl.feeReminder);
-router.get('/reports/performance', ctrl.performance);
 router.get('/branding', ctrl.getBranding);
 
-// Writes (blocked by subscriptionGuard when trial expired / past_due)
-router.post('/teachers', subscriptionGuard, validate(createTeacherSchema), ctrl.createTeacher);
+// Performance reports — Pro & Elite only
+router.get('/reports/performance', featureGuard('performance_reports'), ctrl.performance);
+
+// Fee remind via WhatsApp — Pro & Elite only (returns wa.me link)
+router.post(
+  '/fees/:studentId/remind',
+  featureGuard('whatsapp_reminders'),
+  validate(studentIdParamSchema, 'params'),
+  ctrl.feeReminder
+);
+
+// ── Writes (blocked by subscriptionGuard when trial expired / past_due) ───────
+
+// Teacher accounts — Elite only (max 3 allowed in plan)
+router.post(
+  '/teachers',
+  subscriptionGuard,
+  featureGuard('teacher_accounts'),
+  validate(createTeacherSchema),
+  ctrl.createTeacher
+);
 router.delete('/teachers/:id', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.deleteTeacher);
 
 router.post('/students', subscriptionGuard, validate(createStudentSchema), ctrl.createStudent);
@@ -49,6 +67,14 @@ router.post('/timetable', subscriptionGuard, validate(createTimetableSchema), ct
 router.post('/fees/structures', subscriptionGuard, validate(createFeeStructureSchema), ctrl.createFeeStructure);
 router.post('/fees/payments', subscriptionGuard, validate(recordPaymentSchema), ctrl.recordPayment);
 
-router.put('/branding', subscriptionGuard, validate(updateBrandingSchema), ctrl.updateBranding);
+// Custom branding (logo + colors) — Elite only
+router.put(
+  '/branding',
+  subscriptionGuard,
+  featureGuard('custom_branding'),
+  validate(updateBrandingSchema),
+  ctrl.updateBranding
+);
 
 export default router;
+

@@ -12,13 +12,21 @@ interface SubscriptionRow {
   status: string;
   trialEndsAt: Date | null;
   nextBillingDate: Date | null;
+  // New per-student pricing fields
+  planCatalogId: number | null;
+  billingCycle: string;
+  perStudentRate: number | null;
 }
 
 export interface CreateOrderResult {
   orderId: string;
-  amount: number;
+  amount: number;        // total in paise
+  amountRupees: number;  // total in ₹ (for display)
   currency: string;
   keyId: string;
+  studentCount: number;
+  perStudentRate: number;
+  billingCycle: string;
   mock?: boolean;
 }
 
@@ -33,6 +41,13 @@ export interface VerifyPaymentResult {
   nextBillingDate: Date | null;
 }
 
+/** Billing cycle multipliers (months count for next_billing_date interval) */
+const CYCLE_MONTHS: Record<string, number> = {
+  monthly: 1,
+  quarterly: 3,
+  yearly: 12,
+};
+
 let _client: Razorpay | null = null;
 function client(): Razorpay | null {
   if (!env.razorpay.enabled) return null;
@@ -44,7 +59,12 @@ function client(): Razorpay | null {
 
 async function getSubscription(tenantId: number): Promise<SubscriptionRow> {
   const { rows } = await query<SubscriptionRow>(
-    `SELECT id, plan, amount, status, trial_ends_at AS "trialEndsAt", next_billing_date AS "nextBillingDate"
+    `SELECT id, plan, amount, status,
+            trial_ends_at AS "trialEndsAt",
+            next_billing_date AS "nextBillingDate",
+            plan_catalog_id AS "planCatalogId",
+            billing_cycle AS "billingCycle",
+            per_student_rate AS "perStudentRate"
        FROM subscriptions WHERE tenant_id=$1`,
     [tenantId]
   );
@@ -56,19 +76,50 @@ export async function subscriptionStatus(tenantId: number): Promise<Subscription
   return getSubscription(tenantId);
 }
 
-/** Create a Razorpay order for the tenant's subscription amount. */
+/** Create a Razorpay order.
+ *  - If per_student_rate is set: calculates amount = rate × students × months
+ *  - Falls back to flat amount for legacy flat-plan tenants
+ */
 export async function createOrder(tenantId: number): Promise<CreateOrderResult> {
   const sub = await getSubscription(tenantId);
-  const amountPaise = sub.amount * 100; // never trust client amount
+
+  let finalAmountRupees: number;
+  let studentCount = 0;
+  let perStudentRate = 0;
+  const billingCycle = sub.billingCycle ?? 'monthly';
+  const cycleMonths = CYCLE_MONTHS[billingCycle] ?? 1;
+
+  if (sub.perStudentRate && sub.planCatalogId) {
+    // Per-student pricing: count active students for this tenant
+    const { rows: countRows } = await query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM students WHERE tenant_id = $1`,
+      [tenantId]
+    );
+    studentCount = parseInt(countRows[0]?.count ?? '0', 10);
+    if (studentCount === 0) {
+      throw ApiError.badRequest('NO_STUDENTS', 'Cannot create subscription order: no students enrolled yet.');
+    }
+    perStudentRate = sub.perStudentRate;
+    finalAmountRupees = perStudentRate * studentCount * cycleMonths;
+  } else {
+    // Legacy flat plan
+    finalAmountRupees = sub.amount;
+    perStudentRate = sub.amount;
+  }
+
+  const amountPaise = finalAmountRupees * 100;
 
   if (!env.razorpay.enabled) {
-    // Dev fallback so the flow is testable without live keys.
     logger.warn('Razorpay not configured — returning mock order (dev only)');
     return {
       orderId: `order_mock_${Date.now()}`,
       amount: amountPaise,
+      amountRupees: finalAmountRupees,
       currency: 'INR',
       keyId: 'rzp_test_mock',
+      studentCount,
+      perStudentRate,
+      billingCycle,
       mock: true,
     };
   }
@@ -80,19 +131,24 @@ export async function createOrder(tenantId: number): Promise<CreateOrderResult> 
     amount: amountPaise,
     currency: 'INR',
     receipt: `sub_${sub.id}_${Date.now()}`,
-    notes: { tenantId: String(tenantId) },
+    notes: { tenantId: String(tenantId), billingCycle, studentCount: String(studentCount) },
   });
+
   return {
     orderId: order.id,
     amount: Number(order.amount),
+    amountRupees: finalAmountRupees,
     currency: order.currency,
     keyId: env.razorpay.keyId,
+    studentCount,
+    perStudentRate,
+    billingCycle,
   };
 }
 
 /**
  * Verify Razorpay payment signature server-side, then activate the subscription.
- * signature = HMAC_SHA256(orderId + '|' + paymentId, secret)
+ * Snapshots the student count and calculates next_billing_date from billing cycle.
  */
 export async function verifyPayment(
   tenantId: number,
@@ -108,23 +164,37 @@ export async function verifyPayment(
       throw ApiError.badRequest('INVALID_SIGNATURE', 'Payment signature verification failed');
     }
   } else if (!String(orderId).startsWith('order_mock_')) {
-    // In dev without keys, only accept mock orders.
     throw ApiError.badRequest('RAZORPAY_NOT_CONFIGURED', 'Payment gateway not configured');
   }
 
+  // Get current subscription to know billing cycle
+  const sub = await getSubscription(tenantId);
+  const cycleMonths = CYCLE_MONTHS[sub.billingCycle ?? 'monthly'] ?? 1;
+
+  // Snapshot current student count at payment time
+  const { rows: countRows } = await query<{ count: string }>(
+    `SELECT count(*)::text AS count FROM students WHERE tenant_id = $1`,
+    [tenantId]
+  );
+  const studentCountSnapshot = parseInt(countRows[0]?.count ?? '0', 10);
+
   const { rows } = await query<{ status: string; nextBillingDate: Date | null }>(
     `UPDATE subscriptions
-        SET status='active', next_billing_date = now() + interval '30 days'
-      WHERE tenant_id=$1
+        SET status = 'active',
+            next_billing_date = now() + ($2 || ' months')::interval,
+            student_count_snapshot = $3,
+            amount = COALESCE(per_student_rate, amount) * GREATEST($3, 1) * $4
+      WHERE tenant_id = $1
       RETURNING status, next_billing_date AS "nextBillingDate"`,
-    [tenantId]
+    [tenantId, cycleMonths, studentCountSnapshot, cycleMonths]
   );
 
   await query(
     `INSERT INTO audit_log (tenant_id, actor_user_id, action, entity, meta)
      VALUES ($1,$2,'payment_verified','subscription', $3::jsonb)`,
-    [tenantId, actorUserId, JSON.stringify({ orderId, paymentId })]
+    [tenantId, actorUserId, JSON.stringify({ orderId, paymentId, studentCountSnapshot, cycleMonths })]
   );
 
   return { status: rows[0].status, nextBillingDate: rows[0].nextBillingDate };
 }
+
