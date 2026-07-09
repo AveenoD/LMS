@@ -2,80 +2,103 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/management_providers.dart';
 
+class _SelectedBatchNotifier extends Notifier<int?> {
+  @override
+  int? build() => null;
+  void set(int? value) => state = value;
+}
+
+final _selectedBatchProvider = NotifierProvider<_SelectedBatchNotifier, int?>(_SelectedBatchNotifier.new);
+
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reportAsync = ref.watch(performanceReportProvider);
+    final selectedBatch = ref.watch(_selectedBatchProvider);
+    final reportAsync = ref.watch(performanceReportProvider(selectedBatch));
+    final batchesAsync = ref.watch(batchesProvider);
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Performance Reports'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: primary,
         foregroundColor: Colors.white,
       ),
-      body: reportAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-        data: (report) {
-          final topPerformers = report['topPerformers'] as List<dynamic>? ?? [];
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Batch Analytics',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: _buildMetricCard('Average Score', '${report['averageScore'] ?? 0}%', Icons.analytics, Colors.blue)),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildMetricCard('Pass Rate', '${report['passRate'] ?? 0}%', Icons.check_circle, Colors.green)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Batch Analytics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            batchesAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (batches) {
+                if (batches.isEmpty) return const SizedBox.shrink();
+                return DropdownButtonFormField<int?>(
+                  initialValue: selectedBatch,
+                  decoration: const InputDecoration(
+                    labelText: 'Filter by batch',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<int?>(value: null, child: Text('All batches')),
+                    ...batches.cast<Map<String, dynamic>>().map(
+                          (b) => DropdownMenuItem<int?>(value: b['id'] as int, child: Text(b['name']?.toString() ?? '')),
+                        ),
                   ],
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Top Performing Students',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                topPerformers.isEmpty
-                    ? const Text('No top performers recorded.')
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: topPerformers.length,
-                        itemBuilder: (context, index) {
-                          final student = topPerformers[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.amber.shade100,
-                                child: Text('#${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
-                              ),
-                              title: Text(student['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('${student['batchName'] ?? 'No Batch'} • Score: ${student['score'] ?? 0}'),
-                              trailing: const Icon(Icons.emoji_events, color: Colors.amber),
-                            ),
-                          );
-                        },
-                      ),
-              ],
+                  onChanged: (v) => ref.read(_selectedBatchProvider.notifier).set(v),
+                );
+              },
             ),
-          );
-        },
+            const SizedBox(height: 20),
+            reportAsync.when(
+              loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+              error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+              data: (report) {
+                final avgAttendance = report['avgAttendance'];
+                final avgMarks = report['avgMarksPct'];
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Avg Attendance',
+                        avgAttendance == null ? 'No data' : '$avgAttendance%',
+                        Icons.event_available,
+                        Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildMetricCard(
+                        'Avg Marks',
+                        avgMarks == null ? 'No data' : '$avgMarks%',
+                        Icons.grade,
+                        Colors.green,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Based on attendance records and test results entered for this institute. '
+              'Per-student rankings aren’t available yet.',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        backgroundColor: Colors.deepPurple,
-        icon: const Icon(Icons.download, color: Colors.white),
-        label: const Text('Export Report', style: TextStyle(color: Colors.white)),
+        onPressed: () => ref.invalidate(performanceReportProvider(selectedBatch)),
+        backgroundColor: primary,
+        icon: const Icon(Icons.refresh, color: Colors.white),
+        label: const Text('Refresh', style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -94,7 +117,8 @@ class ReportsScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(

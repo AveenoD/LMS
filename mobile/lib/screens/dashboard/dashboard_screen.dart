@@ -8,7 +8,10 @@ import '../management/teachers_screen.dart';
 import '../management/batches_screen.dart';
 import '../management/subjects_screen.dart';
 import '../academics/timetable_screen.dart';
+import '../auth/login_screen.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/constants.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -16,25 +19,24 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(dashboardProvider);
+    final authState = ref.watch(authProvider);
+    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('EdTech Dashboard'),
+        title: Text(authState.instituteName ?? 'EdTech Dashboard'),
         elevation: 0,
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: primary,
         foregroundColor: Colors.white,
       ),
-      drawer: _buildDrawer(context),
+      drawer: _buildDrawer(context, ref, authState, primary),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Overview',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              const Text('Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               Expanded(
                 child: dashboardAsync.when(
@@ -42,24 +44,7 @@ class DashboardScreen extends ConsumerWidget {
                   error: (err, stack) => Center(
                     child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
                   ),
-                  data: (data) {
-                    final students = data['totalStudents']?.toString() ?? '0';
-                    final collected = data['feesCollected']?.toString() ?? '\$0';
-                    final batches = data['activeBatches']?.toString() ?? '0';
-                    final pending = data['pendingDues']?.toString() ?? '\$0';
-
-                    return GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      children: [
-                        _buildStatCard('Total Students', students, Icons.people, Colors.blue),
-                        _buildStatCard('Fees Collected', collected, Icons.attach_money, Colors.green),
-                        _buildStatCard('Active Batches', batches, Icons.class_, Colors.orange),
-                        _buildStatCard('Pending Dues', pending, Icons.warning, Colors.red),
-                      ],
-                    );
-                  },
+                  data: (data) => _buildBody(context, authState.userRole, data),
                 ),
               ),
             ],
@@ -69,21 +54,58 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDrawer(BuildContext context) {
+  Widget _buildBody(BuildContext context, String? role, Map<String, dynamic> data) {
+    // `GET /admin/dashboard` is the only dashboard endpoint this app has a
+    // screen for today; other roles get an honest placeholder instead of
+    // stat cards showing fabricated zeros.
+    if (role != 'coaching_admin') {
+      return Center(
+        child: Text(
+          role == null
+              ? 'Loading your dashboard…'
+              : 'A dedicated "$role" dashboard isn\'t built yet.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    final students = data['studentCount']?.toString() ?? '0';
+    final teachers = data['teacherCount']?.toString() ?? '0';
+    final collected = '${Constants.currencySymbol}${data['feesCollected'] ?? 0}';
+    final pending = '${Constants.currencySymbol}${data['feesPending'] ?? 0}';
+
+    return GridView.count(
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      children: [
+        _buildStatCard('Total Students', students, Icons.people, Colors.blue),
+        _buildStatCard('Total Teachers', teachers, Icons.badge, Colors.purple),
+        _buildStatCard('Fees Collected', collected, Icons.attach_money, Colors.green),
+        _buildStatCard('Fees Pending', pending, Icons.warning, Colors.red),
+      ],
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context, WidgetRef ref, AuthState authState, Color primary) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Colors.deepPurple),
+          DrawerHeader(
+            decoration: BoxDecoration(color: primary),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(Icons.account_circle, size: 60, color: Colors.white),
-                SizedBox(height: 10),
-                Text('Admin User', style: TextStyle(color: Colors.white, fontSize: 18)),
-                Text('admin@edtech.com', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                const Icon(Icons.account_circle, size: 60, color: Colors.white),
+                const SizedBox(height: 10),
+                Text(authState.fullName ?? 'User', style: const TextStyle(color: Colors.white, fontSize: 18)),
+                Text(
+                  authState.instituteName ?? authState.userRole ?? '',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
               ],
             ),
           ),
@@ -114,9 +136,14 @@ class DashboardScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text('Logout', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
+            onTap: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
           ),
         ],
