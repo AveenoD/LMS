@@ -3,6 +3,10 @@ import type { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import YAML from 'yaml';
+import swaggerUi from 'swagger-ui-express';
 
 import env from './config/env.js';
 import logger from './utils/logger.js';
@@ -10,6 +14,12 @@ import { healthCheck } from './config/db.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { scheduleBillingJob } from './jobs/billing.job.js';
+
+// Load OpenAPI spec (works from both tsx dev mode and compiled dist/)
+const openApiSpec = YAML.parse(
+  readFileSync(join(process.cwd(), 'docs/openapi.yml'), 'utf-8')
+);
+
 
 // Routes
 import authRoutes from './routes/auth.routes.js';
@@ -40,6 +50,26 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan(env.isProd ? 'combined' : 'dev'));
 app.use(globalLimiter);
+
+// ── Swagger UI (/docs) — development only ──────────────────────────────────
+if (!env.isProd) {
+  app.use(
+    '/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(openApiSpec, {
+      customSiteTitle: 'EdTech OS API Docs',
+      customCss: '.swagger-ui .topbar { background-color: #1e293b; } .swagger-ui .topbar-wrapper img { display: none; } .swagger-ui .topbar-wrapper::before { content: "EdTech OS API"; color: white; font-size: 1.2rem; font-weight: bold; }',
+      swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        docExpansion: 'none',
+        filter: true,
+        tagsSorter: 'alpha',
+      },
+    })
+  );
+  logger.info('Swagger UI available at http://localhost:4000/docs');
+}
 
 // ── Health ──
 app.get('/health', async (_req: Request, res: Response) => {

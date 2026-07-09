@@ -1,0 +1,1906 @@
+openapi: 3.1.0
+
+info:
+  title: EdTech OS — Multi-Tenant Coaching API
+  version: 1.0.0
+  description: |
+    **Multi-Tenant EdTech OS** — complete REST API for coaching institute management.
+
+    ### Authentication
+    All protected routes require a JWT Bearer token obtained from `POST /auth/login`.
+    Include it as: `Authorization: Bearer <accessToken>`
+
+    ### Roles
+    | Role | Description |
+    |------|-------------|
+    | `super_admin` | Platform owner — manages all institutes |
+    | `coaching_admin` | Institute owner — manages students, teachers, fees |
+    | `teacher` | Takes attendance, uploads content, creates live classes |
+    | `student` | Views content, fees, live classes |
+
+    ### Tenant Isolation
+    Every request is scoped to the authenticated user's `tenantId` from their JWT.
+    Never pass `tenantId` in the body — it is always read from the token.
+
+  contact:
+    name: EdTech OS Support
+    email: support@edtechos.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local development server
+  - url: https://api.edtechos.com/api/v1
+    description: Production server
+
+tags:
+  - name: Auth
+    description: Login, logout, token refresh
+  - name: Public
+    description: Unauthenticated endpoints (pricing page, demo bookings)
+  - name: Super Admin — Tenants
+    description: Manage institutes (Super Admin only)
+  - name: Super Admin — Plans
+    description: Manage pricing plan catalog (Super Admin only)
+  - name: Super Admin — Subscriptions
+    description: View and manage subscription billing (Super Admin only)
+  - name: Super Admin — Leads
+    description: Demo booking inbox (Super Admin only)
+  - name: Super Admin — Analytics
+    description: Platform-wide KPIs (Super Admin only)
+  - name: Coaching Admin — Dashboard
+    description: Institute overview
+  - name: Coaching Admin — Teachers
+    description: Manage teacher accounts
+  - name: Coaching Admin — Students
+    description: Manage student accounts
+  - name: Coaching Admin — Batches & Subjects
+    description: Manage batches and subjects
+  - name: Coaching Admin — Timetable
+    description: Assign teachers to batch/subject/time slots
+  - name: Coaching Admin — Fees
+    description: Fee structures and payment recording
+  - name: Coaching Admin — Branding
+    description: Customize logo and theme color
+  - name: Coaching Admin — Reports
+    description: Performance analytics
+  - name: Teacher
+    description: Schedule, attendance, content, live classes
+  - name: Student
+    description: Dashboard, videos, live classes, fees, doubts
+  - name: Payments
+    description: Razorpay subscription payment flow
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY SCHEMES
+# ─────────────────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token from POST /auth/login
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # REUSABLE SCHEMAS
+  # ───────────────────────────────────────────────────────────────────────────
+  schemas:
+
+    # ── Common ───────────────────────────────────────────────────────────────
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Phone must be 10-15 digits
+        errors:
+          type: array
+          items:
+            type: object
+
+    SuccessBoolean:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    # ── Auth ─────────────────────────────────────────────────────────────────
+    LoginRequest:
+      type: object
+      required: [phone, password]
+      properties:
+        slug:
+          type: string
+          example: apex
+          description: Institute slug. Omit for super_admin login.
+        phone:
+          type: string
+          example: "919000000013"
+          description: 10-15 digit phone number (country code + number)
+        password:
+          type: string
+          example: "Coach@123"
+          minLength: 6
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          type: object
+          properties:
+            id:         { type: integer, example: 13 }
+            role:       { type: string, example: student }
+            tenantId:   { type: integer, example: 1 }
+            fullName:   { type: string, example: Aarav Joshi }
+        branding:
+          type: object
+          properties:
+            name:         { type: string, example: Apex Academy }
+            logoUrl:      { type: string, nullable: true, example: "https://cdn.edtechos.com/apex.png" }
+            primaryColor: { type: string, example: "#2563EB" }
+
+    MeResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:       { type: integer, example: 13 }
+            role:     { type: string, example: coaching_admin }
+            tenantId: { type: integer, nullable: true, example: 1 }
+            fullName: { type: string, example: Rajesh Deshmukh }
+            phone:    { type: string, example: "919000000011" }
+            email:    { type: string, nullable: true, example: rajesh@apexacademy.com }
+        branding:
+          $ref: '#/components/schemas/LoginResponse/properties/branding'
+
+    # ── Plan Catalog ──────────────────────────────────────────────────────────
+    PlanItem:
+      type: object
+      properties:
+        id:             { type: integer, example: 2 }
+        name:           { type: string, example: Pro }
+        tagline:        { type: string, example: "Smart automation jo aapka time bachaye." }
+        priceMonthly:   { type: integer, example: 30 }
+        priceQuarterly: { type: integer, example: 25 }
+        priceYearly:    { type: integer, example: 22 }
+        features:
+          type: array
+          items: { type: string }
+          example: ["digital_attendance", "live_classes", "whatsapp_reminders"]
+        isActive:       { type: boolean, example: true }
+        displayOrder:   { type: integer, example: 2 }
+        createdAt:      { type: string, format: date-time }
+        updatedAt:      { type: string, format: date-time }
+
+    CreatePlanRequest:
+      type: object
+      required: [name, priceMonthly, priceQuarterly, priceYearly, features]
+      properties:
+        name:           { type: string, example: Pro }
+        tagline:        { type: string, example: "Smart automation jo aapka time bachaye." }
+        priceMonthly:   { type: integer, example: 30 }
+        priceQuarterly: { type: integer, example: 25 }
+        priceYearly:    { type: integer, example: 22 }
+        features:
+          type: array
+          items:
+            type: string
+            enum: [student_management, batch_management, digital_attendance, fee_management,
+                   video_library, whatsapp_reminders, live_classes, performance_reports,
+                   online_tests, doubt_solving, custom_branding, teacher_accounts]
+          example: ["digital_attendance", "live_classes", "whatsapp_reminders"]
+        displayOrder: { type: integer, example: 2 }
+
+    UpdatePlanRequest:
+      type: object
+      properties:
+        tagline:        { type: string }
+        priceMonthly:   { type: integer }
+        priceQuarterly: { type: integer }
+        priceYearly:    { type: integer }
+        features:
+          type: array
+          items: { type: string }
+        isActive:     { type: boolean }
+        displayOrder: { type: integer }
+
+    # ── Tenant ───────────────────────────────────────────────────────────────
+    TenantListItem:
+      type: object
+      properties:
+        id:              { type: integer, example: 1 }
+        name:            { type: string, example: Apex Academy }
+        slug:            { type: string, example: apex }
+        city:            { type: string, nullable: true, example: Nashik }
+        isActive:        { type: boolean, example: true }
+        status:          { type: string, example: trial }
+        trialEndsAt:     { type: string, format: date-time, nullable: true }
+        nextBillingDate: { type: string, format: date-time, nullable: true }
+        studentCount:    { type: integer, example: 48 }
+
+    RegisterTenantRequest:
+      type: object
+      required: [name, slug, adminName, adminPhone, adminPassword]
+      properties:
+        name:          { type: string, example: Apex Academy }
+        slug:          { type: string, example: apex, description: "Lowercase letters, digits, hyphens only" }
+        city:          { type: string, example: Nashik }
+        contactPhone:  { type: string, example: "919999900001" }
+        primaryColor:  { type: string, example: "#2563EB" }
+        adminName:     { type: string, example: Rajesh Deshmukh }
+        adminPhone:    { type: string, example: "919000000011" }
+        adminPassword: { type: string, example: "Coach@123", minLength: 6 }
+        plan:          { type: string, enum: [flat, per_student], example: per_student }
+        amount:        { type: integer, example: 2500 }
+
+    TenantSubscriptionDetail:
+      type: object
+      properties:
+        tenantId:              { type: integer, example: 1 }
+        tenantName:            { type: string, example: Apex Academy }
+        status:                { type: string, example: trial }
+        planId:                { type: integer, nullable: true, example: 2 }
+        planName:              { type: string, nullable: true, example: Pro }
+        billingCycle:          { type: string, example: yearly }
+        perStudentRate:        { type: integer, nullable: true, example: 22 }
+        studentCountSnapshot:  { type: integer, nullable: true, example: 80 }
+        amount:                { type: integer, example: 21120 }
+        trialEndsAt:           { type: string, format: date-time, nullable: true }
+        nextBillingDate:       { type: string, format: date-time, nullable: true }
+
+    AssignPlanRequest:
+      type: object
+      required: [planCatalogId, billingCycle]
+      properties:
+        planCatalogId: { type: integer, example: 2 }
+        billingCycle:
+          type: string
+          enum: [monthly, quarterly, yearly]
+          example: yearly
+
+    # ── Subscription ─────────────────────────────────────────────────────────
+    SubscriptionListItem:
+      type: object
+      properties:
+        tenantId:        { type: integer, example: 1 }
+        name:            { type: string, example: Apex Academy }
+        status:          { type: string, example: active }
+        plan:            { type: string, example: per_student }
+        amount:          { type: integer, example: 21120 }
+        trialEndsAt:     { type: string, format: date-time, nullable: true }
+        nextBillingDate: { type: string, format: date-time, nullable: true }
+
+    # ── Lead ─────────────────────────────────────────────────────────────────
+    CreateLeadRequest:
+      type: object
+      required: [ownerName, instituteName, phone]
+      properties:
+        ownerName:     { type: string, example: Suresh Mehta }
+        instituteName: { type: string, example: "Mehta Coaching Classes" }
+        phone:         { type: string, example: "919876543210" }
+        city:          { type: string, example: Nashik }
+        studentCount:  { type: integer, example: 120 }
+        message:       { type: string, example: "We need live classes and fee management." }
+
+    LeadItem:
+      type: object
+      properties:
+        id:            { type: integer, example: 5 }
+        ownerName:     { type: string, example: Suresh Mehta }
+        instituteName: { type: string, example: "Mehta Coaching Classes" }
+        phone:         { type: string, example: "919876543210" }
+        city:          { type: string, example: Nashik }
+        studentCount:  { type: integer, nullable: true, example: 120 }
+        message:       { type: string, nullable: true }
+        status:        { type: string, example: new }
+        isRead:        { type: boolean, example: false }
+        createdAt:     { type: string, format: date-time }
+
+    # ── Teacher ──────────────────────────────────────────────────────────────
+    CreateTeacherRequest:
+      type: object
+      required: [fullName, phone, password]
+      properties:
+        fullName: { type: string, example: "Sunita Patil" }
+        phone:    { type: string, example: "919000000012" }
+        password: { type: string, example: "Teacher@123", minLength: 6 }
+        email:    { type: string, format: email, example: "sunita@apexacademy.com" }
+
+    TeacherItem:
+      type: object
+      properties:
+        id:       { type: integer, example: 4 }
+        fullName: { type: string, example: "Sunita Patil" }
+        phone:    { type: string, example: "919000000012" }
+        email:    { type: string, nullable: true }
+
+    # ── Student ──────────────────────────────────────────────────────────────
+    CreateStudentRequest:
+      type: object
+      required: [fullName, phone, password, parentPhone, batchId]
+      properties:
+        fullName:    { type: string, example: "Aarav Joshi" }
+        phone:       { type: string, example: "919000000013" }
+        password:    { type: string, example: "Student@123", minLength: 6 }
+        parentName:  { type: string, example: "Ramesh Joshi" }
+        parentPhone: { type: string, example: "919000000099" }
+        grade:       { type: string, example: "Class 11" }
+        rollNo:      { type: string, example: "APX-001" }
+        batchId:     { type: integer, example: 3 }
+
+    StudentListItem:
+      type: object
+      properties:
+        id:          { type: integer, example: 7 }
+        fullName:    { type: string, example: "Aarav Joshi" }
+        rollNo:      { type: string, nullable: true, example: "APX-001" }
+        grade:       { type: string, nullable: true, example: "Class 11" }
+        parentPhone: { type: string, example: "919000000099" }
+
+    # ── Batch & Subject ───────────────────────────────────────────────────────
+    CreateBatchRequest:
+      type: object
+      required: [name]
+      properties:
+        name:  { type: string, example: "JEE 2026 Morning" }
+        grade: { type: string, example: "Class 11" }
+
+    BatchItem:
+      type: object
+      properties:
+        id:           { type: integer, example: 3 }
+        name:         { type: string, example: "JEE 2026 Morning" }
+        grade:        { type: string, nullable: true, example: "Class 11" }
+        studentCount: { type: integer, example: 48 }
+
+    CreateSubjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, example: Physics }
+
+    SubjectItem:
+      type: object
+      properties:
+        id:   { type: integer, example: 1 }
+        name: { type: string, example: Physics }
+
+    # ── Timetable ────────────────────────────────────────────────────────────
+    CreateTimetableRequest:
+      type: object
+      required: [batchId, teacherId, dayOfWeek, startTime, endTime]
+      properties:
+        batchId:    { type: integer, example: 3 }
+        subjectId:  { type: integer, example: 1 }
+        teacherId:  { type: integer, example: 4 }
+        dayOfWeek:  { type: integer, minimum: 0, maximum: 6, example: 1, description: "0=Sun, 1=Mon … 6=Sat" }
+        startTime:  { type: string, example: "09:00" }
+        endTime:    { type: string, example: "10:30" }
+
+    TimetableItem:
+      type: object
+      properties:
+        id:        { type: integer, example: 12 }
+        batch:     { type: string, example: "JEE 2026 Morning" }
+        subject:   { type: string, nullable: true, example: Physics }
+        teacher:   { type: string, example: "Sunita Patil" }
+        startTime: { type: string, example: "09:00:00" }
+        endTime:   { type: string, example: "10:30:00" }
+
+    # ── Fees ─────────────────────────────────────────────────────────────────
+    CreateFeeStructureRequest:
+      type: object
+      required: [title, amount]
+      properties:
+        batchId: { type: integer, example: 3 }
+        title:   { type: string, example: "Term 1 Fee" }
+        amount:  { type: integer, example: 15000 }
+        dueDate: { type: string, format: date, example: "2026-08-15" }
+
+    RecordPaymentRequest:
+      type: object
+      required: [studentId, amountPaid]
+      properties:
+        studentId:       { type: integer, example: 7 }
+        feeStructureId:  { type: integer, example: 2 }
+        amountPaid:      { type: integer, example: 15000 }
+        method:          { type: string, enum: [cash, upi, card], example: upi }
+
+    FeeListItem:
+      type: object
+      properties:
+        studentId: { type: integer, example: 7 }
+        name:      { type: string, example: "Aarav Joshi" }
+        total:     { type: integer, example: 15000 }
+        paid:      { type: integer, example: 10000 }
+        pending:   { type: integer, example: 5000 }
+
+    # ── Attendance ───────────────────────────────────────────────────────────
+    AttendanceRecord:
+      type: object
+      required: [studentId, status]
+      properties:
+        studentId: { type: integer, example: 7 }
+        status:    { type: string, enum: [present, absent, late], example: present }
+
+    MarkAttendanceRequest:
+      type: object
+      required: [batchId, date, records]
+      properties:
+        batchId:     { type: integer, example: 3 }
+        timetableId: { type: integer, example: 12 }
+        date:        { type: string, format: date, example: "2026-07-09" }
+        records:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AttendanceRecord'
+
+    # ── Content ──────────────────────────────────────────────────────────────
+    CreateContentRequest:
+      type: object
+      required: [title, youtubeUrl]
+      properties:
+        title:      { type: string, example: "Kinematics — Part 1" }
+        youtubeUrl: { type: string, format: uri, example: "https://youtu.be/abc123" }
+        batchId:    { type: integer, example: 3 }
+        subjectId:  { type: integer, example: 1 }
+
+    ContentItem:
+      type: object
+      properties:
+        id:         { type: integer, example: 9 }
+        title:      { type: string, example: "Kinematics — Part 1" }
+        youtubeUrl: { type: string, example: "https://youtu.be/abc123" }
+        batch:      { type: string, nullable: true, example: "JEE 2026 Morning" }
+        subject:    { type: string, nullable: true, example: Physics }
+
+    # ── Live Classes ─────────────────────────────────────────────────────────
+    CreateLiveClassRequest:
+      type: object
+      required: [title, meetUrl, batchId, scheduledAt]
+      properties:
+        title:       { type: string, example: "Thermodynamics Revision" }
+        meetUrl:     { type: string, format: uri, example: "https://meet.google.com/xyz-abc-def" }
+        batchId:     { type: integer, example: 3 }
+        scheduledAt: { type: string, format: date-time, example: "2026-07-10T09:00:00+05:30" }
+
+    LiveClassItem:
+      type: object
+      properties:
+        id:          { type: integer, example: 5 }
+        title:       { type: string, example: "Thermodynamics Revision" }
+        meetUrl:     { type: string, example: "https://meet.google.com/xyz-abc-def" }
+        scheduledAt: { type: string, format: date-time }
+        joinable:    { type: boolean, example: true, description: "True if class is within join window" }
+
+    # ── Payment ──────────────────────────────────────────────────────────────
+    CreateOrderResponse:
+      type: object
+      properties:
+        orderId:        { type: string, example: "order_OESzy9YZbLBrze" }
+        amount:         { type: integer, example: 2112000, description: "Total amount in paise" }
+        amountRupees:   { type: integer, example: 21120, description: "Total amount in ₹" }
+        currency:       { type: string, example: INR }
+        keyId:          { type: string, example: "rzp_live_XXXXX" }
+        studentCount:   { type: integer, example: 80 }
+        perStudentRate: { type: integer, example: 22 }
+        billingCycle:   { type: string, example: yearly }
+        mock:           { type: boolean, example: false }
+
+    VerifyPaymentRequest:
+      type: object
+      required: [orderId, paymentId]
+      properties:
+        orderId:   { type: string, example: "order_OESzy9YZbLBrze" }
+        paymentId: { type: string, example: "pay_OESzy9YZbLBrze" }
+        signature: { type: string, example: "abc123def456...", description: "HMAC-SHA256 signature. Optional for dev mock orders." }
+
+    # ── Analytics ────────────────────────────────────────────────────────────
+    PlatformAnalytics:
+      type: object
+      properties:
+        totalTenants:  { type: integer, example: 12 }
+        activeTenants: { type: integer, example: 10 }
+        totalStudents: { type: integer, example: 1450 }
+        mrr:           { type: integer, example: 185000, description: "Monthly recurring revenue in ₹" }
+        onTrial:       { type: integer, example: 3 }
+
+  # ── Common Responses ───────────────────────────────────────────────────────
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: INVALID_TOKEN, message: "Token is invalid or expired" }
+
+    Forbidden:
+      description: Insufficient role or plan
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            role_forbidden:
+              value: { code: FORBIDDEN, message: "Access denied for your role" }
+            trial_expired:
+              value: { code: TRIAL_EXPIRED, message: "Your free trial has ended. Please subscribe." }
+            plan_upgrade:
+              value: { code: PLAN_UPGRADE_REQUIRED, message: "This feature requires the Pro plan or higher." }
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: NOT_FOUND, message: "Resource not found" }
+
+    ValidationError:
+      description: Request body / params failed validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: VALIDATION_ERROR, message: "phone: Phone must be 10-15 digits" }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # HEALTH
+  # ══════════════════════════════════════════════════════════════════════════
+  /health:
+    get:
+      tags: [Public]
+      summary: Health check
+      description: Returns server and database status. No auth required.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              example:
+                status: ok
+                db: true
+                ts: "2026-07-09T16:00:00.000Z"
+        '503':
+          description: Database unreachable
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # AUTH
+  # ══════════════════════════════════════════════════════════════════════════
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: |
+        Authenticates a user and returns JWT access + refresh tokens along with branding info.
+        - For `coaching_admin`, `teacher`, `student`: provide `slug` (institute identifier) + `phone` + `password`.
+        - For `super_admin`: omit `slug`, just provide `phone` + `password`.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+            examples:
+              student_login:
+                summary: Student login
+                value: { slug: apex, phone: "919000000013", password: "Student@123" }
+              admin_login:
+                summary: Coaching Admin login
+                value: { slug: apex, phone: "919000000011", password: "Coach@123" }
+              superadmin_login:
+                summary: Super Admin login (no slug)
+                value: { phone: "918888800000", password: "Admin@123" }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              example: { code: INVALID_CREDENTIALS, message: "Phone or password is incorrect" }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: Exchange a valid refresh token for a new access token.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string, example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+      responses:
+        '200':
+          description: New access token issued
+          content:
+            application/json:
+              example: { accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      description: Returns the authenticated user's profile and institute branding.
+      operationId: getMe
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Signals logout. Client should discard stored tokens.
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              example: { success: true }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # PUBLIC
+  # ══════════════════════════════════════════════════════════════════════════
+  /public/plans:
+    get:
+      tags: [Public]
+      summary: List active pricing plans
+      description: Returns all active plans from the catalog. Used by the marketing/pricing page. No auth required.
+      operationId: listPublicPlans
+      responses:
+        '200':
+          description: Active pricing plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PlanItem' }
+              example:
+                - id: 1
+                  name: Basic
+                  tagline: "Apni coaching ko digital banayein."
+                  priceMonthly: 20
+                  priceQuarterly: 15
+                  priceYearly: 12
+                  features: [student_management, digital_attendance, fee_management, video_library]
+                  isActive: true
+                  displayOrder: 1
+
+  /leads:
+    post:
+      tags: [Public]
+      summary: Book a demo (lead submission)
+      description: |
+        Public endpoint for the marketing site's "Book a Demo" form.
+        Saves the lead and fires notifications (email + Telegram) to the platform owner.
+        Rate-limited to prevent spam.
+      operationId: createLead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLeadRequest' }
+      responses:
+        '201':
+          description: Lead submitted successfully
+          content:
+            application/json:
+              example: { success: true, message: "Demo request received. We'll contact you soon!" }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              example: { code: RATE_LIMIT, message: "Too many requests. Try again later." }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SUPER ADMIN — TENANTS
+  # ══════════════════════════════════════════════════════════════════════════
+  /superadmin/tenants:
+    get:
+      tags: [Super Admin — Tenants]
+      summary: List all institutes
+      operationId: listTenants
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of all institutes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TenantListItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Super Admin — Tenants]
+      summary: Register a new institute
+      description: Creates a new tenant with a trial subscription and coaching_admin account in one transaction.
+      operationId: registerTenant
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterTenantRequest' }
+      responses:
+        '201':
+          description: Institute registered
+          content:
+            application/json:
+              example:
+                tenant: { id: 3, name: "Mehta Classes", slug: "mehta", city: "Nashik" }
+                adminUser: { id: 15, fullName: "Suresh Mehta", phone: "919876543210", role: coaching_admin }
+        '409':
+          description: Slug already taken
+          content:
+            application/json:
+              example: { code: SLUG_TAKEN, message: "This slug is already in use" }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /superadmin/tenants/{id}/suspend:
+    patch:
+      tags: [Super Admin — Tenants]
+      summary: Activate / Suspend an institute
+      operationId: suspendTenant
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isActive]
+              properties:
+                isActive: { type: boolean, example: false }
+      responses:
+        '200':
+          description: Tenant activation state updated
+          content:
+            application/json:
+              example: { id: 1, name: "Apex Academy", isActive: false }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /superadmin/tenants/{id}/subscription:
+    get:
+      tags: [Super Admin — Subscriptions]
+      summary: Get tenant subscription detail
+      operationId: getTenantSubscription
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 1 }
+      responses:
+        '200':
+          description: Tenant subscription detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TenantSubscriptionDetail' }
+    put:
+      tags: [Super Admin — Subscriptions]
+      summary: Assign / change plan and billing cycle for a tenant
+      operationId: assignPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignPlanRequest' }
+      responses:
+        '200':
+          description: Plan assigned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TenantSubscriptionDetail' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SUPER ADMIN — PLANS
+  # ══════════════════════════════════════════════════════════════════════════
+  /superadmin/plans:
+    get:
+      tags: [Super Admin — Plans]
+      summary: List all plans (including inactive)
+      operationId: listPlans
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All pricing plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PlanItem' }
+    post:
+      tags: [Super Admin — Plans]
+      summary: Create a new pricing plan
+      operationId: createPlan
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePlanRequest' }
+      responses:
+        '201':
+          description: Plan created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlanItem' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /superadmin/plans/{id}:
+    get:
+      tags: [Super Admin — Plans]
+      summary: Get plan by ID
+      operationId: getPlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 2 }
+      responses:
+        '200':
+          description: Plan detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlanItem' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Super Admin — Plans]
+      summary: Update a plan's prices or features
+      operationId: updatePlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 2 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePlanRequest' }
+            example:
+              priceMonthly: 35
+              priceYearly: 25
+              isActive: true
+      responses:
+        '200':
+          description: Plan updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlanItem' }
+    delete:
+      tags: [Super Admin — Plans]
+      summary: Deactivate a plan (soft delete)
+      description: Sets `isActive = false`. Existing subscribers keep their plan.
+      operationId: deactivatePlan
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 2 }
+      responses:
+        '200':
+          description: Plan deactivated
+          content:
+            application/json:
+              example: { id: 2, name: Pro, isActive: false }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SUPER ADMIN — SUBSCRIPTIONS
+  # ══════════════════════════════════════════════════════════════════════════
+  /superadmin/subscriptions:
+    get:
+      tags: [Super Admin — Subscriptions]
+      summary: List all institute subscriptions
+      operationId: listSubscriptions
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All subscriptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SubscriptionListItem' }
+
+  /superadmin/subscriptions/expiring:
+    get:
+      tags: [Super Admin — Subscriptions]
+      summary: Trials expiring soon
+      description: Returns institutes whose trial ends within N days.
+      operationId: expiringSoon
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, default: 3, example: 3 }
+          description: Look-ahead window in days
+      responses:
+        '200':
+          description: Expiring soon list
+          content:
+            application/json:
+              example:
+                - tenantId: 5
+                  name: "Newton Classes"
+                  status: trial
+                  trialEndsAt: "2026-07-12T00:00:00.000Z"
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SUPER ADMIN — LEADS
+  # ══════════════════════════════════════════════════════════════════════════
+  /superadmin/leads:
+    get:
+      tags: [Super Admin — Leads]
+      summary: List demo booking leads
+      operationId: listLeads
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All leads
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LeadItem' }
+
+  /superadmin/leads/unread-count:
+    get:
+      tags: [Super Admin — Leads]
+      summary: Unread leads count (for badge/notification)
+      operationId: unreadLeadsCount
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              example: { unreadCount: 3 }
+
+  /superadmin/leads/{id}/read:
+    patch:
+      tags: [Super Admin — Leads]
+      summary: Mark lead as read
+      operationId: markLeadRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 5 }
+      responses:
+        '200':
+          description: Lead marked as read
+          content:
+            application/json:
+              example: { success: true }
+
+  /superadmin/leads/{id}/status:
+    patch:
+      tags: [Super Admin — Leads]
+      summary: Update lead status
+      operationId: updateLeadStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 5 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [new, contacted, converted, lost]
+                  example: contacted
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeadItem' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SUPER ADMIN — ANALYTICS
+  # ══════════════════════════════════════════════════════════════════════════
+  /superadmin/analytics:
+    get:
+      tags: [Super Admin — Analytics]
+      summary: Platform-wide KPIs
+      description: Returns total tenants, active tenants, total students, MRR, and trial count.
+      operationId: platformAnalytics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Platform analytics
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlatformAnalytics' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — DASHBOARD
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/dashboard:
+    get:
+      tags: [Coaching Admin — Dashboard]
+      summary: Institute dashboard overview
+      operationId: adminDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              example:
+                studentCount: 48
+                teacherCount: 3
+                feesCollected: 450000
+                feesPending: 75000
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — TEACHERS
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/teachers:
+    get:
+      tags: [Coaching Admin — Teachers]
+      summary: List teachers
+      operationId: listTeachers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All teachers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TeacherItem' }
+    post:
+      tags: [Coaching Admin — Teachers]
+      summary: Add a teacher
+      description: |
+        **Requires Elite plan** (`teacher_accounts` feature).
+        Also blocked when subscription is expired/past_due.
+      operationId: createTeacher
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTeacherRequest' }
+      responses:
+        '201':
+          description: Teacher created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeacherItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /admin/teachers/{id}:
+    delete:
+      tags: [Coaching Admin — Teachers]
+      summary: Remove a teacher
+      operationId: deleteTeacher
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 4 }
+      responses:
+        '200':
+          description: Teacher removed
+          content:
+            application/json:
+              example: { success: true }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — STUDENTS
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/students:
+    get:
+      tags: [Coaching Admin — Students]
+      summary: List students
+      operationId: listStudents
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: query
+          schema: { type: integer, example: 3 }
+          description: Filter by batch
+      responses:
+        '200':
+          description: Student list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StudentListItem' }
+    post:
+      tags: [Coaching Admin — Students]
+      summary: Enroll a new student
+      description: Creates user account + student profile + batch enrollment in one transaction.
+      operationId: createStudent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateStudentRequest' }
+      responses:
+        '201':
+          description: Student enrolled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StudentListItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /admin/students/{id}:
+    delete:
+      tags: [Coaching Admin — Students]
+      summary: Remove a student
+      operationId: deleteStudent
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 7 }
+      responses:
+        '200':
+          description: Student removed
+          content:
+            application/json:
+              example: { success: true }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — BATCHES & SUBJECTS
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/batches:
+    get:
+      tags: [Coaching Admin — Batches & Subjects]
+      summary: List batches
+      operationId: listBatches
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All batches
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BatchItem' }
+    post:
+      tags: [Coaching Admin — Batches & Subjects]
+      summary: Create a batch
+      operationId: createBatch
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBatchRequest' }
+      responses:
+        '201':
+          description: Batch created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchItem' }
+
+  /admin/subjects:
+    get:
+      tags: [Coaching Admin — Batches & Subjects]
+      summary: List subjects
+      operationId: listSubjects
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All subjects
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SubjectItem' }
+    post:
+      tags: [Coaching Admin — Batches & Subjects]
+      summary: Create a subject
+      operationId: createSubject
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSubjectRequest' }
+      responses:
+        '201':
+          description: Subject created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubjectItem' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — TIMETABLE
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/timetable:
+    get:
+      tags: [Coaching Admin — Timetable]
+      summary: List timetable entries
+      operationId: listTimetable
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: day
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 6, example: 1 }
+          description: Filter by day of week (0=Sun…6=Sat)
+      responses:
+        '200':
+          description: Timetable entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TimetableItem' }
+    post:
+      tags: [Coaching Admin — Timetable]
+      summary: Add a timetable entry (teacher allocation)
+      operationId: createTimetable
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTimetableRequest' }
+      responses:
+        '201':
+          description: Timetable entry created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimetableItem' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — FEES
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/fees:
+    get:
+      tags: [Coaching Admin — Fees]
+      summary: Fee collection overview
+      operationId: listFees
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, paid, all], example: pending }
+      responses:
+        '200':
+          description: Fee list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FeeListItem' }
+
+  /admin/fees/structures:
+    post:
+      tags: [Coaching Admin — Fees]
+      summary: Create a fee structure
+      operationId: createFeeStructure
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateFeeStructureRequest' }
+      responses:
+        '201':
+          description: Fee structure created
+          content:
+            application/json:
+              example: { id: 2, title: "Term 1 Fee", amount: 15000, dueDate: "2026-08-15" }
+
+  /admin/fees/payments:
+    post:
+      tags: [Coaching Admin — Fees]
+      summary: Record a fee payment
+      operationId: recordPayment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecordPaymentRequest' }
+      responses:
+        '201':
+          description: Payment recorded
+          content:
+            application/json:
+              example:
+                payment: { id: 18, amountPaid: 15000, paidOn: "2026-07-09", method: upi }
+                receiptNo: "APX-2026-00018"
+
+  /admin/fees/{studentId}/remind:
+    post:
+      tags: [Coaching Admin — Fees]
+      summary: Get WhatsApp fee reminder link for a student
+      description: |
+        **Requires Pro or Elite plan** (`whatsapp_reminders` feature).
+        Returns a pre-filled `wa.me` URL to send a fee reminder to the student's parent.
+      operationId: feeReminder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema: { type: integer, example: 7 }
+      responses:
+        '200':
+          description: WhatsApp reminder URL
+          content:
+            application/json:
+              example:
+                waUrl: "https://wa.me/919000000099?text=Namaste%20ji%2C%20Aarav%20ki%20Term%201%20fees%20%E2%82%B95000%20pending%20hai."
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — BRANDING
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/branding:
+    get:
+      tags: [Coaching Admin — Branding]
+      summary: Get institute branding
+      operationId: getBranding
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Branding info
+          content:
+            application/json:
+              example: { logoUrl: "https://cdn.edtechos.com/apex.png", primaryColor: "#2563EB", name: "Apex Academy" }
+    put:
+      tags: [Coaching Admin — Branding]
+      summary: Update branding (logo + color)
+      description: |
+        **Requires Elite plan** (`custom_branding` feature).
+        Also blocked when subscription is expired.
+      operationId: updateBranding
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logoUrl:      { type: string, format: uri, example: "https://cdn.edtechos.com/apex-new.png" }
+                primaryColor: { type: string, example: "#16A34A" }
+      responses:
+        '200':
+          description: Branding updated
+          content:
+            application/json:
+              example: { logoUrl: "https://cdn.edtechos.com/apex-new.png", primaryColor: "#16A34A" }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — REPORTS
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/reports/performance:
+    get:
+      tags: [Coaching Admin — Reports]
+      summary: Institute performance report
+      description: |
+        **Requires Pro or Elite plan** (`performance_reports` feature).
+        Returns average attendance, average marks, and top students.
+      operationId: performanceReport
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: query
+          schema: { type: integer, example: 3 }
+          description: Filter by batch (optional)
+      responses:
+        '200':
+          description: Performance report
+          content:
+            application/json:
+              example:
+                avgAttendance: 87.4
+                avgMarks: 72.1
+                topStudents:
+                  - studentId: 7
+                    name: "Aarav Joshi"
+                    avgMarks: 91.5
+                    attendancePct: 96.0
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # TEACHER
+  # ══════════════════════════════════════════════════════════════════════════
+  /teacher/schedule/today:
+    get:
+      tags: [Teacher]
+      summary: Today's class schedule
+      operationId: todaySchedule
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Today's timetable entries
+          content:
+            application/json:
+              example:
+                - timetableId: 12
+                  batch: "JEE 2026 Morning"
+                  subject: Physics
+                  startTime: "09:00:00"
+                  endTime: "10:30:00"
+
+  /teacher/batches/{batchId}/students:
+    get:
+      tags: [Teacher]
+      summary: Get students in a batch (for attendance)
+      operationId: batchStudents
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: integer, example: 3 }
+      responses:
+        '200':
+          description: Students in batch
+          content:
+            application/json:
+              example:
+                - studentId: 7
+                  name: "Aarav Joshi"
+                  rollNo: "APX-001"
+
+  /teacher/attendance:
+    post:
+      tags: [Teacher]
+      summary: Mark attendance (bulk)
+      description: |
+        Saves attendance for all students in a batch for the given date.
+        Returns `absentReminders` — pre-built `wa.me` links for absent students'
+        parents (only returned if the institute has the `whatsapp_reminders` feature).
+      operationId: markAttendance
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MarkAttendanceRequest' }
+            example:
+              batchId: 3
+              timetableId: 12
+              date: "2026-07-09"
+              records:
+                - { studentId: 7, status: present }
+                - { studentId: 8, status: absent }
+                - { studentId: 9, status: late }
+      responses:
+        '200':
+          description: Attendance saved
+          content:
+            application/json:
+              example:
+                saved: true
+                absentReminders:
+                  - "https://wa.me/919000000099?text=Aarav%20Joshi%20aaj%20absent%20hai."
+
+  /teacher/content:
+    get:
+      tags: [Teacher]
+      summary: List uploaded video content
+      operationId: listContent
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Content list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ContentItem' }
+    post:
+      tags: [Teacher]
+      summary: Upload a video lecture link
+      operationId: createContent
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateContentRequest' }
+      responses:
+        '201':
+          description: Content added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentItem' }
+
+  /teacher/live-classes:
+    post:
+      tags: [Teacher]
+      summary: Schedule a live class
+      description: |
+        **Requires Pro or Elite plan** (`live_classes` feature).
+      operationId: createLiveClass
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLiveClassRequest' }
+      responses:
+        '201':
+          description: Live class scheduled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LiveClassItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /teacher/doubt-link/{studentId}:
+    get:
+      tags: [Teacher]
+      summary: Get WhatsApp doubt-answer link
+      description: |
+        **Requires Pro or Elite plan** (`doubt_solving` feature).
+        Returns a pre-filled `wa.me` URL from teacher to the student.
+      operationId: doubtLink
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema: { type: integer, example: 7 }
+        - name: text
+          in: query
+          schema: { type: string, example: "Your doubt about Newton's 3rd law has been answered." }
+      responses:
+        '200':
+          description: WhatsApp link
+          content:
+            application/json:
+              example:
+                waUrl: "https://wa.me/919000000013?text=Your%20doubt%20about%20Newton%27s%203rd%20law..."
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # STUDENT
+  # ══════════════════════════════════════════════════════════════════════════
+  /student/dashboard:
+    get:
+      tags: [Student]
+      summary: Student home dashboard
+      operationId: studentDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              example:
+                nextLiveClass:
+                  id: 5
+                  title: "Thermodynamics Revision"
+                  meetUrl: "https://meet.google.com/xyz-abc-def"
+                  scheduledAt: "2026-07-10T09:00:00.000Z"
+                pendingFees: 5000
+                recentVideos:
+                  - id: 9
+                    title: "Kinematics — Part 1"
+                    youtubeUrl: "https://youtu.be/abc123"
+
+  /student/videos:
+    get:
+      tags: [Student]
+      summary: List available video lectures
+      operationId: listVideos
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: subjectId
+          in: query
+          schema: { type: integer, example: 1 }
+          description: Filter by subject
+      responses:
+        '200':
+          description: Video lectures
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ContentItem' }
+
+  /student/videos/{id}:
+    get:
+      tags: [Student]
+      summary: Get video detail
+      operationId: videoDetail
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 9 }
+      responses:
+        '200':
+          description: Video detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentItem' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /student/live/today:
+    get:
+      tags: [Student]
+      summary: Today's live classes
+      operationId: todayLiveClasses
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Today's live classes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LiveClassItem' }
+
+  /student/fees:
+    get:
+      tags: [Student]
+      summary: Student fee summary
+      operationId: studentFees
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Fee summary
+          content:
+            application/json:
+              example:
+                total: 30000
+                paid: 25000
+                pending: 5000
+                payments:
+                  - receiptNo: "APX-2026-00018"
+                    amount: 15000
+                    paidOn: "2026-06-01"
+                    method: upi
+
+  /student/fees/receipt/{paymentId}:
+    get:
+      tags: [Student]
+      summary: Get payment receipt
+      operationId: getReceipt
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema: { type: integer, example: 18 }
+      responses:
+        '200':
+          description: Receipt data
+          content:
+            application/json:
+              example:
+                receiptNo: "APX-2026-00018"
+                studentName: "Aarav Joshi"
+                instituteName: "Apex Academy"
+                amount: 15000
+                paidOn: "2026-06-01"
+                method: upi
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /student/ask-doubt:
+    get:
+      tags: [Student]
+      summary: Get doubt link to teacher (WhatsApp)
+      description: Returns a pre-filled `wa.me` URL from student to teacher.
+      operationId: askDoubt
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: teacherId
+          in: query
+          required: true
+          schema: { type: integer, example: 4 }
+        - name: chapter
+          in: query
+          schema: { type: string, example: "Newton's Laws of Motion" }
+      responses:
+        '200':
+          description: WhatsApp doubt link
+          content:
+            application/json:
+              example:
+                waUrl: "https://wa.me/919000000012?text=Sir%2C%20Newton%27s%20Laws%20mein%20doubt%20hai.%20-%20Aarav%20(Apex%20Academy)"
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # PAYMENTS (Razorpay)
+  # ══════════════════════════════════════════════════════════════════════════
+  /payments/create-order:
+    post:
+      tags: [Payments]
+      summary: Create Razorpay subscription order
+      description: |
+        Calculates the billing amount server-side:
+        `per_student_rate × student_count × billing_cycle_months`
+        Returns a Razorpay `order_id` to pass to the Flutter Razorpay checkout.
+      operationId: createOrder
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Razorpay order created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CreateOrderResponse' }
+        '400':
+          description: No students enrolled yet
+          content:
+            application/json:
+              example: { code: NO_STUDENTS, message: "Cannot create subscription order: no students enrolled yet." }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /payments/verify:
+    post:
+      tags: [Payments]
+      summary: Verify payment and activate subscription
+      description: |
+        Verifies the Razorpay HMAC-SHA256 signature server-side.
+        On success: sets `subscription.status = 'active'`, snapshots student count,
+        and sets `next_billing_date` based on billing cycle.
+      operationId: verifyPayment
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerifyPaymentRequest' }
+      responses:
+        '200':
+          description: Payment verified, subscription activated
+          content:
+            application/json:
+              example:
+                status: active
+                nextBillingDate: "2027-07-09T11:05:00.000Z"
+        '400':
+          description: Invalid payment signature
+          content:
+            application/json:
+              example: { code: INVALID_SIGNATURE, message: "Payment signature verification failed" }
+
+  /payments/subscription:
+    get:
+      tags: [Payments]
+      summary: Get current subscription status
+      description: Returns billing info for the coaching admin's institute.
+      operationId: subscriptionStatus
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Subscription status
+          content:
+            application/json:
+              example:
+                id: 1
+                plan: per_student
+                amount: 21120
+                status: active
+                billingCycle: yearly
+                perStudentRate: 22
+                trialEndsAt: null
+                nextBillingDate: "2027-07-09T11:05:00.000Z"
