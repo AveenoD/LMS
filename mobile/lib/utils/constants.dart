@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Constants {
-  // Use 10.0.2.2 for Android Emulator, localhost for iOS Simulator/Web
-  static const String baseUrl = 'http://10.0.2.2:4000/api/v1';
+  // Use 192.168.1.9 for physical device connected on local network
+  static const String baseUrl = 'http://192.168.1.9:4000/api/v1';
 
   static const String currencySymbol = '₹';
 
