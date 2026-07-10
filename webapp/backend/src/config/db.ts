@@ -7,12 +7,16 @@ const { Pool } = pkg;
 
 /**
  * Single shared connection pool for the whole app.
+ * SSL is required for Supabase (pooler uses self-signed cert in chain).
  */
 export const pool: PoolType = new Pool({
   connectionString: env.databaseUrl,
   max: 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000,
+  ssl: {
+    rejectUnauthorized: false, // Supabase pooler uses self-signed cert
+  },
 });
 
 pool.on('error', (err: Error) => {
