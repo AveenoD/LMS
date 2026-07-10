@@ -68,7 +68,7 @@ if (!env.isProd) {
       },
     })
   );
-  logger.info('Swagger UI available at http://localhost:4000/docs');
+  logger.info(`Swagger UI available at http://localhost:${env.port}/docs`);
 }
 
 // ── Health ──
