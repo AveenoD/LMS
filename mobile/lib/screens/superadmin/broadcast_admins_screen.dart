@@ -65,14 +65,11 @@ class _BroadcastAdminsScreenState extends ConsumerState<BroadcastAdminsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Send Announcement'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

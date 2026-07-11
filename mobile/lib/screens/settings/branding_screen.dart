@@ -35,7 +35,7 @@ class _BrandingScreenState extends ConsumerState<BrandingScreen> {
     final logoUrl = _logoUrlController.text.trim();
 
     if (color.isNotEmpty && !_isValidHexColor(color)) {
-      setState(() => _error = 'Primary color must look like #2563EB.');
+      setState(() => _error = 'const Color(0xFF1F2E27) color must look like #2563EB.');
       return;
     }
     if (logoUrl.isNotEmpty && !_isValidUrl(logoUrl)) {
@@ -77,14 +77,11 @@ class _BrandingScreenState extends ConsumerState<BrandingScreen> {
   @override
   Widget build(BuildContext context) {
     final brandingAsync = ref.watch(brandingProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Branding & Settings'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: brandingAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -109,9 +106,9 @@ class _BrandingScreenState extends ConsumerState<BrandingScreen> {
                 Center(
                   child: CircleAvatar(
                     radius: 50,
-                    backgroundColor: primary.withOpacity(0.1),
+                    backgroundColor: const Color(0xFF2E6656).withValues(alpha: 0.1),
                     backgroundImage: (logoUrl != null && logoUrl.isNotEmpty) ? NetworkImage(logoUrl) : null,
-                    child: (logoUrl == null || logoUrl.isEmpty) ? Icon(Icons.school, size: 50, color: primary) : null,
+                    child: (logoUrl == null || logoUrl.isEmpty) ? Icon(Icons.school, size: 50, color: const Color(0xFF1F2E27)) : null,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -137,7 +134,7 @@ class _BrandingScreenState extends ConsumerState<BrandingScreen> {
                 ),
                 const SizedBox(height: 20),
                 CustomTextField(
-                  label: 'Primary Brand Color (Hex)',
+                  label: 'const Color(0xFF1F2E27) Brand Color (Hex)',
                   hint: '#2563EB',
                   controller: _colorController,
                   prefixIcon: Icons.color_lens,

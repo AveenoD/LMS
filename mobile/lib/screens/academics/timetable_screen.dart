@@ -11,14 +11,11 @@ class TimetableScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timetableAsync = ref.watch(timetableProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Timetable'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: timetableAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -37,7 +34,7 @@ class TimetableScreen extends ConsumerWidget {
                   margin: const EdgeInsets.only(bottom: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: primary.withOpacity(0.2)),
+                    side: BorderSide(color: const Color(0xFF1F2E27).withValues(alpha: 0.2)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -48,7 +45,7 @@ class TimetableScreen extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('${slot['startTime'] ?? 'N/A'} - ${slot['endTime'] ?? 'N/A'}',
-                                style: TextStyle(fontWeight: FontWeight.bold, color: primary)),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF1F2E27))),
                             Text(dayLabel, style: const TextStyle(color: Colors.grey)),
                           ],
                         ),
@@ -82,7 +79,7 @@ class TimetableScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openScheduleDialog(context, ref),
-        backgroundColor: primary,
+        backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Schedule Class', style: TextStyle(color: Colors.white)),
       ),

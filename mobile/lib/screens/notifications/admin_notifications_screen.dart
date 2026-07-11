@@ -11,14 +11,11 @@ class AdminNotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: NotificationsListView(
         notificationsAsync: notificationsAsync,
         onRefresh: () async => ref.invalidate(notificationsProvider),

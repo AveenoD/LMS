@@ -26,18 +26,15 @@ class MoreMenuScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('More'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
       ),
       body: ListView(
         children: [
           UserAccountsDrawerHeader(
-            decoration: BoxDecoration(color: primary),
+            decoration: const BoxDecoration(color: Color(0xFF1F2E27)),
             currentAccountPicture: const CircleAvatar(
               backgroundColor: Colors.white,
               child: Icon(Icons.account_circle, size: 40, color: Colors.grey),

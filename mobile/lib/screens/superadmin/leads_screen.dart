@@ -14,14 +14,11 @@ class LeadsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final leadsAsync = ref.watch(leadsProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Leads'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: leadsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -43,7 +40,7 @@ class LeadsScreen extends ConsumerWidget {
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
-                  color: isRead ? null : Colors.blue.withOpacity(0.05),
+                  color: isRead ? null : Colors.blue.withValues(alpha: 0.05),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(

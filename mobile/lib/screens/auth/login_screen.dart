@@ -52,82 +52,122 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch auth state to show loader automatically
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 60),
-              // App Logo or Icon
-              const Icon(
-                Icons.school_rounded,
-                size: 100,
-                color: Colors.deepPurple,
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Welcome Back',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Sign in to continue to EdTech OS',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 48),
-              CustomTextField(
-                label: 'Phone',
-                hint: 'Enter your phone number',
-                prefixIcon: Icons.phone_outlined,
-                controller: _phoneController,
-              ),
-              const SizedBox(height: 24),
-              CustomTextField(
-                label: 'Password',
-                hint: 'Enter your password',
-                isPassword: true,
-                prefixIcon: Icons.lock_outline,
-                controller: _passwordController,
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Forgot Password?',
+      backgroundColor: const Color(0xFFF4F6F3),
+      body: Stack(
+        children: [
+          // Header Background
+          Container(
+            height: MediaQuery.of(context).size.height * 0.4,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1F2E27),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 16),
+                  const Icon(
+                    Icons.school_rounded,
+                    size: 80,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'EdTech OS',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.deepPurple,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              authState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SizedBox(
-                      height: 56,
-                      child: CustomButton(
-                        text: 'Login',
-                        onPressed: _handleLogin,
-                      ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Run your institute. Delight every student.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7)),
+                  ),
+                  const SizedBox(height: 48),
+                  // Login Card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
-            ],
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Welcome Back',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1F2E27),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Sign in to continue',
+                          style: TextStyle(fontSize: 14, color: Color(0xFF2E6656)),
+                        ),
+                        const SizedBox(height: 32),
+                        CustomTextField(
+                          label: 'Phone',
+                          hint: 'Enter your phone number',
+                          prefixIcon: Icons.phone_outlined,
+                          controller: _phoneController,
+                        ),
+                        const SizedBox(height: 24),
+                        CustomTextField(
+                          label: 'Password',
+                          hint: 'Enter your password',
+                          isPassword: true,
+                          prefixIcon: Icons.lock_outline,
+                          controller: _passwordController,
+                        ),
+                        const SizedBox(height: 8),
+                        const SizedBox(height: 24),
+                        authState.isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : SizedBox(
+                                height: 56,
+                                child: CustomButton(
+                                  text: 'Sign In →',
+                                  onPressed: _handleLogin,
+                                ),
+                              ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Powered by EdTech OS',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

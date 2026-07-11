@@ -10,14 +10,11 @@ class SubjectsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subjectsAsync = ref.watch(subjectsProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Subjects'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: subjectsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -34,7 +31,7 @@ class SubjectsScreen extends ConsumerWidget {
                   margin: const EdgeInsets.only(bottom: 12),
                   elevation: 1,
                   child: ListTile(
-                    leading: Icon(Icons.book, color: primary),
+                    leading: Icon(Icons.book, color: const Color(0xFF1F2E27)),
                     title: Text(subject['name'] ?? 'Unknown Subject', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 );
@@ -45,7 +42,7 @@ class SubjectsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showDialog(context: context, builder: (_) => const _AddSubjectDialog()),
-        backgroundColor: primary,
+        backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Subject', style: TextStyle(color: Colors.white)),
       ),

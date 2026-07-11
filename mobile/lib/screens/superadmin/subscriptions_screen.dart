@@ -18,7 +18,6 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
     final listAsync = _expiringOnly
         ? ref.watch(expiringSubscriptionsProvider(_days))
         : ref.watch(subscriptionsProvider);
@@ -26,9 +25,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Subscriptions'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: Column(
         children: [
           Padding(

@@ -18,47 +18,48 @@ class ReportsScreen extends ConsumerWidget {
     final selectedBatch = ref.watch(_selectedBatchProvider);
     final reportAsync = ref.watch(performanceReportProvider(selectedBatch));
     final batchesAsync = ref.watch(batchesProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Performance Reports'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Performance Reports')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Batch Analytics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              'Batch Analytics',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+            ),
             const SizedBox(height: 12),
             batchesAsync.when(
               loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
               data: (batches) {
                 if (batches.isEmpty) return const SizedBox.shrink();
                 return DropdownButtonFormField<int?>(
                   initialValue: selectedBatch,
-                  decoration: const InputDecoration(
-                    labelText: 'Filter by batch',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
+                  decoration: const InputDecoration(labelText: 'Filter by batch', isDense: true),
                   items: [
                     const DropdownMenuItem<int?>(value: null, child: Text('All batches')),
                     ...batches.cast<Map<String, dynamic>>().map(
-                          (b) => DropdownMenuItem<int?>(value: b['id'] as int, child: Text(b['name']?.toString() ?? '')),
+                          (b) => DropdownMenuItem<int?>(
+                            value: b['id'] as int,
+                            child: Text(b['name']?.toString() ?? ''),
+                          ),
                         ),
                   ],
                   onChanged: (v) => ref.read(_selectedBatchProvider.notifier).set(v),
                 );
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             reportAsync.when(
-              loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
-              error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+              loading: () => const Center(
+                child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
+              ),
+              error: (err, stack) => Center(
+                child: Text('Error: $err', style: const TextStyle(color: Color(0xFFA93327))),
+              ),
               data: (report) {
                 final avgAttendance = report['avgAttendance'];
                 final avgMarks = report['avgMarksPct'];
@@ -69,7 +70,7 @@ class ReportsScreen extends ConsumerWidget {
                         'Avg Attendance',
                         avgAttendance == null ? 'No data' : '$avgAttendance%',
                         Icons.event_available,
-                        Colors.blue,
+                        const Color(0xFF2E6656),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -78,7 +79,7 @@ class ReportsScreen extends ConsumerWidget {
                         'Avg Marks',
                         avgMarks == null ? 'No data' : '$avgMarks%',
                         Icons.grade,
-                        Colors.green,
+                        const Color(0xFFA87D26),
                       ),
                     ),
                   ],
@@ -87,18 +88,20 @@ class ReportsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Based on attendance records and test results entered for this institute. '
-              'Per-student rankings aren’t available yet.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              "Based on attendance records and test results entered for this institute. "
+              "Per-student rankings aren't available yet.",
+              style: TextStyle(
+                fontSize: 13,
+                color: const Color(0xFF2E6656).withValues(alpha: 0.8),
+              ),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => ref.invalidate(performanceReportProvider(selectedBatch)),
-        backgroundColor: primary,
-        icon: const Icon(Icons.refresh, color: Colors.white),
-        label: const Text('Refresh', style: TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.refresh),
+        label: const Text('Refresh'),
       ),
     );
   }
@@ -107,14 +110,20 @@ class ReportsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: color),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(height: 12),
           Text(
             value,
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
@@ -123,7 +132,7 @@ class ReportsScreen extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF2E6656), fontWeight: FontWeight.w500),
           ),
         ],
       ),

@@ -109,7 +109,7 @@ Future<Map<String, dynamic>> createPlan(
     'priceYearly': priceYearly,
     'features': features,
     if (tagline != null && tagline.isNotEmpty) 'tagline': tagline,
-    if (displayOrder != null) 'displayOrder': displayOrder,
+    'displayOrder': ?displayOrder,
   };
   return await api.post('/superadmin/plans', body) as Map<String, dynamic>;
 }
@@ -126,13 +126,13 @@ Future<Map<String, dynamic>> updatePlan(
   int? displayOrder,
 }) async {
   final body = <String, dynamic>{
-    if (tagline != null) 'tagline': tagline,
-    if (priceMonthly != null) 'priceMonthly': priceMonthly,
-    if (priceQuarterly != null) 'priceQuarterly': priceQuarterly,
-    if (priceYearly != null) 'priceYearly': priceYearly,
-    if (features != null) 'features': features,
-    if (isActive != null) 'isActive': isActive,
-    if (displayOrder != null) 'displayOrder': displayOrder,
+    'tagline': ?tagline,
+    'priceMonthly': ?priceMonthly,
+    'priceQuarterly': ?priceQuarterly,
+    'priceYearly': ?priceYearly,
+    'features': ?features,
+    'isActive': ?isActive,
+    'displayOrder': ?displayOrder,
   };
   return await api.put('/superadmin/plans/$id', body) as Map<String, dynamic>;
 }

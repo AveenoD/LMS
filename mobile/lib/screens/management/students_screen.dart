@@ -10,13 +10,10 @@ class StudentsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final studentsAsync = ref.watch(studentsProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Students'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
       ),
       body: studentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -42,8 +39,8 @@ class StudentsScreen extends ConsumerWidget {
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: primary.withOpacity(0.12),
-                      child: Icon(Icons.person, color: primary),
+                      backgroundColor: const Color(0xFF2E6656).withValues(alpha: 0.12),
+                      child: Icon(Icons.person, color: const Color(0xFF1F2E27)),
                     ),
                     title: Text(student['fullName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(subtitleParts.isEmpty ? student['phone']?.toString() ?? '' : subtitleParts.join(' • ')),
@@ -60,9 +57,8 @@ class StudentsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddStudentDialog(context, ref),
-        backgroundColor: primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Student', style: TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Student'),
       ),
     );
   }

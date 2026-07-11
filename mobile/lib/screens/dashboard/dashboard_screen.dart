@@ -15,14 +15,10 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(dashboardProvider);
     final authState = ref.watch(authProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(authState.instituteName ?? 'EdTech Dashboard'),
-        elevation: 0,
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
       ),
       body: SafeArea(
         child: Padding(
@@ -71,10 +67,10 @@ class DashboardScreen extends ConsumerWidget {
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       children: [
-        StatCard(title: 'Total Students', value: students, icon: Icons.people, color: Colors.blue),
-        StatCard(title: 'Total Teachers', value: teachers, icon: Icons.badge, color: Colors.purple),
-        StatCard(title: 'Fees Collected', value: collected, icon: Icons.attach_money, color: Colors.green),
-        StatCard(title: 'Fees Pending', value: pending, icon: Icons.warning, color: Colors.red),
+        StatCard(title: 'Total Students', value: students, icon: Icons.people, color: const Color(0xFF2E6656)),
+        StatCard(title: 'Total Teachers', value: teachers, icon: Icons.badge, color: const Color(0xFF1F2E27)),
+        StatCard(title: 'Fees Collected', value: collected, icon: Icons.attach_money, color: const Color(0xFFA87D26)),
+        StatCard(title: 'Fees Pending', value: pending, icon: Icons.warning, color: const Color(0xFFA93327)),
       ],
     );
   }

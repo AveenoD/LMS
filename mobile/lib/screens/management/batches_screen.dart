@@ -10,19 +10,27 @@ class BatchesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final batchesAsync = ref.watch(batchesProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Batches'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Batches')),
       body: batchesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
         data: (batches) {
-          if (batches.isEmpty) return const Center(child: Text('No batches found.'));
+          if (batches.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.class_outlined, size: 64, color: Color(0xFF2E6656)),
+                  SizedBox(height: 16),
+                  Text('No batches yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
+                  SizedBox(height: 8),
+                  Text('Tap "Create Batch" to add your first batch.', style: TextStyle(color: Color(0xFF2E6656))),
+                ],
+              ),
+            );
+          }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(batchesProvider),
             child: ListView.builder(
@@ -30,30 +38,51 @@ class BatchesScreen extends ConsumerWidget {
               itemCount: batches.length,
               itemBuilder: (context, index) {
                 final batch = batches[index] as Map<String, dynamic>;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              batch['name'] ?? 'Unknown Batch',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            if (batch['grade'] != null)
-                              Chip(
-                                label: Text(batch['grade'].toString(), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                                backgroundColor: Colors.green.shade400,
-                              ),
-                          ],
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E6656).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.class_outlined, color: Color(0xFF2E6656)),
                         ),
-                        const SizedBox(height: 8),
-                        Text('${batch['studentCount'] ?? 0} students enrolled', style: const TextStyle(color: Colors.black54)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                batch['name'] ?? 'Unknown Batch',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                              ),
+                              const SizedBox(height: 4),
+                              Text('${batch['studentCount'] ?? 0} students enrolled',
+                                  style: const TextStyle(color: Color(0xFF2E6656), fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        if (batch['grade'] != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFA87D26).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(batch['grade'].toString(),
+                                style: const TextStyle(color: Color(0xFFA87D26), fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
                       ],
                     ),
                   ),
@@ -65,9 +94,8 @@ class BatchesScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showDialog(context: context, builder: (_) => const _AddBatchDialog()),
-        backgroundColor: primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Create Batch', style: TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.add),
+        label: const Text('Create Batch'),
       ),
     );
   }
@@ -116,29 +144,96 @@ class _AddBatchDialogState extends ConsumerState<_AddBatchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Create Batch'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CustomTextField(label: 'Batch Name', hint: 'e.g. JEE 2026 Morning', controller: _name),
-          const SizedBox(height: 12),
-          CustomTextField(label: 'Grade (optional)', hint: 'e.g. Class 11', controller: _grade),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
-          ],
-        ],
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: screenWidth < 400 ? 16 : 32,
+        vertical: 24,
       ),
-      actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Create'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E6656).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.class_outlined, color: Color(0xFF2E6656)),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Create Batch',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _saving ? null : () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, size: 20),
+                  style: IconButton.styleFrom(foregroundColor: const Color(0xFF2E6656)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Divider(height: 1),
+            const SizedBox(height: 20),
+            CustomTextField(label: 'Batch Name', hint: 'e.g. JEE 2026 Morning', controller: _name),
+            const SizedBox(height: 16),
+            CustomTextField(label: 'Grade (optional)', hint: 'e.g. Class 11', controller: _grade),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFA93327).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(_error!, style: const TextStyle(color: Color(0xFFA93327), fontSize: 13)),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _saving ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: Color(0xFF2E6656)),
+                      foregroundColor: const Color(0xFF2E6656),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _saving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 18, height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Create Batch'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

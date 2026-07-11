@@ -10,7 +10,7 @@ import '../../providers/superadmin_providers.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/more_menu_screen.dart';
 
-/// Bottom-nav home for `super_admin`: 4 primary tabs + a "More" tab holding
+/// Bottom-nav home for `super_admin`: 4 const Color(0xFF1F2E27) tabs + a "More" tab holding
 /// Leads + Logout (mirrors [CoachingAdminShell]'s structure for consistency
 /// across roles).
 class SuperAdminShell extends StatelessWidget {

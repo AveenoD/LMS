@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class Constants {
-  // Use 10.0.2.2 for Android Emulator, localhost for iOS Simulator/Web
-  static const String baseUrl = 'http://10.0.2.2:4000/api/v1';
+  // Use 10.0.2.2 for Android Emulator, 192.168.1.9 for physical device on LAN
+  static const String baseUrl = 'http://192.168.1.9:4000/api/v1';
 
   static const String currencySymbol = '₹';
 
   /// Fallback brand color used before login / if an institute hasn't set one.
-  static const Color defaultPrimaryColor = Colors.deepPurple;
+  static const Color defaultPrimaryColor = Color(0xFF1F2E27);
 
   /// Parses a `#RRGGBB` hex string (as returned by the branding API) into a
   /// [Color]. Falls back to [defaultPrimaryColor] for null/malformed input.

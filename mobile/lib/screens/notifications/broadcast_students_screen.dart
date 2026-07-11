@@ -66,15 +66,12 @@ class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScree
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
     final batchesAsync = ref.watch(batchesProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Send Announcement'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

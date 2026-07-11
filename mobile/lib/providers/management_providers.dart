@@ -205,7 +205,7 @@ Future<Map<String, dynamic>> createTimetableEntry(ApiService api, {
     'dayOfWeek': dayOfWeek,
     'startTime': startTime,
     'endTime': endTime,
-    if (subjectId != null) 'subjectId': subjectId,
+    'subjectId': ?subjectId,
   };
   return await api.post('/admin/timetable', body) as Map<String, dynamic>;
 }
@@ -219,7 +219,7 @@ Future<Map<String, dynamic>> createFeeStructure(ApiService api, {
   final body = <String, dynamic>{
     'title': title,
     'amount': amount,
-    if (batchId != null) 'batchId': batchId,
+    'batchId': ?batchId,
     if (dueDate != null && dueDate.isNotEmpty) 'dueDate': dueDate,
   };
   return await api.post('/admin/fees/structures', body) as Map<String, dynamic>;
@@ -235,7 +235,7 @@ Future<Map<String, dynamic>> recordPayment(ApiService api, {
     'studentId': studentId,
     'amountPaid': amountPaid,
     'method': method,
-    if (feeStructureId != null) 'feeStructureId': feeStructureId,
+    'feeStructureId': ?feeStructureId,
   };
   return await api.post('/admin/fees/payments', body) as Map<String, dynamic>;
 }
@@ -270,7 +270,7 @@ Future<Map<String, dynamic>> broadcastToStudents(
   final requestBody = <String, dynamic>{
     'title': title,
     if (body != null && body.isNotEmpty) 'body': body,
-    if (batchId != null) 'batchId': batchId,
+    'batchId': ?batchId,
   };
   return await api.post('/admin/notifications/broadcast', requestBody) as Map<String, dynamic>;
 }

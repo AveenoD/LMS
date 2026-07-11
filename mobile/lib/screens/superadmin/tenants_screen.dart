@@ -12,14 +12,11 @@ class TenantsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tenantsAsync = ref.watch(tenantsProvider);
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tenants'),
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-      ),
+              ),
       body: tenantsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -44,8 +41,8 @@ class TenantsScreen extends ConsumerWidget {
                   child: ListTile(
                     onTap: () => _showAssignPlanDialog(context, ref, tenant),
                     leading: CircleAvatar(
-                      backgroundColor: primary.withOpacity(0.12),
-                      child: Icon(Icons.business, color: primary),
+                      backgroundColor: const Color(0xFF2E6656).withValues(alpha: 0.12),
+                      child: Icon(Icons.business, color: const Color(0xFF1F2E27)),
                     ),
                     title: Text(tenant['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
@@ -73,7 +70,7 @@ class TenantsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showDialog(context: context, builder: (_) => const _AddTenantDialog()),
-        backgroundColor: primary,
+        backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Tenant', style: TextStyle(color: Colors.white)),
       ),
@@ -125,7 +122,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
       child: Text(status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }

@@ -40,7 +40,7 @@ class NotificationsListView extends StatelessWidget {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
-                color: isRead ? null : Colors.blue.withOpacity(0.05),
+                color: isRead ? null : Colors.blue.withValues(alpha: 0.05),
                 child: ListTile(
                   leading: Icon(
                     isRead ? Icons.notifications_none : Icons.notifications_active,

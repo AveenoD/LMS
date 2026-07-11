@@ -15,7 +15,7 @@ import '../../providers/management_providers.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/more_menu_screen.dart';
 
-/// Bottom-nav home for `coaching_admin`: 4 primary tabs + a "More" tab
+/// Bottom-nav home for `coaching_admin`: 4 const Color(0xFF1F2E27) tabs + a "More" tab
 /// holding the less-frequently-used sections (mirrors [SuperAdminShell]'s
 /// structure for consistency across roles).
 class CoachingAdminShell extends StatelessWidget {
