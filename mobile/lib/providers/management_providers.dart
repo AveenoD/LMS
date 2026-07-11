@@ -103,6 +103,27 @@ final brandingProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   return response as Map<String, dynamic>;
 });
 
+// Provides the logged-in coaching_admin's own notification inbox
+final notificationsProvider = FutureProvider<List<dynamic>>((ref) async {
+  final canAccess = await _canAccessManagement();
+  if (!canAccess) {
+    return [];
+  }
+  final api = ref.watch(apiServiceProvider);
+  final response = await api.get('/admin/notifications');
+  return response as List<dynamic>;
+});
+
+final unreadNotificationCountProvider = FutureProvider<int>((ref) async {
+  final canAccess = await _canAccessManagement();
+  if (!canAccess) {
+    return 0;
+  }
+  final api = ref.watch(apiServiceProvider);
+  final response = await api.get('/admin/notifications/unread-count') as Map<String, dynamic>;
+  return response['count'] as int? ?? 0;
+});
+
 // ─────────────────────────── Write actions ───────────────────────────
 // Plain helper functions (not providers) — screens call these directly via
 // `ref.read(apiServiceProvider)`, then `ref.invalidate(...)` the relevant
@@ -232,4 +253,24 @@ Future<Map<String, dynamic>> updateBranding(ApiService api, {
     if (primaryColor != null && primaryColor.isNotEmpty) 'primaryColor': primaryColor,
   };
   return await api.put('/admin/branding', body) as Map<String, dynamic>;
+}
+
+Future<void> markNotificationRead(ApiService api, int id) async {
+  await api.patch('/admin/notifications/$id/read', {});
+}
+
+/// Broadcasts a notification to students in the caller's own institute —
+/// every student, or filtered by batch. Returns `{recipientCount}`.
+Future<Map<String, dynamic>> broadcastToStudents(
+  ApiService api, {
+  required String title,
+  String? body,
+  int? batchId,
+}) async {
+  final requestBody = <String, dynamic>{
+    'title': title,
+    if (body != null && body.isNotEmpty) 'body': body,
+    if (batchId != null) 'batchId': batchId,
+  };
+  return await api.post('/admin/notifications/broadcast', requestBody) as Map<String, dynamic>;
 }

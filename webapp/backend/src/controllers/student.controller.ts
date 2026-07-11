@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as svc from '../services/student.service.js';
+import * as notificationCenter from '../services/notificationCenter.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { tenantId, userId } from './helpers.js';
 
@@ -32,4 +33,16 @@ export const receipt = asyncHandler(async (req: Request, res: Response) =>
 export const askDoubt = asyncHandler(async (req: Request, res: Response) => {
   const chapter = typeof req.query.chapter === 'string' ? req.query.chapter : undefined;
   res.json(await svc.askDoubt(tenantId(req), userId(req), Number(req.query.teacherId), chapter));
+});
+
+/* Notifications */
+export const listNotifications = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await notificationCenter.listMyNotifications(userId(req)))
+);
+export const unreadNotificationCount = asyncHandler(async (req: Request, res: Response) =>
+  res.json({ count: await notificationCenter.unreadNotificationCount(userId(req)) })
+);
+export const markNotificationRead = asyncHandler(async (req: Request, res: Response) => {
+  await notificationCenter.markNotificationRead(Number(req.params.id), userId(req));
+  res.json({ success: true });
 });

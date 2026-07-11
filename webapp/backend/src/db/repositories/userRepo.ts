@@ -2,26 +2,14 @@ import { query } from '../../config/db.js';
 import type { UserRow, PublicUser } from '../rows.js';
 
 /**
- * Find a login user. For super_admin, tenantId is null (slug omitted).
- * For tenant users, we match on (tenant_id, phone).
+ * Find a login user by phone alone. Phone is globally unique across every
+ * tenant (see migration 0003) — login no longer needs an institute slug to
+ * disambiguate.
  */
-export async function findForLogin({
-  tenantId,
-  phone,
-}: {
-  tenantId: number | null;
-  phone: string;
-}): Promise<UserRow | null> {
-  if (tenantId == null) {
-    const { rows } = await query<UserRow>(
-      `SELECT * FROM users WHERE tenant_id IS NULL AND phone = $1 AND is_active = true`,
-      [phone]
-    );
-    return rows[0] || null;
-  }
+export async function findForLogin(phone: string): Promise<UserRow | null> {
   const { rows } = await query<UserRow>(
-    `SELECT * FROM users WHERE tenant_id = $1 AND phone = $2 AND is_active = true`,
-    [tenantId, phone]
+    `SELECT * FROM users WHERE phone = $1 AND is_active = true`,
+    [phone]
   );
   return rows[0] || null;
 }

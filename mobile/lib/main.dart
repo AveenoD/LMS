@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/dashboard/dashboard_screen.dart';
 import 'providers/auth_provider.dart';
 import 'utils/constants.dart';
+import 'utils/role_router.dart';
 
 void main() {
   runApp(
@@ -67,7 +67,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await notifier.hydrateFromCache();
     final ok = await notifier.restoreSession();
     if (!mounted) return;
-    _goTo(ok ? const DashboardScreen() : const LoginScreen());
+    _goTo(ok ? homeScreenForRole(ref.read(authProvider).userRole) : const LoginScreen());
   }
 
   void _goTo(Widget screen) {

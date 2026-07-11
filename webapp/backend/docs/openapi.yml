@@ -49,6 +49,8 @@ tags:
     description: Demo booking inbox (Super Admin only)
   - name: Super Admin — Analytics
     description: Platform-wide KPIs (Super Admin only)
+  - name: Super Admin — Notifications
+    description: Broadcast in-app notifications to coaching_admins (Super Admin only)
   - name: Coaching Admin — Dashboard
     description: Institute overview
   - name: Coaching Admin — Teachers
@@ -65,6 +67,8 @@ tags:
     description: Customize logo and theme color
   - name: Coaching Admin — Reports
     description: Performance analytics
+  - name: Coaching Admin — Notifications
+    description: Notification inbox, and broadcast to students (whole institute or one batch)
   - name: Teacher
     description: Schedule, attendance, content, live classes
   - name: Student
@@ -115,10 +119,6 @@ components:
       type: object
       required: [phone, password]
       properties:
-        slug:
-          type: string
-          example: apex
-          description: Institute slug. Omit for super_admin login.
         phone:
           type: string
           example: "919000000013"
@@ -519,6 +519,46 @@ components:
         mrr:           { type: integer, example: 185000, description: "Monthly recurring revenue in ₹" }
         onTrial:       { type: integer, example: 3 }
 
+    # ── Notifications ────────────────────────────────────────────────────────
+    NotificationItem:
+      type: object
+      properties:
+        id:        { type: integer, example: 41 }
+        title:     { type: string, example: "Fee due date extended" }
+        body:      { type: string, nullable: true, example: "Term 1 fee due date moved to the 20th for all batches." }
+        isRead:    { type: boolean, example: false }
+        createdAt: { type: string, format: date-time, example: "2026-07-15T09:00:00.000Z" }
+
+    BroadcastResponse:
+      type: object
+      properties:
+        recipientCount:
+          type: integer
+          example: 12
+          description: Number of users a notification row was inserted for.
+
+    BroadcastToAdminsRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, example: "Platform maintenance tonight" }
+        body:  { type: string, example: "The app will be briefly unavailable between 1-2 AM IST for scheduled maintenance." }
+        city:
+          type: string
+          example: Nashik
+          description: Omit to broadcast to every coaching_admin platform-wide; set to target only institutes in one city.
+
+    BroadcastToStudentsRequest:
+      type: object
+      required: [title]
+      properties:
+        title:   { type: string, example: "Holiday tomorrow" }
+        body:    { type: string, example: "Institute will remain closed tomorrow for a public holiday." }
+        batchId:
+          type: integer
+          example: 4
+          description: Omit to broadcast to every student in the institute; set to target only one batch.
+
   # ── Common Responses ───────────────────────────────────────────────────────
   responses:
     Unauthorized:
@@ -590,8 +630,9 @@ paths:
       summary: Login
       description: |
         Authenticates a user and returns JWT access + refresh tokens along with branding info.
-        - For `coaching_admin`, `teacher`, `student`: provide `slug` (institute identifier) + `phone` + `password`.
-        - For `super_admin`: omit `slug`, just provide `phone` + `password`.
+        One login form for every role — phone + password only. Phone is globally
+        unique across all institutes, so the backend resolves the user (and, for
+        non-super-admin roles, the institute/branding) from the phone number alone.
       operationId: login
       requestBody:
         required: true
@@ -601,12 +642,12 @@ paths:
             examples:
               student_login:
                 summary: Student login
-                value: { slug: apex, phone: "919000000013", password: "Student@123" }
+                value: { phone: "919000000013", password: "Student@123" }
               admin_login:
                 summary: Coaching Admin login
-                value: { slug: apex, phone: "919000000011", password: "Coach@123" }
+                value: { phone: "919000000011", password: "Coach@123" }
               superadmin_login:
-                summary: Super Admin login (no slug)
+                summary: Super Admin login
                 value: { phone: "918888800000", password: "Admin@123" }
       responses:
         '200':
@@ -1022,7 +1063,7 @@ paths:
           description: Unread count
           content:
             application/json:
-              example: { unreadCount: 3 }
+              example: { count: 3 }
 
   /superadmin/leads/{id}/read:
     patch:
@@ -1091,6 +1132,40 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PlatformAnalytics' }
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # SUPER ADMIN — NOTIFICATIONS
+  # ══════════════════════════════════════════════════════════════════════════
+  /superadmin/notifications/broadcast:
+    post:
+      tags: [Super Admin — Notifications]
+      summary: Broadcast a notification to coaching_admins
+      description: |
+        Inserts one notification row per matching coaching_admin, in a single
+        query. Omit `city` to reach every institute platform-wide, or set it
+        to target only institutes in one city/area.
+      operationId: broadcastToAdmins
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BroadcastToAdminsRequest' }
+            examples:
+              all_admins:
+                summary: Broadcast to every institute
+                value: { title: "Platform maintenance tonight", body: "Brief downtime 1-2 AM IST." }
+              by_city:
+                summary: Broadcast filtered by city
+                value: { title: "Nashik office closed Monday", city: Nashik }
+      responses:
+        '201':
+          description: Broadcast sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BroadcastResponse' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
   # ══════════════════════════════════════════════════════════════════════════
   # COACHING ADMIN — DASHBOARD
@@ -1510,6 +1585,93 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
 
   # ══════════════════════════════════════════════════════════════════════════
+  # COACHING ADMIN — NOTIFICATIONS
+  # ══════════════════════════════════════════════════════════════════════════
+  /admin/notifications:
+    get:
+      tags: [Coaching Admin — Notifications]
+      summary: My notification inbox
+      description: Most recent 50 notifications for the logged-in coaching_admin.
+      operationId: adminListNotifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/NotificationItem' }
+
+  /admin/notifications/unread-count:
+    get:
+      tags: [Coaching Admin — Notifications]
+      summary: Unread notification count (for badge)
+      operationId: adminUnreadNotificationCount
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              example: { count: 2 }
+
+  /admin/notifications/{id}/read:
+    patch:
+      tags: [Coaching Admin — Notifications]
+      summary: Mark a notification as read
+      operationId: adminMarkNotificationRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 41 }
+      responses:
+        '200':
+          description: Marked as read
+          content:
+            application/json:
+              example: { success: true }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/notifications/broadcast:
+    post:
+      tags: [Coaching Admin — Notifications]
+      summary: Broadcast a notification to students
+      description: |
+        Inserts one notification row per matching student in the caller's own
+        institute (tenant is always taken from the JWT, never the request
+        body). Omit `batchId` to reach every student, or set it to target
+        only one batch. Blocked when subscription is expired/past_due.
+      operationId: broadcastToStudents
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BroadcastToStudentsRequest' }
+            examples:
+              all_students:
+                summary: Broadcast to the whole institute
+                value: { title: "Holiday tomorrow", body: "Institute closed for a public holiday." }
+              by_batch:
+                summary: Broadcast filtered by batch
+                value: { title: "Test postponed", batchId: 4 }
+      responses:
+        '201':
+          description: Broadcast sent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BroadcastResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ══════════════════════════════════════════════════════════════════════════
   # TEACHER
   # ══════════════════════════════════════════════════════════════════════════
   /teacher/schedule/today:
@@ -1824,6 +1986,57 @@ paths:
             application/json:
               example:
                 waUrl: "https://wa.me/919000000012?text=Sir%2C%20Newton%27s%20Laws%20mein%20doubt%20hai.%20-%20Aarav%20(Apex%20Academy)"
+
+  /student/notifications:
+    get:
+      tags: [Student]
+      summary: My notification inbox
+      description: Most recent 50 notifications for the logged-in student.
+      operationId: studentListNotifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/NotificationItem' }
+
+  /student/notifications/unread-count:
+    get:
+      tags: [Student]
+      summary: Unread notification count (for badge)
+      operationId: studentUnreadNotificationCount
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              example: { count: 1 }
+
+  /student/notifications/{id}/read:
+    patch:
+      tags: [Student]
+      summary: Mark a notification as read
+      operationId: studentMarkNotificationRead
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, example: 12 }
+      responses:
+        '200':
+          description: Marked as read
+          content:
+            application/json:
+              example: { success: true }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # ══════════════════════════════════════════════════════════════════════════
   # PAYMENTS (Razorpay)

@@ -80,15 +80,10 @@ class AuthNotifier extends Notifier<AuthState> {
     );
   }
 
-  Future<bool> login(String phone, String password, {String? slug}) async {
+  Future<bool> login(String phone, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final Map<String, dynamic> body = {'phone': phone, 'password': password};
-      if (slug != null && slug.isNotEmpty) {
-        body['slug'] = slug;
-      }
-
-      final response = await _api.post('/auth/login', body);
+      final response = await _api.post('/auth/login', {'phone': phone, 'password': password});
       final accessToken = response['accessToken'];
       if (accessToken == null) {
         throw Exception('Token missing from response');

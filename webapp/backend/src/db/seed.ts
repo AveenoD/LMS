@@ -191,7 +191,7 @@ async function seed(): Promise<void> {
 
     logger.info('Seed complete.', { defaultPassword: PASSWORD });
     logger.info(
-      'Logins → super_admin: 918888800000 | apex admin: 919000000011 (slug=apex) | apex student: 919000000013 (slug=apex)'
+      'Logins → super_admin: 918888800000 | apex admin: 919000000011 | apex student: 919000000013'
     );
   } catch (err) {
     logger.error('Seed error', { error: err instanceof Error ? err.message : String(err) });

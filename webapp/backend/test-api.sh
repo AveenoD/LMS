@@ -33,7 +33,7 @@ NL=$($CURL -X POST "$BASE/leads" -H 'Content-Type: application/json' -d '{"owner
 
 sleep 1
 echo "== 6. Apex admin login =="
-AA=$($CURL -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d '{"slug":"apex","phone":"919000000011","password":"Password@123"}')
+AA=$($CURL -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d '{"phone":"919000000011","password":"Password@123"}')
 AA_T=$(echo "$AA" | jqf ".accessToken")
 [[ -n "$AA_T" ]] && ok "apex admin login" || bad "apex admin login" "$AA"
 
@@ -56,7 +56,7 @@ CB=$($CURL -X POST "$BASE/admin/batches" -H "Authorization: Bearer $AA_T" -H 'Co
 
 sleep 1
 echo "== 11. Apex student login =="
-STU=$($CURL -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d '{"slug":"apex","phone":"919000000013","password":"Password@123"}')
+STU=$($CURL -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d '{"phone":"919000000013","password":"Password@123"}')
 STU_T=$(echo "$STU" | jqf ".accessToken")
 [[ -n "$STU_T" ]] && ok "student login" || bad "student login" "$STU"
 
@@ -77,7 +77,7 @@ NT=$($CURL -o /dev/null -w '%{http_code}' "$BASE/admin/dashboard")
 [[ "$NT" == "401" ]] && ok "no token 401" || bad "no token" "$NT"
 
 echo "== 16. Bad login => 401 =="
-BL=$($CURL -o /dev/null -w '%{http_code}' -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d '{"slug":"apex","phone":"919000000011","password":"wrongpass"}')
+BL=$($CURL -o /dev/null -w '%{http_code}' -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d '{"phone":"919000000011","password":"wrongpass"}')
 [[ "$BL" == "401" ]] && ok "bad login 401" || bad "bad login" "$BL"
 
 sleep 1

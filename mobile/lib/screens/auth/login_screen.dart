@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_textfield.dart';
-import '../dashboard/dashboard_screen.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/role_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -14,14 +14,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _slugController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   void _handleLogin() async {
     final phone = _phoneController.text.trim();
-    final slug = _slugController.text.trim().isEmpty
-        ? null
-        : _slugController.text.trim();
     final password = _passwordController.text;
 
     if (phone.isEmpty || password.isEmpty) {
@@ -31,14 +27,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final success = await ref
-        .read(authProvider.notifier)
-        .login(phone, password, slug: slug);
+    final success = await ref.read(authProvider.notifier).login(phone, password);
 
     if (success && mounted) {
+      final role = ref.read(authProvider).userRole;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        MaterialPageRoute(builder: (context) => homeScreenForRole(role)),
       );
     } else if (mounted) {
       final error = ref.read(authProvider).error ?? 'Login Failed';
@@ -51,7 +46,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void dispose() {
     _phoneController.dispose();
-    _slugController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -98,13 +92,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 hint: 'Enter your phone number',
                 prefixIcon: Icons.phone_outlined,
                 controller: _phoneController,
-              ),
-              const SizedBox(height: 24),
-              CustomTextField(
-                label: 'Slug (Optional)',
-                hint: 'Leave empty for super admin',
-                prefixIcon: Icons.business_outlined,
-                controller: _slugController,
               ),
               const SizedBox(height: 24),
               CustomTextField(

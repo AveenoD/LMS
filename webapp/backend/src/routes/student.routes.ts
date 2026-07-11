@@ -20,5 +20,8 @@ router.get('/live/today', ctrl.todayLive);
 router.get('/fees', ctrl.fees);
 router.get('/fees/receipt/:paymentId', validate(paymentIdParamSchema, 'params'), ctrl.receipt);
 router.get('/ask-doubt', validate(askDoubtQuerySchema, 'query'), ctrl.askDoubt);
+router.get('/notifications', ctrl.listNotifications);
+router.get('/notifications/unread-count', ctrl.unreadNotificationCount);
+router.patch('/notifications/:id/read', validate(idParamSchema, 'params'), ctrl.markNotificationRead);
 
 export default router;

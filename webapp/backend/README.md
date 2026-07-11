@@ -65,7 +65,7 @@ src/
 **Tenant isolation** is enforced from `req.user.tenantId` (decoded from the JWT), never from the request body.
 
 ## Key API Entry Points (base `/api/v1`)
-- `POST /auth/login` — `{ slug?, phone, password }` (slug omitted for super_admin)
+- `POST /auth/login` — `{ phone, password }` (single login form for every role — phone is globally unique)
 - `POST /auth/refresh`, `GET /auth/me`, `POST /auth/logout`
 - `POST /leads` — **PUBLIC** demo booking (rate-limited) → persists + fires free notifications
 - `GET /superadmin/analytics|tenants|subscriptions|leads`, `POST /superadmin/tenants`
@@ -77,11 +77,11 @@ src/
 - `GET /health`
 
 ## Demo Logins (password: `Password@123`)
-- super_admin: `918888800000` (no slug)
-- Apex admin: `919000000011` (slug `apex`) — starts on **trial**
-- Apex teacher: `919000000012` (slug `apex`)
-- Apex student: `919000000013` (slug `apex`)
-- Pioneer admin: `919000000021` (slug `pioneer`) — **active** subscription
+- super_admin: `918888800000`
+- Apex admin: `919000000011` — starts on **trial**
+- Apex teacher: `919000000012`
+- Apex student: `919000000013`
+- Pioneer admin: `919000000021` — **active** subscription
 
 ## Notifications (all FREE)
 Configure in `.env` (see `.env.example`):

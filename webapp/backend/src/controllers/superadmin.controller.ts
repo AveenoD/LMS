@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as svc from '../services/superadmin.service.js';
+import * as notificationCenter from '../services/notificationCenter.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { userId } from './helpers.js';
 
@@ -30,4 +31,14 @@ export const expiring = asyncHandler(async (req: Request, res: Response) => {
 
 export const analytics = asyncHandler(async (_req: Request, res: Response) => {
   res.json(await svc.analytics());
+});
+
+/** Broadcast a notification to coaching_admins — all institutes, or filtered by city. */
+export const broadcastToAdmins = asyncHandler(async (req: Request, res: Response) => {
+  const { title, body, city } = req.body;
+  const result = await notificationCenter.broadcastNotification(
+    { title, body, targetRole: 'coaching_admin', tenantId: null, city },
+    userId(req)
+  );
+  res.status(201).json(result);
 });

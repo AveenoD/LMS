@@ -78,3 +78,12 @@ export const updateBrandingSchema = z
 export const idParamSchema = z.object({ id: z.coerce.number().int().positive() }).strict();
 export const studentIdParamSchema = z.object({ studentId: z.coerce.number().int().positive() }).strict();
 export const batchIdParamSchema = z.object({ batchId: z.coerce.number().int().positive() }).strict();
+
+export const broadcastToStudentsSchema = z
+  .object({
+    title: z.string().trim().min(2).max(150),
+    body: z.string().trim().max(2000).optional(),
+    // Omit to broadcast to every student in the institute; set to target one batch.
+    batchId: z.coerce.number().int().positive().optional(),
+  })
+  .strict();

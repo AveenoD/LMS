@@ -31,5 +31,15 @@ export const expiringQuerySchema = z
   })
   .strict();
 
+export const broadcastToAdminsSchema = z
+  .object({
+    title: z.string().trim().min(2).max(150),
+    body: z.string().trim().max(2000).optional(),
+    // Institute city — omit to broadcast to every coaching_admin platform-wide.
+    city: z.string().trim().max(80).optional(),
+  })
+  .strict();
+
 export type RegisterTenantBody = z.infer<typeof registerTenantSchema>;
 export type SuspendBody = z.infer<typeof suspendSchema>;
+export type BroadcastToAdminsBody = z.infer<typeof broadcastToAdminsSchema>;

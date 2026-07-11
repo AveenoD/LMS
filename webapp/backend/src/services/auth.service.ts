@@ -13,7 +13,6 @@ export interface Branding {
 }
 
 export interface LoginInput {
-  slug?: string;
   phone: string;
   password: string;
 }
@@ -26,18 +25,22 @@ export interface LoginResult {
 }
 
 /**
- * Authenticate by (slug + phone + password). slug is omitted for super_admin.
- * Returns tokens, public user, and tenant branding (null for super_admin).
+ * Authenticate by phone + password alone. Phone is globally unique across
+ * every tenant (see migration 0003), so no institute slug is needed to
+ * disambiguate — one login form for every role.
  */
-export async function login({ slug, phone, password }: LoginInput): Promise<LoginResult> {
-  let tenantId: number | null = null;
-  let branding: Branding | null = null;
+export async function login({ phone, password }: LoginInput): Promise<LoginResult> {
+  const user = await userRepo.findForLogin(phone);
+  if (!user) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid phone or password');
 
-  if (slug) {
-    const tenant = await tenantRepo.findBySlug(slug);
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid phone or password');
+
+  let branding: Branding | null = null;
+  if (user.tenant_id) {
+    const tenant = await tenantRepo.findById(user.tenant_id);
     if (!tenant) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid login');
     if (!tenant.is_active) throw ApiError.forbidden('TENANT_SUSPENDED', 'This institute is suspended');
-    tenantId = tenant.id;
     branding = {
       name: tenant.name,
       logoUrl: tenant.logo_url,
@@ -45,12 +48,6 @@ export async function login({ slug, phone, password }: LoginInput): Promise<Logi
       slug: tenant.slug,
     };
   }
-
-  const user = await userRepo.findForLogin({ tenantId, phone });
-  if (!user) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid phone or password');
-
-  const ok = await bcrypt.compare(password, user.password_hash);
-  if (!ok) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid phone or password');
 
   const accessToken = signAccessToken({
     userId: user.id,

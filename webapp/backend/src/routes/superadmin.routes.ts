@@ -10,6 +10,7 @@ import {
   suspendSchema,
   idParamSchema,
   expiringQuerySchema,
+  broadcastToAdminsSchema,
 } from '../validators/superadmin.validators.js';
 import { updateLeadStatusSchema } from '../validators/lead.validators.js';
 import {
@@ -66,5 +67,8 @@ router.patch(
   validate(updateLeadStatusSchema),
   leadCtrl.updateStatus
 );
+
+// ── Notifications (broadcast to coaching_admins) ──────────────────────────────
+router.post('/notifications/broadcast', validate(broadcastToAdminsSchema), ctrl.broadcastToAdmins);
 
 export default router;

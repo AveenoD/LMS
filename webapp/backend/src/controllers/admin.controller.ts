@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import * as svc from '../services/admin.service.js';
+import * as notificationCenter from '../services/notificationCenter.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { tenantId, userId } from './helpers.js';
 
@@ -82,3 +83,24 @@ export const getBranding = asyncHandler(async (req: Request, res: Response) =>
 export const updateBranding = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.updateBranding(tenantId(req), userId(req), req.body))
 );
+
+/* Notifications */
+export const listNotifications = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await notificationCenter.listMyNotifications(userId(req)))
+);
+export const unreadNotificationCount = asyncHandler(async (req: Request, res: Response) =>
+  res.json({ count: await notificationCenter.unreadNotificationCount(userId(req)) })
+);
+export const markNotificationRead = asyncHandler(async (req: Request, res: Response) => {
+  await notificationCenter.markNotificationRead(Number(req.params.id), userId(req));
+  res.json({ success: true });
+});
+/** Broadcast a notification to students — whole institute, or filtered by batch. */
+export const broadcastToStudents = asyncHandler(async (req: Request, res: Response) => {
+  const { title, body, batchId } = req.body;
+  const result = await notificationCenter.broadcastNotification(
+    { title, body, targetRole: 'student', tenantId: tenantId(req), batchId },
+    userId(req)
+  );
+  res.status(201).json(result);
+});

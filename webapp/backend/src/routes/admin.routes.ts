@@ -16,6 +16,7 @@ import {
   updateBrandingSchema,
   idParamSchema,
   studentIdParamSchema,
+  broadcastToStudentsSchema,
 } from '../validators/admin.validators.js';
 
 const router = Router();
@@ -32,6 +33,9 @@ router.get('/subjects', ctrl.listSubjects);
 router.get('/timetable', ctrl.listTimetable);
 router.get('/fees', ctrl.listFees);
 router.get('/branding', ctrl.getBranding);
+router.get('/notifications', ctrl.listNotifications);
+router.get('/notifications/unread-count', ctrl.unreadNotificationCount);
+router.patch('/notifications/:id/read', validate(idParamSchema, 'params'), ctrl.markNotificationRead);
 
 // Performance reports — Pro & Elite only
 router.get('/reports/performance', featureGuard('performance_reports'), ctrl.performance);
@@ -74,6 +78,13 @@ router.put(
   featureGuard('custom_branding'),
   validate(updateBrandingSchema),
   ctrl.updateBranding
+);
+
+router.post(
+  '/notifications/broadcast',
+  subscriptionGuard,
+  validate(broadcastToStudentsSchema),
+  ctrl.broadcastToStudents
 );
 
 export default router;
