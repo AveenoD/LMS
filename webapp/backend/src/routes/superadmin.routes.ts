@@ -11,6 +11,7 @@ import {
   idParamSchema,
   expiringQuerySchema,
   broadcastToAdminsSchema,
+  analyticsQuerySchema,
 } from '../validators/superadmin.validators.js';
 import { updateLeadStatusSchema } from '../validators/lead.validators.js';
 import {
@@ -55,7 +56,7 @@ router.put('/plans/:id', validate(idParamSchema, 'params'), validate(updatePlanS
 router.delete('/plans/:id', validate(idParamSchema, 'params'), planCtrl.deactivatePlan);
 
 // ── Analytics ────────────────────────────────────────────────────────────────
-router.get('/analytics', ctrl.analytics);
+router.get('/analytics', validate(analyticsQuerySchema, 'query'), ctrl.analytics);
 
 // ── Leads (in-app demo-booking inbox) ────────────────────────────────────────
 router.get('/leads', leadCtrl.listLeads);

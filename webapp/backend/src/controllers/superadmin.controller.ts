@@ -29,8 +29,10 @@ export const expiring = asyncHandler(async (req: Request, res: Response) => {
   res.json(await svc.expiringSoon(days));
 });
 
-export const analytics = asyncHandler(async (_req: Request, res: Response) => {
-  res.json(await svc.analytics());
+export const analytics = asyncHandler(async (req: Request, res: Response) => {
+  const month = req.query.month ? Number(req.query.month) : undefined;
+  const year = req.query.year ? Number(req.query.year) : undefined;
+  res.json(await svc.analytics(month, year));
 });
 
 /** Broadcast a notification to coaching_admins — all institutes, or filtered by city. */

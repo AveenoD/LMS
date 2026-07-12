@@ -6,11 +6,25 @@ import '../../widgets/custom_textfield.dart';
 
 /// Super Admin's "Tenants" tab. List fields match `TenantListItem`:
 /// {id, name, slug, city, isActive, status, trialEndsAt, nextBillingDate, studentCount}.
-class TenantsScreen extends ConsumerWidget {
-  const TenantsScreen({super.key});
+class TenantsScreen extends ConsumerStatefulWidget {
+  final String? initialFilter;
+  const TenantsScreen({super.key, this.initialFilter});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TenantsScreen> createState() => _TenantsScreenState();
+}
+
+class _TenantsScreenState extends ConsumerState<TenantsScreen> {
+  late String _selectedFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFilter = widget.initialFilter ?? 'All';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tenantsAsync = ref.watch(tenantsProvider);
 
     return Scaffold(
@@ -21,16 +35,58 @@ class TenantsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
         data: (tenants) {
-          if (tenants.isEmpty) {
-            return const Center(child: Text('No institutes yet.'));
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(tenantsProvider),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: tenants.length,
-              itemBuilder: (context, index) {
-                final tenant = tenants[index] as Map<String, dynamic>;
+          final filteredTenants = tenants.where((t) {
+            if (_selectedFilter == 'All') return true;
+            return t['status']?.toString() == _selectedFilter;
+          }).toList();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 60,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  children: ['All', 'active', 'trial', 'suspended', 'past_due'].map((status) {
+                    final isSelected = _selectedFilter == status;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(
+                          status == 'All' ? 'ALL' : status.toUpperCase(), 
+                          style: TextStyle(
+                            fontSize: 12, 
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : const Color(0xFF1F2E27)
+                          )
+                        ),
+                        showCheckmark: false,
+                        selected: isSelected,
+                        selectedColor: const Color(0xFF2E6656),
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: isSelected ? Colors.transparent : Colors.grey.shade300)
+                        ),
+                        onSelected: (selected) {
+                          if (selected) setState(() => _selectedFilter = status);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              Expanded(
+                child: filteredTenants.isEmpty
+                    ? const Center(child: Text('No institutes found.'))
+                    : RefreshIndicator(
+                        onRefresh: () async => ref.invalidate(tenantsProvider),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredTenants.length,
+                          itemBuilder: (context, index) {
+                            final tenant = filteredTenants[index] as Map<String, dynamic>;
                 final isActive = tenant['isActive'] == true;
                 final status = tenant['status']?.toString() ?? 'unknown';
                 final city = tenant['city']?.toString();
@@ -65,10 +121,14 @@ class TenantsScreen extends ConsumerWidget {
                 );
               },
             ),
+          ),
+          ),
+          ],
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () => showDialog(context: context, builder: (_) => const _AddTenantDialog()),
         backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),

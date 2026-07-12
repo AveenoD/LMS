@@ -3,9 +3,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import 'auth_provider.dart';
 
+class SelectedAnalyticsMonthNotifier extends Notifier<DateTime> {
+  @override
+  DateTime build() => DateTime.now();
+}
+
+final selectedAnalyticsMonthProvider = NotifierProvider<SelectedAnalyticsMonthNotifier, DateTime>(() {
+  return SelectedAnalyticsMonthNotifier();
+});
+
 final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final api = ref.watch(apiServiceProvider);
   final authState = ref.watch(authProvider);
+  final selectedMonth = ref.watch(selectedAnalyticsMonthProvider);
 
   try {
     // Determine endpoint based on user role
@@ -20,7 +30,7 @@ final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 
     // Select endpoint based on role
     if (userRole == 'super_admin') {
-      endpoint = '/superadmin/analytics';
+      endpoint = '/superadmin/analytics?month=${selectedMonth.month}&year=${selectedMonth.year}';
     } else if (userRole == 'coaching_admin') {
       endpoint = '/admin/dashboard';
     } else if (userRole == 'student') {

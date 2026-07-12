@@ -131,6 +131,7 @@ class PlansScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () => showDialog(context: context, builder: (_) => const _PlanFormDialog()),
         backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),

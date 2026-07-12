@@ -31,6 +31,13 @@ export const expiringQuerySchema = z
   })
   .strict();
 
+export const analyticsQuerySchema = z
+  .object({
+    month: z.coerce.number().int().min(1).max(12).optional(),
+    year: z.coerce.number().int().min(2000).max(2100).optional(),
+  })
+  .strict();
+
 export const broadcastToAdminsSchema = z
   .object({
     title: z.string().trim().min(2).max(150),

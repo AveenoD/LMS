@@ -188,16 +188,32 @@ export async function expiringSoon(days = 3): Promise<ExpiringItem[]> {
   return rows;
 }
 
+export interface GraphDataPoint {
+  day: number;
+  institutes: number;
+  students: number;
+  revenue: number;
+}
+
 export interface PlatformAnalytics {
   totalTenants: number;
   activeTenants: number;
   totalStudents: number;
   mrr: number;
   onTrial: number;
+  graphData: GraphDataPoint[];
 }
 
-export async function analytics(): Promise<PlatformAnalytics> {
-  const { rows } = await query<PlatformAnalytics>(`
+export async function analytics(month?: number, year?: number): Promise<PlatformAnalytics> {
+  const targetDate = new Date();
+  if (year) targetDate.setFullYear(year);
+  if (month) targetDate.setMonth(month - 1); // month is 1-indexed
+
+  const startStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-01`;
+  const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0); // Last day of month
+  const endStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+  const { rows } = await query<Omit<PlatformAnalytics, 'graphData'>>(`
     SELECT
       (SELECT count(*)::int FROM tenants) AS "totalTenants",
       (SELECT count(*)::int FROM tenants WHERE is_active) AS "activeTenants",
@@ -205,5 +221,23 @@ export async function analytics(): Promise<PlatformAnalytics> {
       (SELECT COALESCE(sum(amount),0)::int FROM subscriptions WHERE status = 'active') AS "mrr",
       (SELECT count(*)::int FROM subscriptions WHERE status = 'trial') AS "onTrial"
   `);
-  return rows[0];
+
+  const graphRes = await query<GraphDataPoint>(`
+    SELECT 
+      EXTRACT(DAY FROM d.day)::int as day,
+      (SELECT count(*)::int FROM tenants WHERE created_at <= d.day + interval '1 day' - interval '1 second') as institutes,
+      (SELECT count(*)::int FROM students WHERE joined_at <= (d.day)::date) as students,
+      (SELECT COALESCE(sum(amount),0)::int FROM subscriptions WHERE status = 'active' AND created_at <= d.day + interval '1 day' - interval '1 second') as revenue
+    FROM generate_series(
+      $1::date, 
+      $2::date, 
+      '1 day'::interval
+    ) as d(day)
+    ORDER BY day ASC
+  `, [startStr, endStr]);
+
+  return {
+    ...rows[0],
+    graphData: graphRes.rows,
+  };
 }
