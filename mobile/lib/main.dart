@@ -203,10 +203,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.school_rounded,
-                  size: 100,
-                  color: Colors.white,
+                Image.asset(
+                  'assets/images/logo_splash.png',
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 16),
                 const Text(
