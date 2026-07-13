@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/superadmin_providers.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_textfield.dart';
+import '../../widgets/analytics_top_card.dart';
+import '../../theme/app_colors.dart';
+import 'tenant_details_screen.dart';
 
 /// Super Admin's "Tenants" tab. List fields match `TenantListItem`:
 /// {id, name, slug, city, isActive, status, trialEndsAt, nextBillingDate, studentCount}.
@@ -40,9 +43,67 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
             return t['status']?.toString() == _selectedFilter;
           }).toList();
 
+          final int totalTenants = tenants.length;
+          final int activeCount = tenants.where((t) => t['status'] == 'active').length;
+          final int trialCount = tenants.where((t) => t['status'] == 'trial').length;
+          final int suspendedCount = tenants.where((t) => t['status'] == 'suspended' || t['status'] == 'past_due').length;
+
+          final String activePercent = totalTenants == 0 ? '0%' : '${((activeCount / totalTenants) * 100).toStringAsFixed(0)}%';
+          final String trialPercent = totalTenants == 0 ? '0%' : '${((trialCount / totalTenants) * 100).toStringAsFixed(0)}%';
+          final String suspendedPercent = totalTenants == 0 ? '0%' : '${((suspendedCount / totalTenants) * 100).toStringAsFixed(0)}%';
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SizedBox(
+                height: 155,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  children: [
+                    AnalyticsTopCard(
+                      title: 'Total Tenants', 
+                      value: totalTenants.toString(), 
+                      subtitle: 'All Institutes', 
+                      icon: Icons.business, 
+                      bgColor: const Color(0xFF1F2E27).withValues(alpha: 0.1), 
+                      iconColor: const Color(0xFF1F2E27),
+                      subtitleColor: Colors.grey.shade600,
+                      subtitleIcon: null,
+                    ),
+                    AnalyticsTopCard(
+                      title: 'Active', 
+                      value: activeCount.toString(), 
+                      subtitle: '$activePercent of total', 
+                      icon: Icons.check_circle, 
+                      bgColor: Colors.green.withValues(alpha: 0.1), 
+                      iconColor: Colors.green,
+                      subtitleColor: Colors.green,
+                      subtitleIcon: null,
+                    ),
+                    AnalyticsTopCard(
+                      title: 'Trial', 
+                      value: trialCount.toString(), 
+                      subtitle: '$trialPercent of total', 
+                      icon: Icons.hourglass_top, 
+                      bgColor: Colors.orange.withValues(alpha: 0.1), 
+                      iconColor: Colors.orange,
+                      subtitleColor: Colors.orange,
+                      subtitleIcon: null,
+                    ),
+                    AnalyticsTopCard(
+                      title: 'Suspended', 
+                      value: suspendedCount.toString(), 
+                      subtitle: '$suspendedPercent of total', 
+                      icon: Icons.pause_circle, 
+                      bgColor: Colors.red.withValues(alpha: 0.1), 
+                      iconColor: Colors.red,
+                      subtitleColor: Colors.red,
+                      subtitleIcon: null,
+                    ),
+                  ],
+                ),
+              ),
               SizedBox(
                 height: 60,
                 child: ListView(
@@ -92,32 +153,16 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
                 final city = tenant['city']?.toString();
                 final studentCount = tenant['studentCount']?.toString() ?? '0';
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    onTap: () => _showAssignPlanDialog(context, ref, tenant),
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF2E6656).withValues(alpha: 0.12),
-                      child: Icon(Icons.business, color: const Color(0xFF1F2E27)),
-                    ),
-                    title: Text(tenant['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(
-                      [
-                        if (city != null && city.isNotEmpty) city,
-                        '$studentCount students',
-                      ].join(' • '),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _StatusChip(status: status),
-                        Switch(
-                          value: isActive,
-                          onChanged: (v) => _toggleActive(context, ref, tenant, v),
-                        ),
-                      ],
-                    ),
-                  ),
+                return TenantCard(
+                  tenant: tenant,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TenantDetailsScreen(tenant: tenant),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -184,6 +229,192 @@ class _StatusChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
       child: Text(status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class TenantCard extends StatelessWidget {
+  final Map<String, dynamic> tenant;
+  final VoidCallback onTap;
+  
+  const TenantCard({super.key, required this.tenant, required this.onTap});
+
+  String _monthStr(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
+  }
+
+  Widget _buildStat(IconData icon, String count, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: Colors.grey.shade700),
+            const SizedBox(width: 4),
+            Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 10)),
+      ],
+    );
+  }
+
+  Widget _buildVerticalDivider() {
+    return Container(
+      height: 20,
+      width: 1,
+      color: Colors.grey.shade300,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String name = tenant['name'] ?? 'Unknown';
+    final String? city = tenant['city']?.toString();
+    final String studentCount = tenant['studentCount']?.toString() ?? '0';
+    final String teacherCount = tenant['teacherCount']?.toString() ?? '0';
+    final String batchCount = tenant['batchCount']?.toString() ?? '0';
+    final String status = tenant['status']?.toString() ?? 'unknown';
+
+    final String? trialEndsAtStr = tenant['trialEndsAt'];
+    final String? nextBillingDateStr = tenant['nextBillingDate'];
+
+    DateTime? trialEndsAt = trialEndsAtStr != null ? DateTime.tryParse(trialEndsAtStr) : null;
+    DateTime? nextBillingDate = nextBillingDateStr != null ? DateTime.tryParse(nextBillingDateStr) : null;
+    final now = DateTime.now();
+
+    String statusText = status.toUpperCase();
+    Color statusColor = Colors.grey;
+    Color statusBgColor = Colors.grey.withValues(alpha: 0.1);
+    
+    Widget dateInfoWidget = const SizedBox.shrink();
+
+    if (status == 'trial') {
+      statusText = 'TRIAL';
+      statusColor = Colors.orange;
+      statusBgColor = Colors.orange.withValues(alpha: 0.1);
+      
+      if (trialEndsAt != null) {
+        final daysLeft = trialEndsAt.difference(now).inDays;
+        final dateStr = '${trialEndsAt.day} ${_monthStr(trialEndsAt.month)} ${trialEndsAt.year}';
+        dateInfoWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text('${daysLeft > 0 ? daysLeft : 0} Days Left', style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            Text('Trial ends on\n$dateStr', textAlign: TextAlign.right, style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+          ],
+        );
+      }
+    } else if (status == 'active') {
+      statusText = 'PREMIUM';
+      statusColor = Colors.green;
+      statusBgColor = Colors.green.withValues(alpha: 0.1);
+      
+      if (nextBillingDate != null) {
+        final dateStr = '${nextBillingDate.day} ${_monthStr(nextBillingDate.month)} ${nextBillingDate.year}';
+        dateInfoWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text('Valid till\n$dateStr', textAlign: TextAlign.right, style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+          ],
+        );
+      }
+    } else {
+      statusText = status == 'past_due' ? 'EXPIRED' : status.toUpperCase();
+      statusColor = Colors.red;
+      statusBgColor = Colors.red.withValues(alpha: 0.1);
+      
+      DateTime? expiredOn = nextBillingDate ?? trialEndsAt;
+      if (expiredOn != null) {
+        final dateStr = '${expiredOn.day} ${_monthStr(expiredOn.month)} ${expiredOn.year}';
+        dateInfoWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text('Expired on\n$dateStr', textAlign: TextAlign.right, style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+          ],
+        );
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: const Color(0xFFE8F0ED),
+                  child: const Icon(Icons.business, color: Color(0xFF1F2E27)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F2E27))),
+                      const SizedBox(height: 4),
+                      Text('${city != null && city.isNotEmpty ? '$city, ' : ''}Maharashtra', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          _buildStat(Icons.school, studentCount, 'Students'),
+                          _buildVerticalDivider(),
+                          _buildStat(Icons.person, teacherCount, 'Teachers'),
+                          _buildVerticalDivider(),
+                          _buildStat(Icons.menu_book, batchCount, 'Batches'),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusBgColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              dateInfoWidget,
+            ],
+          )
+        ],
+      ),
+        ),
+      ),
     );
   }
 }

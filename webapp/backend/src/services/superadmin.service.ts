@@ -110,13 +110,18 @@ export interface TenantListItem {
   trialEndsAt: Date | null;
   nextBillingDate: Date | null;
   studentCount: number;
+  teacherCount: number;
+  batchCount: number;
+  createdAt: Date;
 }
 
 export async function listTenants(): Promise<TenantListItem[]> {
   const { rows } = await query<TenantListItem>(`
-    SELECT t.id, t.name, t.slug, t.city, t.is_active AS "isActive",
+    SELECT t.id, t.name, t.slug, t.city, t.is_active AS "isActive", t.created_at AS "createdAt",
            s.status, s.trial_ends_at AS "trialEndsAt", s.next_billing_date AS "nextBillingDate",
-           (SELECT count(*)::int FROM students st WHERE st.tenant_id = t.id) AS "studentCount"
+           (SELECT count(*)::int FROM students st WHERE st.tenant_id = t.id) AS "studentCount",
+           (SELECT count(*)::int FROM users u WHERE u.tenant_id = t.id AND u.role = 'teacher') AS "teacherCount",
+           (SELECT count(*)::int FROM batches b WHERE b.tenant_id = t.id) AS "batchCount"
       FROM tenants t
       LEFT JOIN subscriptions s ON s.tenant_id = t.id
       ORDER BY t.created_at DESC
@@ -201,6 +206,10 @@ export interface PlatformAnalytics {
   totalStudents: number;
   mrr: number;
   onTrial: number;
+  growthTotalTenants: string;
+  growthTotalStudents: string;
+  growthActiveTenants: string;
+  growthRevenue: string;
   graphData: GraphDataPoint[];
 }
 
@@ -213,6 +222,13 @@ export async function analytics(month?: number, year?: number): Promise<Platform
   const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0); // Last day of month
   const endStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
+  const lastMonthStart = new Date(targetDate.getFullYear(), targetDate.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), 0);
+  const lastMonthStartStr = `${lastMonthStart.getFullYear()}-${String(lastMonthStart.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastMonthEndStr = `${lastMonthEnd.getFullYear()}-${String(lastMonthEnd.getMonth() + 1).padStart(2, '0')}-${String(lastMonthEnd.getDate()).padStart(2, '0')} 23:59:59`;
+
+  const endStrFull = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')} 23:59:59`;
+
   const { rows } = await query<Omit<PlatformAnalytics, 'graphData'>>(`
     SELECT
       (SELECT count(*)::int FROM tenants) AS "totalTenants",
@@ -221,6 +237,25 @@ export async function analytics(month?: number, year?: number): Promise<Platform
       (SELECT COALESCE(sum(amount),0)::int FROM subscriptions WHERE status = 'active') AS "mrr",
       (SELECT count(*)::int FROM subscriptions WHERE status = 'trial') AS "onTrial"
   `);
+
+  const { rows: growthRows } = await query(`
+    SELECT
+      (SELECT count(*)::int FROM tenants WHERE created_at >= $1 AND created_at <= $2) AS "thisMonthTenants",
+      (SELECT count(*)::int FROM students WHERE joined_at >= $1 AND joined_at <= $2) AS "thisMonthStudents",
+      (SELECT count(*)::int FROM students WHERE joined_at >= $3 AND joined_at <= $4) AS "lastMonthStudents",
+      (SELECT count(*)::int FROM tenants WHERE is_active = true AND created_at >= $1 AND created_at <= $2) AS "thisMonthActiveTenants",
+      (SELECT count(*)::int FROM tenants WHERE is_active = true AND created_at >= $3 AND created_at <= $4) AS "lastMonthActiveTenants",
+      (SELECT COALESCE(sum(amount),0)::int FROM subscriptions WHERE status = 'active' AND created_at >= $1 AND created_at <= $2) AS "thisMonthRevenue",
+      (SELECT COALESCE(sum(amount),0)::int FROM subscriptions WHERE status = 'active' AND created_at >= $3 AND created_at <= $4) AS "lastMonthRevenue"
+  `, [startStr, endStrFull, lastMonthStartStr, lastMonthEndStr]);
+
+  const growth = growthRows[0];
+  const growthTotalTenants = `${growth.thisMonthTenants >= 0 ? '+' : ''}${growth.thisMonthTenants} this month`;
+  
+  const calcPercent = (curr: number, prev: number) => prev > 0 ? Math.round(((curr - prev) / prev) * 100) : (curr > 0 ? 100 : 0);
+  const studentGrowth = calcPercent(growth.thisMonthStudents, growth.lastMonthStudents);
+  const activeTenantGrowth = calcPercent(growth.thisMonthActiveTenants, growth.lastMonthActiveTenants);
+  const revenueGrowth = calcPercent(growth.thisMonthRevenue, growth.lastMonthRevenue);
 
   const graphRes = await query<GraphDataPoint>(`
     SELECT 
@@ -238,6 +273,10 @@ export async function analytics(month?: number, year?: number): Promise<Platform
 
   return {
     ...rows[0],
+    growthTotalTenants,
+    growthTotalStudents: `${studentGrowth >= 0 ? '+' : ''}${studentGrowth}% this month`,
+    growthActiveTenants: `${activeTenantGrowth >= 0 ? '+' : ''}${activeTenantGrowth}% this month`,
+    growthRevenue: `${revenueGrowth >= 0 ? '+' : ''}${revenueGrowth}% this month`,
     graphData: graphRes.rows,
   };
 }

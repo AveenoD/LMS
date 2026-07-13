@@ -91,6 +91,10 @@ class AnalyticsScreen extends ConsumerWidget {
             final totalStudents = data['totalStudents']?.toString() ?? '0';
             final mrr = '₹${data['mrr'] ?? 0}';
             final onTrial = data['onTrial']?.toString() ?? '0';
+            final growthTotalTenants = data['growthTotalTenants']?.toString() ?? '+0 this month';
+            final growthTotalStudents = data['growthTotalStudents']?.toString() ?? '+0% this month';
+            final growthActiveTenants = data['growthActiveTenants']?.toString() ?? '+0% this month';
+            final growthRevenue = data['growthRevenue']?.toString() ?? '+0% this month';
 
             final graphDataRaw = data['graphData'] as List<dynamic>? ?? [];
             final spotsStudents = <FlSpot>[];
@@ -168,15 +172,15 @@ class AnalyticsScreen extends ConsumerWidget {
 
                     // Top Stat Cards (Horizontal Scroll)
                     SizedBox(
-                      height: 145, 
+                      height: 155, 
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         children: [
-                          AnalyticsTopCard(title: 'Total Institutes', value: totalTenants, subtitle: '+8 this month', icon: Icons.business, bgColor: AppColors.successLight, iconColor: AppColors.success),
-                          AnalyticsTopCard(title: 'Total Students', value: totalStudents, subtitle: '+12% this month', icon: Icons.school, bgColor: AppColors.purpleLight, iconColor: AppColors.purple),
-                          AnalyticsTopCard(title: 'Active Institutes', value: activeTenants, subtitle: '+9% this month', icon: Icons.bar_chart, bgColor: AppColors.warningLight, iconColor: AppColors.warning),
-                          AnalyticsTopCard(title: 'Total Revenue', value: mrr, subtitle: '+15% this month', icon: Icons.account_balance_wallet, bgColor: AppColors.infoLight, iconColor: AppColors.info),
+                          AnalyticsTopCard(title: 'Total Institutes', value: totalTenants, subtitle: growthTotalTenants, icon: Icons.business, bgColor: AppColors.successLight, iconColor: AppColors.success),
+                          AnalyticsTopCard(title: 'Total Students', value: totalStudents, subtitle: growthTotalStudents, icon: Icons.school, bgColor: AppColors.purpleLight, iconColor: AppColors.purple),
+                          AnalyticsTopCard(title: 'Active Institutes', value: activeTenants, subtitle: growthActiveTenants, icon: Icons.bar_chart, bgColor: AppColors.warningLight, iconColor: AppColors.warning),
+                          AnalyticsTopCard(title: 'Total Revenue', value: mrr, subtitle: growthRevenue, icon: Icons.account_balance_wallet, bgColor: AppColors.infoLight, iconColor: AppColors.info),
                         ],
                       ),
                     ),

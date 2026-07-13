@@ -9,6 +9,9 @@ class AnalyticsTopCard extends StatelessWidget {
   final Color bgColor;
   final Color iconColor;
 
+  final Color? subtitleColor;
+  final IconData? subtitleIcon;
+
   const AnalyticsTopCard({
     super.key,
     required this.title,
@@ -17,6 +20,8 @@ class AnalyticsTopCard extends StatelessWidget {
     required this.icon,
     required this.bgColor,
     required this.iconColor,
+    this.subtitleColor,
+    this.subtitleIcon = Icons.trending_up,
   });
 
   @override
@@ -24,7 +29,7 @@ class AnalyticsTopCard extends StatelessWidget {
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -35,6 +40,7 @@ class AnalyticsTopCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -58,21 +64,23 @@ class AnalyticsTopCard extends StatelessWidget {
               ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.successLight.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(4),
+              if (subtitleIcon != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: (subtitleColor ?? AppColors.success).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(subtitleIcon, color: subtitleColor ?? AppColors.success, size: 12),
                 ),
-                child: const Icon(Icons.trending_up, color: AppColors.success, size: 12),
-              ),
-              const SizedBox(width: 6),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 6),
+              ],
+              Text(subtitle, style: TextStyle(fontSize: 11, color: subtitleColor ?? AppColors.success, fontWeight: FontWeight.w600)),
             ],
           ),
         ],
