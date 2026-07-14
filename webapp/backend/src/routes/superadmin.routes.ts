@@ -34,6 +34,7 @@ router.patch(
   validate(suspendSchema),
   ctrl.suspendTenant
 );
+router.get('/tenants/:id/dashboard', validate(idParamSchema, 'params'), ctrl.getTenantDashboard);
 
 // Tenant subscription management (assign plan / view detail)
 router.get('/tenants/:id/subscription', validate(idParamSchema, 'params'), planCtrl.getTenantSubscription);

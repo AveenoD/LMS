@@ -44,3 +44,7 @@ export const broadcastToAdmins = asyncHandler(async (req: Request, res: Response
   );
   res.status(201).json(result);
 });
+
+export const getTenantDashboard = asyncHandler(async (req: Request, res: Response) => {
+  res.json(await svc.getTenantDashboard(Number(req.params.id)));
+});

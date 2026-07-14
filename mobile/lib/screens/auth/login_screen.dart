@@ -75,7 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 16),
                   const Icon(
                     Icons.school_rounded,
-                    size: 80,
+                    size: 200,
                     color: Colors.white,
                   ),
                   const SizedBox(height: 16),

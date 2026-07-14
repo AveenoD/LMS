@@ -4,26 +4,20 @@ import ApiError from '../utils/ApiError.js';
 import { generateReceiptNo } from '../utils/receipt.js';
 import { writeAudit } from '../utils/audit.js';
 import { buildWaUrl, feeReminderMessage } from './whatsapp.service.js';
-
+import { getTenantDashboard } from './superadmin.service.js';
 /* ─────────────── Dashboard ─────────────── */
-export interface AdminDashboard {
-  studentCount: number;
-  teacherCount: number;
-  feesCollected: number;
-  feesPending: number;
-}
+export async function dashboard(tenantId: number) {
+  const dash = await getTenantDashboard(tenantId);
+  const subRes = await query(`
+    SELECT plan as "planName", status, trial_ends_at as "trialEndsAt", next_billing_date as "nextBillingDate"
+    FROM subscriptions
+    WHERE tenant_id = $1
+  `, [tenantId]);
 
-export async function dashboard(tenantId: number): Promise<AdminDashboard> {
-  const { rows } = await query<AdminDashboard>(
-    `SELECT
-       (SELECT count(*)::int FROM students WHERE tenant_id = $1) AS "studentCount",
-       (SELECT count(*)::int FROM users WHERE tenant_id = $1 AND role='teacher') AS "teacherCount",
-       (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1) AS "feesCollected",
-       (SELECT COALESCE(sum(fs.amount),0)::int FROM fee_structures fs WHERE fs.tenant_id = $1)
-        - (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1) AS "feesPending"`,
-    [tenantId]
-  );
-  return rows[0];
+  return {
+    ...dash,
+    subscription: subRes.rows[0] || null
+  };
 }
 
 /* ─────────────── Teachers ─────────────── */

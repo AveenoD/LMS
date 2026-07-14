@@ -43,6 +43,12 @@ final tenantSubscriptionProvider = FutureProvider.family<Map<String, dynamic>, i
   return await api.get('/superadmin/tenants/$tenantId/subscription') as Map<String, dynamic>;
 });
 
+/// Dashboard metrics for a single tenant
+final tenantDashboardProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, tenantId) async {
+  final api = ref.watch(apiServiceProvider);
+  return await api.get('/superadmin/tenants/$tenantId/dashboard') as Map<String, dynamic>;
+});
+
 // ─────────────────────────── Write actions ───────────────────────────
 // Plain helper functions (not providers) — screens call these directly, then
 // `ref.invalidate(...)` the relevant provider above to refetch. Every

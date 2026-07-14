@@ -280,3 +280,69 @@ export async function analytics(month?: number, year?: number): Promise<Platform
     graphData: graphRes.rows,
   };
 }
+
+export interface TenantDashboardOverview {
+  totalStudents: number;
+  studentsGrowth: number;
+  totalTeachers: number;
+  teachersGrowth: number;
+  feesCollected: number;
+  feesCollectedGrowth: number;
+  feesPending: number;
+  feesPendingGrowth: number;
+}
+
+export interface TenantDashboardResponse {
+  overview: TenantDashboardOverview;
+  studentChart: { day: string; count: number }[];
+  feesChart: { collected: number; pending: number };
+  recentActivity: any[];
+}
+
+export async function getTenantDashboard(tenantId: number): Promise<TenantDashboardResponse> {
+  const { rows } = await query(`
+    SELECT
+      (SELECT count(*)::int FROM students WHERE tenant_id = $1) AS "totalStudents",
+      (SELECT count(*)::int FROM students WHERE tenant_id = $1 AND joined_at >= CURRENT_DATE) AS "studentsToday",
+      (SELECT count(*)::int FROM users WHERE tenant_id = $1 AND role = 'teacher') AS "totalTeachers",
+      (SELECT count(*)::int FROM users WHERE tenant_id = $1 AND role = 'teacher' AND created_at >= CURRENT_DATE) AS "teachersToday",
+      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1) AS "feesCollected",
+      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on >= CURRENT_DATE) AS "feesCollectedToday",
+      (SELECT COALESCE(sum(amount),0)::int FROM fee_structures WHERE tenant_id = $1) AS "totalFees"
+  `, [tenantId]);
+  
+  const stats = rows[0];
+  const feesPending = Math.max(0, stats.totalFees - stats.feesCollected);
+
+  const chartRes = await query<{ day: string; count: number }>(`
+    SELECT 
+      to_char(d.day, 'Dy') as day,
+      (SELECT count(*)::int FROM students WHERE tenant_id=$1 AND joined_at <= d.day + interval '1 day' - interval '1 second') as count
+    FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day'::interval) as d(day)
+    ORDER BY d.day ASC
+  `, [tenantId]);
+
+  const activityRes = await query(`
+    SELECT id, action, entity, entity_id as "entityId", meta, created_at as "createdAt"
+    FROM audit_log
+    WHERE tenant_id = $1
+    ORDER BY created_at DESC
+    LIMIT 5
+  `, [tenantId]);
+
+  return {
+    overview: {
+      totalStudents: stats.totalStudents,
+      studentsGrowth: stats.studentsToday,
+      totalTeachers: stats.totalTeachers,
+      teachersGrowth: stats.teachersToday,
+      feesCollected: stats.feesCollected,
+      feesCollectedGrowth: stats.feesCollectedToday,
+      feesPending: feesPending,
+      feesPendingGrowth: 0,
+    },
+    studentChart: chartRes.rows,
+    feesChart: { collected: stats.feesCollected, pending: feesPending },
+    recentActivity: activityRes.rows
+  };
+}
