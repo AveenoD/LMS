@@ -4,9 +4,11 @@ import * as notificationCenter from '../services/notificationCenter.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { tenantId, userId } from './helpers.js';
 
-export const dashboard = asyncHandler(async (req: Request, res: Response) =>
-  res.json(await svc.dashboard(tenantId(req)))
-);
+export const dashboard = asyncHandler(async (req: Request, res: Response) => {
+  const month = req.query.month ? Number(req.query.month) : undefined;
+  const year = req.query.year ? Number(req.query.year) : undefined;
+  res.json(await svc.dashboard(tenantId(req), month, year));
+});
 
 /* Teachers */
 export const listTeachers = asyncHandler(async (req: Request, res: Response) =>

@@ -247,7 +247,7 @@ class _TenantDetailsScreenState extends ConsumerState<TenantDetailsScreen> {
                                   iconBg: Colors.blueGrey.shade50,
                                   title: 'Total Teachers',
                                   value: '${overview['totalTeachers'] ?? 0}',
-                                  growth: overview['teachersGrowth'] ?? 0,
+                                  growth: overview['teachersGrowth'],
                                 ),
                               ),
                             ],
@@ -502,26 +502,29 @@ class _TenantDetailsScreenState extends ConsumerState<TenantDetailsScreen> {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Color(0xFF1F2E27)),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                color: isPositive ? Colors.green : Colors.red,
-                size: 12,
-              ),
-              Text(
-                '${g.abs()}% ',
-                style: TextStyle(
+          Opacity(
+            opacity: growth != null ? 1.0 : 0.0,
+            child: Row(
+              children: [
+                Icon(
+                  isPositive ? Icons.arrow_upward : Icons.arrow_downward,
                   color: isPositive ? Colors.green : Colors.red,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  size: 12,
                 ),
-              ),
-              Text(
-                'vs yesterday',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-              ),
-            ],
+                Text(
+                  '${g.abs()}% ',
+                  style: TextStyle(
+                    color: isPositive ? Colors.green : Colors.red,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'vs last month',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                ),
+              ],
+            ),
           ),
         ],
       ),

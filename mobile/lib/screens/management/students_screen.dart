@@ -4,58 +4,191 @@ import '../../providers/management_providers.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_textfield.dart';
 
-class StudentsScreen extends ConsumerWidget {
+class StudentsScreen extends ConsumerStatefulWidget {
   const StudentsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StudentsScreen> createState() => _StudentsScreenState();
+}
+
+class _StudentsScreenState extends ConsumerState<StudentsScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final studentsAsync = ref.watch(studentsProvider);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Students'),
+        title: const Text('Students', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: const Color(0xFF1F2E27),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: studentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
         data: (students) {
-          if (students.isEmpty) {
-            return const Center(child: Text('No students found.'));
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(studentsProvider),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: students.length,
-              itemBuilder: (context, index) {
-                final student = students[index] as Map<String, dynamic>;
-                final rollNo = student['rollNo'];
-                final grade = student['grade'];
-                final subtitleParts = <String>[
-                  if (rollNo != null && rollNo.toString().isNotEmpty) 'Roll No: $rollNo',
-                  if (grade != null && grade.toString().isNotEmpty) grade.toString(),
-                ];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF2E6656).withValues(alpha: 0.12),
-                      child: Icon(Icons.person, color: const Color(0xFF1F2E27)),
+          final filteredStudents = students.where((student) {
+            final name = (student['fullName'] ?? '').toString().toLowerCase();
+            final rollNo = (student['rollNo'] ?? '').toString().toLowerCase();
+            final q = _searchQuery.toLowerCase();
+            return name.contains(q) || rollNo.contains(q);
+          }).toList();
+
+          return Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by Name or Roll No',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
-                    title: Text(student['fullName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(subtitleParts.isEmpty ? student['phone']?.toString() ?? '' : subtitleParts.join(' • ')),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () => _confirmDelete(context, ref, student),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF1F2E27)),
                     ),
                   ),
-                );
-              },
-            ),
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val;
+                    });
+                  },
+                ),
+              ),
+
+              if (students.isEmpty)
+                const Expanded(child: Center(child: Text('No students found.')))
+              else if (filteredStudents.isEmpty)
+                Expanded(child: Center(child: Text('No results for "$_searchQuery"')))
+              else
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async => ref.invalidate(studentsProvider),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: filteredStudents.length,
+                      itemBuilder: (context, index) {
+                        final student = filteredStudents[index] as Map<String, dynamic>;
+                        final rollNo = student['rollNo'];
+                        final grade = student['grade'];
+                        
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+                            ],
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: const Color(0xFF2E6656).withValues(alpha: 0.12),
+                                  child: const Icon(Icons.person, color: Color(0xFF1F2E27)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        student['fullName'] ?? 'Unknown',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F2E27)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          if (rollNo != null && rollNo.toString().isNotEmpty) ...[
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue.shade50,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text('Roll: $rollNo', style: TextStyle(fontSize: 10, color: Colors.blue.shade700, fontWeight: FontWeight.bold)),
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
+                                          if (grade != null && grade.toString().isNotEmpty) ...[
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.shade50,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(grade.toString(), style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.bold)),
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
+                                          Expanded(
+                                            child: Text(
+                                              student['phone']?.toString() ?? '',
+                                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                  onPressed: () => _confirmDelete(context, ref, student),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+            ],
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF1F2E27),
+        foregroundColor: Colors.white,
         onPressed: () => _showAddStudentDialog(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('Add Student'),

@@ -209,21 +209,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   width: 250,
                   fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'EdTech OS',
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Run your institute. Delight every student.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.7),
+                Transform.translate(
+                  offset: const Offset(0, -60),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'EdTech OS',
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Run your institute. Delight every student.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

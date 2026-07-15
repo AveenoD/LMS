@@ -296,53 +296,87 @@ export interface TenantDashboardResponse {
   overview: TenantDashboardOverview;
   studentChart: { day: string; count: number }[];
   feesChart: { collected: number; pending: number };
-  recentActivity: any[];
+  upcomingSchedule: any[];
 }
 
-export async function getTenantDashboard(tenantId: number): Promise<TenantDashboardResponse> {
+export async function getTenantDashboard(tenantId: number, month?: number, year?: number): Promise<TenantDashboardResponse> {
+  const d = new Date();
+  const targetYear = year || d.getFullYear();
+  const targetMonth = month || (d.getMonth() + 1); // 1-12
+  
+  const startDateStr = `${targetYear}-${targetMonth.toString().padStart(2, '0')}-01`;
+  const nextMonth = targetMonth === 12 ? 1 : targetMonth + 1;
+  const nextMonthYear = targetMonth === 12 ? targetYear + 1 : targetYear;
+  const endDateStr = `${nextMonthYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+
+  const prevMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+  const prevMonthYear = targetMonth === 1 ? targetYear - 1 : targetYear;
+  const lastMonthStartDateStr = `${prevMonthYear}-${prevMonth.toString().padStart(2, '0')}-01`;
+
   const { rows } = await query(`
     SELECT
-      (SELECT count(*)::int FROM students WHERE tenant_id = $1) AS "totalStudents",
-      (SELECT count(*)::int FROM students WHERE tenant_id = $1 AND joined_at >= CURRENT_DATE) AS "studentsToday",
-      (SELECT count(*)::int FROM users WHERE tenant_id = $1 AND role = 'teacher') AS "totalTeachers",
-      (SELECT count(*)::int FROM users WHERE tenant_id = $1 AND role = 'teacher' AND created_at >= CURRENT_DATE) AS "teachersToday",
-      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1) AS "feesCollected",
-      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on >= CURRENT_DATE) AS "feesCollectedToday",
+      (SELECT count(*)::int FROM students WHERE tenant_id = $1 AND joined_at < $3::date) AS "totalStudents",
+      (SELECT count(*)::int FROM students WHERE tenant_id = $1 AND joined_at >= $2::date AND joined_at < $3::date) AS "studentsThisMonth",
+      (SELECT count(*)::int FROM students WHERE tenant_id = $1 AND joined_at >= $4::date AND joined_at < $2::date) AS "studentsLastMonth",
+      (SELECT count(*)::int FROM users WHERE tenant_id = $1 AND role = 'teacher' AND created_at < $3::date) AS "totalTeachers",
+      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on < $3::date) AS "feesCollected",
+      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on >= $2::date AND paid_on < $3::date) AS "feesCollectedThisMonth",
+      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on >= $4::date AND paid_on < $2::date) AS "feesCollectedLastMonth",
       (SELECT COALESCE(sum(amount),0)::int FROM fee_structures WHERE tenant_id = $1) AS "totalFees"
-  `, [tenantId]);
+  `, [tenantId, startDateStr, endDateStr, lastMonthStartDateStr]);
   
   const stats = rows[0];
   const feesPending = Math.max(0, stats.totalFees - stats.feesCollected);
 
+  const calculateGrowth = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  const studentsGrowth = calculateGrowth(stats.studentsThisMonth, stats.studentsLastMonth);
+  const feesCollectedGrowth = calculateGrowth(stats.feesCollectedThisMonth, stats.feesCollectedLastMonth);
+
+  const isCurrentMonth = targetYear === d.getFullYear() && targetMonth === (d.getMonth() + 1);
+  const chartEndDate = isCurrentMonth ? "CURRENT_DATE" : "$2::date - interval '1 day'";
+
   const chartRes = await query<{ day: string; count: number }>(`
     SELECT 
-      to_char(d.day, 'Dy') as day,
-      (SELECT count(*)::int FROM students WHERE tenant_id=$1 AND joined_at <= d.day + interval '1 day' - interval '1 second') as count
-    FROM generate_series(CURRENT_DATE - interval '6 days', CURRENT_DATE, '1 day'::interval) as d(day)
-    ORDER BY d.day ASC
-  `, [tenantId]);
+      to_char(day_series.day, 'Dy') as day,
+      (SELECT count(*)::int FROM students WHERE tenant_id=$1 AND joined_at <= day_series.day + interval '1 day' - interval '1 second') as count
+    FROM generate_series((${chartEndDate}) - interval '6 days', (${chartEndDate}), '1 day'::interval) as day_series(day)
+    ORDER BY day_series.day ASC
+  `, isCurrentMonth ? [tenantId] : [tenantId, endDateStr]);
 
-  const activityRes = await query(`
-    SELECT id, action, entity, entity_id as "entityId", meta, created_at as "createdAt"
-    FROM audit_log
-    WHERE tenant_id = $1
-    ORDER BY created_at DESC
+  const scheduleRes = await query(`
+    SELECT 
+      t.id, 
+      t.start_time as "startTime", 
+      t.end_time as "endTime", 
+      b.name as "batchName", 
+      s.name as "subjectName", 
+      u.full_name as "teacherName"
+    FROM timetable t
+    JOIN batches b ON b.id = t.batch_id
+    LEFT JOIN subjects s ON s.id = t.subject_id
+    JOIN users u ON u.id = t.teacher_id
+    WHERE t.tenant_id = $1 AND t.day_of_week = EXTRACT(DOW FROM CURRENT_DATE)
+    ORDER BY t.start_time ASC
     LIMIT 5
   `, [tenantId]);
 
   return {
     overview: {
       totalStudents: stats.totalStudents,
-      studentsGrowth: stats.studentsToday,
+      studentsGrowth: studentsGrowth,
       totalTeachers: stats.totalTeachers,
-      teachersGrowth: stats.teachersToday,
+      teachersGrowth: null as any,
       feesCollected: stats.feesCollected,
-      feesCollectedGrowth: stats.feesCollectedToday,
+      feesCollectedGrowth: feesCollectedGrowth,
       feesPending: feesPending,
       feesPendingGrowth: 0,
     },
     studentChart: chartRes.rows,
     feesChart: { collected: stats.feesCollected, pending: feesPending },
-    recentActivity: activityRes.rows
+    upcomingSchedule: scheduleRes.rows
   };
 }

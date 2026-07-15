@@ -4,6 +4,11 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
+import '../management/students_screen.dart';
+import '../management/teachers_screen.dart';
+import '../fees/fees_management_screen.dart';
+import '../reports/reports_screen.dart';
+import '../academics/timetable_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -17,6 +22,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (date == null) return 'N/A';
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _formatMonthYear(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
+  void _showMonthPicker(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (BuildContext ctx) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: 350,
+          child: Column(
+            children: [
+              const Text('Select Month', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    final d = DateTime.now();
+                    final monthDate = DateTime(d.year, d.month - index, 1);
+                    final selected = ref.read(selectedAnalyticsMonthProvider);
+                    final isSelected = selected.month == monthDate.month && selected.year == monthDate.year;
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    
+                    return ListTile(
+                      title: Text('${months[monthDate.month - 1]} ${monthDate.year}'),
+                      trailing: isSelected ? const Icon(Icons.check, color: Colors.teal) : null,
+                      onTap: () {
+                        ref.read(selectedAnalyticsMonthProvider.notifier).setMonth(monthDate);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -39,83 +89,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
           return CustomScrollView(
             slivers: [
-              // Custom App Bar (Dark Green)
               SliverAppBar(
                 backgroundColor: const Color(0xFF1F2E27),
-                expandedHeight: 100.0,
                 floating: false,
                 pinned: true,
+                title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
                 iconTheme: const IconThemeData(color: Colors.white),
                 actions: [
-                  IconButton(
-                    icon: const Badge(
-                      label: Text('3'),
-                      child: Icon(Icons.notifications_none, color: Colors.white),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: IconButton(
+                      icon: const Badge(
+                        label: Text('3', style: TextStyle(fontSize: 10)),
+                        child: Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                      ),
+                      onPressed: () {},
                     ),
-                    onPressed: () {},
                   ),
                 ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 16.0, right: 96.0, top: 8.0, bottom: 8.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.business, color: Color(0xFF1F2E27), size: 28),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (isActive)
-                                      Container(
-                                        margin: const EdgeInsets.only(left: 8),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.green),
-                                        ),
-                                        child: const Text('Active', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  location,
-                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ),
               
               SliverToBoxAdapter(
@@ -195,21 +186,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Overview', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade700),
-                                const SizedBox(width: 6),
-                                Text('Today, ${_formatDate(DateTime.now())}', style: TextStyle(fontSize: 12, color: Colors.grey.shade800, fontWeight: FontWeight.w500)),
-                                const SizedBox(width: 4),
-                                Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey.shade700),
-                              ],
+                          GestureDetector(
+                            onTap: () => _showMonthPicker(context, ref),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade700),
+                                  const SizedBox(width: 6),
+                                  Text(_formatMonthYear(ref.watch(selectedAnalyticsMonthProvider)), style: TextStyle(fontSize: 12, color: Colors.grey.shade800, fontWeight: FontWeight.w500)),
+                                  const SizedBox(width: 4),
+                                  Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey.shade700),
+                                ],
+                              ),
                             ),
                           ),
                         ],
@@ -237,7 +231,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               iconBg: Colors.blueGrey.shade50,
                               title: 'Total Teachers',
                               value: '${overview['totalTeachers'] ?? 0}',
-                              growth: overview['teachersGrowth'] ?? 0,
+                              growth: overview['teachersGrowth'],
                             ),
                           ),
                         ],
@@ -283,11 +277,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _buildActionBtn(Icons.people, 'Students'),
-                            _buildActionBtn(Icons.badge, 'Teachers'),
-                            _buildActionBtn(Icons.currency_rupee, 'Fees'),
-                            _buildActionBtn(Icons.payment, 'Add Payment'),
-                            _buildActionBtn(Icons.bar_chart, 'Reports'),
+                            _buildActionBtn(Icons.people, 'Students', onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentsScreen()));
+                            }),
+                            _buildActionBtn(Icons.badge, 'Teachers', onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const TeachersScreen()));
+                            }),
+                            _buildActionBtn(Icons.currency_rupee, 'Fees', onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesManagementScreen()));
+                            }),
+                            _buildActionBtn(Icons.payment, 'Add Payment', onTap: () {
+                              // We can navigate to Fees management and open a bottom sheet, or just push fees screen
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesManagementScreen()));
+                            }),
+                            _buildActionBtn(Icons.bar_chart, 'Reports', onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
+                            }),
                           ],
                         ),
                       ),
@@ -346,21 +351,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(height: 24),
                       
-                      // Recent Activity
+                      // Upcoming Schedule
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Recent Activity', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Row(
-                            children: [
-                              const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                              Icon(Icons.arrow_forward, size: 14, color: AppColors.textPrimary),
-                            ],
+                          const Text('Upcoming Schedule', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const TimetableScreen()));
+                            },
+                            child: Row(
+                              children: [
+                                const Text('View All', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                Icon(Icons.arrow_forward, size: 14, color: AppColors.textPrimary),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildRecentActivityList(dash['recentActivity'] as List<dynamic>? ?? []),
+                      _buildUpcomingScheduleList(dash['upcomingSchedule'] as List<dynamic>? ?? []),
                     ],
                   ),
                 ),
@@ -438,7 +448,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
               Text(
-                'vs yesterday',
+                'vs last month',
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
               ),
             ],
@@ -448,13 +458,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildActionBtn(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: const Color(0xFF1F2E27), size: 24),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF1F2E27))),
-      ],
+  Widget _buildActionBtn(IconData icon, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+        child: Column(
+          children: [
+            Icon(icon, color: const Color(0xFF1F2E27), size: 24),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF1F2E27))),
+          ],
+        ),
+      ),
     );
   }
 
@@ -516,13 +533,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         const SizedBox(height: 8),
         _buildLegendRow(Colors.red, 'Pending', '₹${pending.toInt()}', '$pendPct%'),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF1F2E27))),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_forward, size: 10, color: Color(0xFF1F2E27)),
-          ],
+        GestureDetector(
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesManagementScreen()));
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Text('View Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Color(0xFF1F2E27))),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_forward, size: 10, color: Color(0xFF1F2E27)),
+            ],
+          ),
         )
       ],
     );
@@ -542,12 +564,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildRecentActivityList(List<dynamic> activities) {
-    if (activities.isEmpty) {
+  Widget _buildUpcomingScheduleList(List<dynamic> schedules) {
+    if (schedules.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-        child: const Center(child: Text('No recent activity')),
+        child: const Center(child: Text('No schedule for today')),
       );
     }
     
@@ -560,26 +582,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       child: Column(
-        children: activities.map((act) {
-          final action = act['action']?.toString() ?? 'unknown';
-          IconData icon = Icons.info_outline;
-          Color iconColor = Colors.blue;
-          Color iconBg = Colors.blue.shade50;
-          String text = 'Action performed';
+        children: schedules.map((schedule) {
+          final batchName = schedule['batchName']?.toString() ?? 'Batch';
+          final subjectName = schedule['subjectName']?.toString() ?? 'Subject';
+          final teacherName = schedule['teacherName']?.toString() ?? 'Teacher';
           
-          if (action.contains('student')) {
-            icon = Icons.person_add;
-            iconColor = Colors.teal;
-            iconBg = Colors.teal.shade50;
-            text = 'New student added';
-          } else if (action.contains('payment')) {
-            icon = Icons.currency_rupee;
-            iconColor = Colors.amber.shade700;
-            iconBg = Colors.amber.shade50;
-            text = 'Payment received';
+          final startTime = schedule['startTime']?.toString() ?? '';
+          final endTime = schedule['endTime']?.toString() ?? '';
+          
+          // Basic formatting to chop seconds if it's like 09:00:00
+          String formatTime(String t) {
+            if (t.length >= 5) return t.substring(0, 5);
+            return t;
           }
-          
-          final dateStr = act['createdAt'] != null ? _formatDate(DateTime.tryParse(act['createdAt'])) : 'N/A';
+
+          final timeStr = '${formatTime(startTime)} - ${formatTime(endTime)}';
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -587,17 +604,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, color: iconColor, size: 20),
+                  decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(8)),
+                  child: Icon(Icons.schedule, color: Colors.blue.shade700, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text('$batchName • $subjectName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1F2E27))),
                       const SizedBox(height: 4),
-                      Text(dateStr, style: TextStyle(color: Colors.grey.shade500, fontSize: 10)),
+                      Text('$teacherName | $timeStr', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
                     ],
                   ),
                 )

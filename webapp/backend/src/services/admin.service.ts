@@ -6,8 +6,8 @@ import { writeAudit } from '../utils/audit.js';
 import { buildWaUrl, feeReminderMessage } from './whatsapp.service.js';
 import { getTenantDashboard } from './superadmin.service.js';
 /* ─────────────── Dashboard ─────────────── */
-export async function dashboard(tenantId: number) {
-  const dash = await getTenantDashboard(tenantId);
+export async function dashboard(tenantId: number, month?: number, year?: number) {
+  const dash = await getTenantDashboard(tenantId, month, year);
   const subRes = await query(`
     SELECT plan as "planName", status, trial_ends_at as "trialEndsAt", next_billing_date as "nextBillingDate"
     FROM subscriptions

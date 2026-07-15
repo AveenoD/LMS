@@ -59,8 +59,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Stack(
         children: [
           // Header Background
-          Container(
-            height: MediaQuery.of(context).size.height * 0.4,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            height: MediaQuery.of(context).viewInsets.bottom > 0
+                ? MediaQuery.of(context).size.height * 0.25
+                : MediaQuery.of(context).size.height * 0.4,
             decoration: const BoxDecoration(
               color: Color(0xFF1F2E27),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
@@ -72,29 +76,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 16),
-                  const Icon(
-                    Icons.school_rounded,
-                    size: 200,
-                    color: Colors.white,
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: MediaQuery.of(context).viewInsets.bottom > 0
+                        ? const SizedBox(height: 16)
+                        : Column(
+                            children: [
+                              const SizedBox(height: 16),
+                              Image.asset(
+                                'assets/images/logo_splash.png',
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.contain,
+                              ),
+                              Transform.translate(
+                                offset: const Offset(0, -10),
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      'EdTech OS',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Run your institute. Delight every student.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 48),
+                            ],
+                          ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'EdTech OS',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Run your institute. Delight every student.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7)),
-                  ),
-                  const SizedBox(height: 48),
                   // Login Card
                   Container(
                     decoration: BoxDecoration(

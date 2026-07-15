@@ -6,6 +6,10 @@ import 'auth_provider.dart';
 class SelectedAnalyticsMonthNotifier extends Notifier<DateTime> {
   @override
   DateTime build() => DateTime.now();
+
+  void setMonth(DateTime date) {
+    state = date;
+  }
 }
 
 final selectedAnalyticsMonthProvider = NotifierProvider<SelectedAnalyticsMonthNotifier, DateTime>(() {
@@ -32,7 +36,7 @@ final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
     if (userRole == 'super_admin') {
       endpoint = '/superadmin/analytics?month=${selectedMonth.month}&year=${selectedMonth.year}';
     } else if (userRole == 'coaching_admin') {
-      endpoint = '/admin/dashboard';
+      endpoint = '/admin/dashboard?month=${selectedMonth.month}&year=${selectedMonth.year}';
     } else if (userRole == 'student') {
       endpoint = '/student/dashboard';
     } else if (userRole == 'teacher') {
