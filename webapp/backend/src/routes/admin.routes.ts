@@ -61,6 +61,7 @@ router.post(
 router.delete('/teachers/:id', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.deleteTeacher);
 
 router.post('/students', subscriptionGuard, validate(createStudentSchema), ctrl.createStudent);
+router.put('/students/:id', subscriptionGuard, ctrl.updateStudent);
 router.delete('/students/:id', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.deleteStudent);
 
 router.post('/batches', subscriptionGuard, validate(createBatchSchema), ctrl.createBatch);

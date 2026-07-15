@@ -172,6 +172,29 @@ Future<Map<String, dynamic>> createStudent(ApiService api, {
   return await api.post('/admin/students', body) as Map<String, dynamic>;
 }
 
+Future<void> updateStudent(ApiService api, int id, {
+  String? fullName,
+  String? phone,
+  String? password,
+  String? parentPhone,
+  int? batchId,
+  String? parentName,
+  String? grade,
+  String? rollNo,
+}) async {
+  final body = <String, dynamic>{
+    if (fullName != null && fullName.isNotEmpty) 'fullName': fullName,
+    if (phone != null && phone.isNotEmpty) 'phone': phone,
+    if (password != null && password.isNotEmpty) 'password': password,
+    if (parentPhone != null && parentPhone.isNotEmpty) 'parentPhone': parentPhone,
+    if (batchId != null) 'batchId': batchId,
+    if (parentName != null) 'parentName': parentName,
+    if (grade != null) 'grade': grade,
+    if (rollNo != null) 'rollNo': rollNo,
+  };
+  await api.put('/admin/students/$id', body);
+}
+
 Future<void> deleteStudent(ApiService api, int id) async {
   await api.delete('/admin/students/$id');
 }

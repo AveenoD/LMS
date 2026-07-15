@@ -93,6 +93,7 @@ class BatchesScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () => showDialog(context: context, builder: (_) => const _AddBatchDialog()),
         icon: const Icon(Icons.add),
         label: const Text('Create Batch'),

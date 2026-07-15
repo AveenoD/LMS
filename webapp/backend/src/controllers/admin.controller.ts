@@ -29,6 +29,9 @@ export const listStudents = asyncHandler(async (req: Request, res: Response) =>
 export const createStudent = asyncHandler(async (req: Request, res: Response) =>
   res.status(201).json(await svc.createStudent(tenantId(req), userId(req), req.body))
 );
+export const updateStudent = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.updateStudent(tenantId(req), userId(req), Number(req.params.id), req.body))
+);
 export const deleteStudent = asyncHandler(async (req: Request, res: Response) => {
   await svc.deleteStudent(tenantId(req), userId(req), Number(req.params.id));
   res.json({ success: true });

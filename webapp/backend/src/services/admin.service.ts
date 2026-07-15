@@ -85,6 +85,9 @@ export interface StudentItem {
   parentName: string | null;
   parentPhone: string | null;
   phone: string;
+  batchName: string | null;
+  pendingFees: number;
+  attendance: number;
 }
 
 export async function listStudents(tenantId: number, batchId: number | null): Promise<StudentItem[]> {
@@ -92,19 +95,64 @@ export async function listStudents(tenantId: number, batchId: number | null): Pr
   let join = '';
   if (batchId) {
     params.push(batchId);
-    join = `JOIN batch_enrollments be ON be.student_id = s.id AND be.batch_id = $2`;
+    join = `AND be.batch_id = $2`;
   }
+
+  // CTE to calculate attendance and fees
   const { rows } = await query<StudentItem>(
-    `SELECT s.id, u.full_name AS "fullName", s.roll_no AS "rollNo", s.grade,
-            s.parent_name AS "parentName", s.parent_phone AS "parentPhone", u.phone
-       FROM students s
-       JOIN users u ON u.id = s.user_id
-       ${join}
-      WHERE s.tenant_id = $1
-      ORDER BY u.full_name`,
+    `
+      WITH student_attendance AS (
+        SELECT student_id,
+               COUNT(*) AS total_days,
+               COUNT(*) FILTER (WHERE status = 'present') AS present_days
+        FROM attendance
+        WHERE tenant_id = $1
+        GROUP BY student_id
+      ),
+      student_fees AS (
+        SELECT fp.student_id,
+               COALESCE(SUM(fp.amount_paid), 0) AS total_paid
+        FROM fee_payments fp
+        WHERE fp.tenant_id = $1
+        GROUP BY fp.student_id
+      ),
+      batch_fees AS (
+        SELECT fs.batch_id, COALESCE(SUM(fs.amount), 0) AS total_due
+        FROM fee_structures fs
+        WHERE fs.tenant_id = $1
+        GROUP BY fs.batch_id
+      )
+      SELECT s.id, 
+             u.full_name AS "fullName", 
+             s.roll_no AS "rollNo", 
+             s.grade,
+             s.parent_name AS "parentName", 
+             s.parent_phone AS "parentPhone", 
+             u.phone,
+             b.name AS "batchName",
+             (COALESCE(bf.total_due, 0) - COALESCE(sf.total_paid, 0)) AS "pendingFees",
+             CASE 
+               WHEN sa.total_days > 0 THEN ROUND((sa.present_days::numeric / sa.total_days::numeric) * 100)
+               ELSE 0 
+             END AS "attendance"
+      FROM students s
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN batch_enrollments be ON be.student_id = s.id
+      LEFT JOIN batches b ON b.id = be.batch_id
+      LEFT JOIN student_attendance sa ON sa.student_id = s.id
+      LEFT JOIN student_fees sf ON sf.student_id = s.id
+      LEFT JOIN batch_fees bf ON bf.batch_id = b.id
+      WHERE s.tenant_id = $1 ${join}
+      ORDER BY u.full_name
+    `,
     params
   );
-  return rows;
+  
+  return rows.map(r => ({
+    ...r,
+    pendingFees: Number(r.pendingFees) || 0,
+    attendance: Number(r.attendance) || 0
+  }));
 }
 
 export interface CreateStudentInput {
@@ -162,6 +210,59 @@ export async function createStudent(tenantId: number, actorUserId: number, input
     );
 
     return { ...student, id: student.id, fullName, userId: user.id };
+  });
+}
+
+export async function updateStudent(tenantId: number, actorUserId: number, id: number, input: Partial<CreateStudentInput>) {
+  const { fullName, phone, password, parentName, parentPhone, grade, rollNo, batchId } = input;
+
+  return withTransaction(async (client) => {
+    // get user_id for student
+    const s = await client.query(`SELECT user_id FROM students WHERE id=$1 AND tenant_id=$2`, [id, tenantId]);
+    if (!s.rowCount) throw ApiError.notFound('STUDENT_NOT_FOUND');
+    const userId = s.rows[0].user_id;
+
+    if (fullName || phone || password) {
+      const updates = [];
+      const values = [];
+      let idx = 1;
+      if (fullName) { updates.push(`full_name=$${idx++}`); values.push(fullName); }
+      if (phone) { updates.push(`phone=$${idx++}`); values.push(phone); }
+      if (password) { updates.push(`password_hash=$${idx++}`); values.push(await bcrypt.hash(password, 10)); }
+      if (updates.length > 0) {
+        values.push(userId, tenantId);
+        await client.query(`UPDATE users SET ${updates.join(', ')} WHERE id=$${idx++} AND tenant_id=$${idx}`, values);
+      }
+    }
+
+    if (parentName !== undefined || parentPhone !== undefined || grade !== undefined || rollNo !== undefined) {
+      const updates = [];
+      const values = [];
+      let idx = 1;
+      if (parentName !== undefined) { updates.push(`parent_name=$${idx++}`); values.push(parentName || null); }
+      if (parentPhone !== undefined) { updates.push(`parent_phone=$${idx++}`); values.push(parentPhone); }
+      if (grade !== undefined) { updates.push(`grade=$${idx++}`); values.push(grade || null); }
+      if (rollNo !== undefined) { updates.push(`roll_no=$${idx++}`); values.push(rollNo || null); }
+      if (updates.length > 0) {
+        values.push(id, tenantId);
+        await client.query(`UPDATE students SET ${updates.join(', ')} WHERE id=$${idx++} AND tenant_id=$${idx}`, values);
+      }
+    }
+
+    if (batchId) {
+      const b = await client.query(`SELECT 1 FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
+      if (!b.rowCount) throw ApiError.badRequest('INVALID_BATCH', 'Batch not found for this tenant');
+      
+      const be = await client.query(`SELECT 1 FROM batch_enrollments WHERE student_id=$1 AND tenant_id=$2`, [id, tenantId]);
+      if (be.rowCount) {
+        await client.query(`UPDATE batch_enrollments SET batch_id=$1 WHERE student_id=$2 AND tenant_id=$3`, [batchId, id, tenantId]);
+      } else {
+        await client.query(`INSERT INTO batch_enrollments (tenant_id, batch_id, student_id) VALUES ($1,$2,$3)`, [tenantId, batchId, id]);
+      }
+    }
+
+    await writeAudit({ tenantId, actorUserId, action: 'student_updated', entity: 'student', entityId: id }, client);
+    return { success: true };
   });
 }
 

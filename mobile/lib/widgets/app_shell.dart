@@ -23,15 +23,22 @@ class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.items});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  State<AppShell> createState() => AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class AppShellState extends State<AppShell> {
   int _index = 0;
+
+  void switchTab(int i) {
+    setState(() {
+      _index = i;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: IndexedStack(
         index: _index,
         children: widget.items.map((e) => e.screen).toList(),

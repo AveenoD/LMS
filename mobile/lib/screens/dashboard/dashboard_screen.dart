@@ -9,7 +9,9 @@ import '../management/teachers_screen.dart';
 import '../fees/fees_management_screen.dart';
 import '../reports/reports_screen.dart';
 import '../academics/timetable_screen.dart';
-
+import '../notifications/admin_notifications_screen.dart';
+import '../../providers/management_providers.dart';
+import '../../widgets/app_shell.dart';
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
@@ -98,12 +100,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 actions: [
                   Padding(
                     padding: const EdgeInsets.only(right: 12.0),
-                    child: IconButton(
-                      icon: const Badge(
-                        label: Text('3', style: TextStyle(fontSize: 10)),
-                        child: Icon(Icons.notifications_none, color: Colors.white, size: 28),
-                      ),
-                      onPressed: () {},
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final unreadCount = ref.watch(unreadNotificationCountProvider).value ?? 0;
+                        return IconButton(
+                          icon: Badge(
+                            isLabelVisible: unreadCount > 0,
+                            label: Text('$unreadCount', style: const TextStyle(fontSize: 10)),
+                            child: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AdminNotificationsScreen()),
+                            );
+                          },
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -278,20 +291,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _buildActionBtn(Icons.people, 'Students', onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentsScreen()));
+                              final appShell = context.findAncestorStateOfType<AppShellState>();
+                              if (appShell != null) {
+                                appShell.switchTab(1); // Students tab index
+                              } else {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentsScreen()));
+                              }
                             }),
                             _buildActionBtn(Icons.badge, 'Teachers', onTap: () {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const TeachersScreen()));
                             }),
                             _buildActionBtn(Icons.currency_rupee, 'Fees', onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesManagementScreen()));
+                              final appShell = context.findAncestorStateOfType<AppShellState>();
+                              if (appShell != null) {
+                                appShell.switchTab(2); // Fees tab index
+                              } else {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesManagementScreen()));
+                              }
                             }),
                             _buildActionBtn(Icons.payment, 'Add Payment', onTap: () {
-                              // We can navigate to Fees management and open a bottom sheet, or just push fees screen
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesManagementScreen()));
+                              final appShell = context.findAncestorStateOfType<AppShellState>();
+                              if (appShell != null) {
+                                appShell.switchTab(2); // Fees tab index
+                              } else {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const FeesManagementScreen()));
+                              }
                             }),
                             _buildActionBtn(Icons.bar_chart, 'Reports', onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
+                              final appShell = context.findAncestorStateOfType<AppShellState>();
+                              if (appShell != null) {
+                                appShell.switchTab(3); // Reports tab index
+                              } else {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
+                              }
                             }),
                           ],
                         ),
