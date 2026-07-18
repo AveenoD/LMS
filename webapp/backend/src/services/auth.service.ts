@@ -33,6 +33,9 @@ export async function login({ phone, password }: LoginInput): Promise<LoginResul
   const user = await userRepo.findForLogin(phone);
   if (!user) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid phone or password');
 
+  // Explicitly check suspension before password — gives a clear error
+  if (!user.is_active) throw ApiError.forbidden('USER_SUSPENDED', 'Your ID has been suspended. Please contact your institute.');
+
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid phone or password');
 

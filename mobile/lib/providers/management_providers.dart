@@ -66,14 +66,29 @@ final timetableProvider = FutureProvider<List<dynamic>>((ref) async {
 });
 
 // Provides fee records
-final feesProvider = FutureProvider<List<dynamic>>((ref) async {
+final feesProvider = FutureProvider.family<List<dynamic>, String?>((ref, status) async {
   final canAccess = await _canAccessManagement();
   if (!canAccess) {
     return [];
   }
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/fees');
+  String endpoint = '/admin/fees';
+  if (status != null && status.isNotEmpty && status != 'all') {
+    endpoint += '?status=$status';
+  }
+  final response = await api.get(endpoint);
   return response as List<dynamic>;
+});
+
+// Provides fee analytics data
+final feeAnalyticsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final canAccess = await _canAccessManagement();
+  if (!canAccess) {
+    return {};
+  }
+  final api = ref.watch(apiServiceProvider);
+  final response = await api.get('/admin/fees/analytics');
+  return response as Map<String, dynamic>;
 });
 
 // Provides performance reports. `batchId` is optional — null means "all
@@ -198,6 +213,19 @@ Future<void> updateStudent(ApiService api, int id, {
 Future<void> deleteStudent(ApiService api, int id) async {
   await api.delete('/admin/students/$id');
 }
+
+Future<Map<String, dynamic>> suspendStudent(ApiService api, int id) async {
+  return await api.patch('/admin/students/$id/suspend', {}) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> getStudentDetails(ApiService api, int id) async {
+  return await api.get('/admin/students/$id/details') as Map<String, dynamic>;
+}
+
+final studentDetailsProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, id) async {
+  final api = ref.watch(apiServiceProvider);
+  return getStudentDetails(api, id);
+});
 
 Future<Map<String, dynamic>> createBatch(ApiService api, {
   required String name,

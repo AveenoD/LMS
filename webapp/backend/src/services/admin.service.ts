@@ -277,6 +277,189 @@ export async function deleteStudent(tenantId: number, actorUserId: number, id: n
   await writeAudit({ tenantId, actorUserId, action: 'student_deleted', entity: 'student', entityId: id });
 }
 
+export async function suspendStudent(tenantId: number, actorUserId: number, id: number): Promise<{ isSuspended: boolean }> {
+  // Get student's user_id first
+  const { rows } = await query<{ user_id: number; is_active: boolean }>(
+    `SELECT u.id AS user_id, u.is_active
+     FROM students s JOIN users u ON u.id = s.user_id
+     WHERE s.id = $1 AND s.tenant_id = $2`,
+    [id, tenantId]
+  );
+  if (!rows[0]) throw ApiError.notFound('STUDENT_NOT_FOUND');
+
+  // Toggle: if currently active → suspend; if suspended → unsuspend
+  const newStatus = !rows[0].is_active;
+  await query(`UPDATE users SET is_active = $1 WHERE id = $2`, [newStatus, rows[0].user_id]);
+  await writeAudit({
+    tenantId,
+    actorUserId,
+    action: newStatus ? 'student_unsuspended' : 'student_suspended',
+    entity: 'student',
+    entityId: id,
+  });
+  return { isSuspended: !newStatus };
+}
+
+export async function getStudentDetails(tenantId: number, id: number) {
+  // Verify student
+  const { rowCount } = await query(`SELECT id FROM students WHERE id=$1 AND tenant_id=$2`, [id, tenantId]);
+  if (!rowCount) throw ApiError.notFound('STUDENT_NOT_FOUND');
+
+  // Academics: Subjects, test marks
+  const { rows: testRows } = await query(
+    `SELECT
+       s.name AS "name",
+       SUM(tr.marks_obtained)::int AS "marks",
+       SUM(t.max_marks)::int AS "total"
+     FROM test_results tr
+     JOIN tests t ON t.id = tr.test_id
+     JOIN subjects s ON s.id = t.subject_id
+     WHERE tr.student_id = $1 AND tr.tenant_id = $2
+     GROUP BY s.name`,
+    [id, tenantId]
+  );
+  
+  let totalMarks = 0, totalMax = 0;
+  const subjects = testRows.map(r => {
+    totalMarks += r.marks;
+    totalMax += r.total;
+    const pct = r.total > 0 ? (r.marks / r.total) : 0;
+    const grade = r.total > 0 
+      ? (pct >= 0.85 ? 'A' : pct >= 0.70 ? 'B' : pct >= 0.50 ? 'C' : 'D')
+      : 'N/A';
+    return { name: r.name, marks: r.marks, total: r.total, grade };
+  });
+  const overallPct = totalMax > 0 ? (totalMarks / totalMax) : 0;
+  const overallGrade = totalMax > 0 
+    ? (overallPct >= 0.85 ? 'A' : overallPct >= 0.70 ? 'B' : overallPct >= 0.50 ? 'C' : 'D')
+    : 'N/A';
+
+  // Attendance: overall + monthly
+  const { rows: attStats } = await query(
+    `SELECT
+       COUNT(*)::int AS "totalDays",
+       COUNT(*) FILTER (WHERE status = 'present')::int AS "presentDays",
+       COUNT(*) FILTER (WHERE status = 'absent')::int AS "absentDays"
+     FROM attendance
+     WHERE student_id = $1 AND tenant_id = $2`,
+    [id, tenantId]
+  );
+  
+  const { rows: attMonthly } = await query(
+    `SELECT
+       to_char(date, 'Month YYYY') AS "month",
+       COUNT(*)::int AS "total",
+       COUNT(*) FILTER (WHERE status = 'present')::int AS "present"
+     FROM attendance
+     WHERE student_id = $1 AND tenant_id = $2
+     GROUP BY to_char(date, 'Month YYYY'), date_trunc('month', date)
+     ORDER BY date_trunc('month', date) DESC
+     LIMIT 12`,
+    [id, tenantId]
+  );
+
+  // Fees: payments history
+  const { rows: feeHistory } = await query(
+    `SELECT
+       fp.paid_on AS "date",
+       fp.amount_paid AS "amount",
+       fp.method,
+       fp.receipt_no AS "receiptNo",
+       COALESCE(fs.title, 'Payment') AS "desc"
+     FROM fee_payments fp
+     LEFT JOIN fee_structures fs ON fs.id = fp.fee_structure_id
+     WHERE fp.student_id = $1 AND fp.tenant_id = $2
+     ORDER BY fp.paid_on DESC`,
+    [id, tenantId]
+  );
+
+  // Fees: Overview & Installments
+  const { rows: feeStructures } = await query(
+    `SELECT fs.id, fs.title, fs.amount, fs.due_date AS "dueDate"
+     FROM fee_structures fs
+     JOIN batch_enrollments be ON be.batch_id = fs.batch_id
+     WHERE be.student_id = $1 AND fs.tenant_id = $2
+     ORDER BY fs.due_date ASC NULLS LAST, fs.id ASC`,
+    [id, tenantId]
+  );
+
+  const totalPaid = feeHistory.reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const totalFees = feeStructures.reduce((acc, curr) => acc + Number(curr.amount), 0);
+  
+  let remainingPaid = totalPaid;
+  const installments = feeStructures.map((fs, idx) => {
+    let status = 'Upcoming';
+    let amountPaidForThis = 0;
+    
+    if (remainingPaid >= Number(fs.amount)) {
+      status = 'Paid';
+      amountPaidForThis = Number(fs.amount);
+      remainingPaid -= Number(fs.amount);
+    } else if (remainingPaid > 0) {
+      status = 'Pending';
+      amountPaidForThis = remainingPaid;
+      remainingPaid = 0;
+    } else {
+      if (fs.dueDate && new Date(fs.dueDate) < new Date()) {
+        status = 'Overdue';
+      } else {
+        status = 'Pending'; // or upcoming depending on exact mockup phrasing, usually if due_date is in future it's pending if it's the current one, else upcoming.
+        // Let's use 'Upcoming' if it's not the first pending one, but for simplicity:
+        status = 'Pending';
+      }
+    }
+
+    return {
+      id: fs.id,
+      title: fs.title || `Installment ${idx + 1}`,
+      amount: Number(fs.amount),
+      dueDate: fs.dueDate,
+      status,
+      amountPaidForThis
+    };
+  });
+
+  const nextPendingInstallment = installments.find(i => i.status === 'Pending' || i.status === 'Overdue');
+  const nextDueDate = nextPendingInstallment?.dueDate || null;
+  const lastPayment = feeHistory.length > 0 ? { date: feeHistory[0].date, amount: feeHistory[0].amount } : null;
+
+  return {
+    academics: {
+      overallPercentage: (overallPct * 100).toFixed(1),
+      grade: overallGrade,
+      subjects
+    },
+    attendance: {
+      totalDays: attStats[0]?.totalDays || 0,
+      presentDays: attStats[0]?.presentDays || 0,
+      absentDays: attStats[0]?.absentDays || 0,
+      monthly: attMonthly.map(m => ({
+        month: (m.month as string).trim(), // to_char pads with spaces
+        present: m.present,
+        total: m.total
+      }))
+    },
+    fees: {
+      overview: {
+        total: totalFees,
+        paid: totalPaid,
+        pending: Math.max(0, totalFees - totalPaid),
+        lastPayment,
+        nextDue: nextDueDate,
+      },
+      installments,
+      history: feeHistory.map(f => ({
+        date: f.date,
+        amount: f.amount,
+        status: 'Paid',
+        desc: f.desc,
+        method: f.method,
+        receiptNo: f.receiptNo
+      }))
+    }
+  };
+}
+
 /* ─────────────── Batches ─────────────── */
 export interface BatchItem {
   id: number;
@@ -409,9 +592,10 @@ export interface FeeRow {
   pending: number;
   parentName: string | null;
   parentPhone: string | null;
+  has_overdue?: boolean;
 }
 
-export type FeeStatusFilter = 'pending' | 'paid';
+export type FeeStatusFilter = 'pending' | 'paid' | 'overdue';
 
 export async function listFees(tenantId: number, status?: FeeStatusFilter | null): Promise<FeeRow[]> {
   // Per-student totals: sum of applicable fee structures minus payments.
@@ -423,7 +607,13 @@ export async function listFees(tenantId: number, status?: FeeStatusFilter | null
               COALESCE(fs.total,0)::int AS total,
               COALESCE(fp.paid,0)::int AS paid,
               (COALESCE(fs.total,0) - COALESCE(fp.paid,0))::int AS pending,
-              s.parent_name AS "parentName", s.parent_phone AS "parentPhone"
+              s.parent_name AS "parentName", s.parent_phone AS "parentPhone",
+              (
+                SELECT bool_or(f.due_date < CURRENT_DATE)
+                FROM batch_enrollments be2
+                JOIN fee_structures f ON f.batch_id = be2.batch_id AND f.tenant_id = $1
+                WHERE be2.student_id = s.id
+              ) AS has_overdue
          FROM students s
          JOIN users u ON u.id = s.user_id
          LEFT JOIN (
@@ -441,10 +631,67 @@ export async function listFees(tenantId: number, status?: FeeStatusFilter | null
      WHERE $2::text IS NULL
         OR ($2 = 'pending' AND pending > 0)
         OR ($2 = 'paid' AND pending <= 0)
+        OR ($2 = 'overdue' AND pending > 0 AND has_overdue = true)
      ORDER BY pending DESC, name`,
     [tenantId, status ?? null]
   );
   return rows;
+}
+
+export async function getFeeAnalytics(tenantId: number) {
+  // 1. Total Collected (current month)
+  // 2. Today's collection
+  const { rows: payRows } = await query(
+    `SELECT 
+       SUM(CASE WHEN date_trunc('month', paid_on) = date_trunc('month', CURRENT_DATE) THEN amount_paid ELSE 0 END) AS collected_this_month,
+       SUM(CASE WHEN date_trunc('month', paid_on) = date_trunc('month', CURRENT_DATE - INTERVAL '1 month') THEN amount_paid ELSE 0 END) AS collected_last_month,
+       SUM(CASE WHEN DATE(paid_on) = CURRENT_DATE THEN amount_paid ELSE 0 END) AS collected_today,
+       COUNT(CASE WHEN DATE(paid_on) = CURRENT_DATE THEN 1 END) AS payments_today
+     FROM fee_payments
+     WHERE tenant_id = $1`,
+    [tenantId]
+  );
+
+  const collectedThisMonth = Number(payRows[0]?.collected_this_month) || 0;
+  const collectedLastMonth = Number(payRows[0]?.collected_last_month) || 0;
+  const collectedToday = Number(payRows[0]?.collected_today) || 0;
+  const paymentsToday = Number(payRows[0]?.payments_today) || 0;
+
+  let collectedGrowth = 0;
+  if (collectedLastMonth > 0) {
+    collectedGrowth = ((collectedThisMonth - collectedLastMonth) / collectedLastMonth) * 100;
+  } else if (collectedThisMonth > 0) {
+    collectedGrowth = 100;
+  }
+
+  // 3. Pending & Overdue
+  const feesList = await listFees(tenantId);
+  let totalPendingAmount = 0;
+  let totalPendingStudents = 0;
+  let overdueAmount = 0;
+  let overdueStudents = 0;
+
+  for (const f of feesList as any) {
+    if (f.pending > 0) {
+      totalPendingAmount += f.pending;
+      totalPendingStudents++;
+      if (f.has_overdue) {
+        overdueAmount += f.pending; // simple approximation for now
+        overdueStudents++;
+      }
+    }
+  }
+
+  return {
+    totalCollected: collectedThisMonth,
+    totalCollectedGrowth: Math.round(collectedGrowth),
+    totalPending: totalPendingAmount,
+    pendingStudents: totalPendingStudents,
+    overdue: overdueAmount,
+    overdueStudents: overdueStudents,
+    todayCollection: collectedToday,
+    todayPaymentsCount: paymentsToday,
+  };
 }
 
 export interface CreateFeeStructureInput {

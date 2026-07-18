@@ -36,6 +36,12 @@ export const deleteStudent = asyncHandler(async (req: Request, res: Response) =>
   await svc.deleteStudent(tenantId(req), userId(req), Number(req.params.id));
   res.json({ success: true });
 });
+export const suspendStudent = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.suspendStudent(tenantId(req), userId(req), Number(req.params.id)))
+);
+export const getStudentDetails = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.getStudentDetails(tenantId(req), Number(req.params.id)))
+);
 
 /* Batches */
 export const listBatches = asyncHandler(async (req: Request, res: Response) =>
@@ -63,8 +69,11 @@ export const createTimetable = asyncHandler(async (req: Request, res: Response) 
 
 /* Fees */
 export const listFees = asyncHandler(async (req: Request, res: Response) => {
-  const status = req.query.status === 'pending' || req.query.status === 'paid' ? req.query.status : null;
+  const status = req.query.status === 'pending' || req.query.status === 'paid' || req.query.status === 'overdue' ? req.query.status : null;
   res.json(await svc.listFees(tenantId(req), status));
+});
+export const feeAnalytics = asyncHandler(async (req: Request, res: Response) => {
+  res.json(await svc.getFeeAnalytics(tenantId(req)));
 });
 export const createFeeStructure = asyncHandler(async (req: Request, res: Response) =>
   res.status(201).json(await svc.createFeeStructure(tenantId(req), userId(req), req.body))

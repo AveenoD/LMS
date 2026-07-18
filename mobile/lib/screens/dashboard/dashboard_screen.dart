@@ -133,13 +133,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Builder(
                           builder: (context) {
                             final planName = sub['planName']?.toString() ?? 'N/A';
-                            final isTrial = sub['status'] == 'trial';
+                            final status = sub['status']?.toString();
+                            final isTrial = status == 'trial' || status == 'trial_expired';
+                            
                             final trialEndsStr = sub['trialEndsAt'];
                             final trialEndsAt = trialEndsStr != null ? DateTime.tryParse(trialEndsStr) : null;
                             
+                            final nextBillingStr = sub['nextBillingDate'];
+                            final nextBillingDate = nextBillingStr != null ? DateTime.tryParse(nextBillingStr) : null;
+                            
+                            final today = DateTime.now();
+                            final startOfToday = DateTime(today.year, today.month, today.day);
+
                             int daysLeft = 0;
-                            if (trialEndsAt != null) {
-                              daysLeft = trialEndsAt.difference(DateTime.now()).inDays;
+                            bool trialEnded = false;
+                            bool subEnded = false;
+
+                            if (isTrial) {
+                              if (trialEndsAt != null) {
+                                final endOfTrial = DateTime(trialEndsAt.year, trialEndsAt.month, trialEndsAt.day);
+                                daysLeft = endOfTrial.difference(startOfToday).inDays;
+                              }
+                              trialEnded = daysLeft < 0 || status == 'trial_expired' || status == 'past_due' || status == 'expired';
+                            } else {
+                              if (nextBillingDate != null) {
+                                final endOfSub = DateTime(nextBillingDate.year, nextBillingDate.month, nextBillingDate.day);
+                                daysLeft = endOfSub.difference(startOfToday).inDays;
+                              }
+                              subEnded = daysLeft < 0 || status == 'past_due' || status == 'expired';
                             }
 
                             return Container(
@@ -160,12 +181,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(planName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                        if (trialEndsAt != null)
-                                          Text('Trial ends on ${_formatDate(trialEndsAt)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                        if (isTrial) ...[
+                                          if (trialEnded)
+                                            Text('Your Trial Ended', style: TextStyle(color: Colors.red.shade600, fontSize: 12, fontWeight: FontWeight.bold))
+                                          else if (trialEndsAt != null)
+                                            Text('Trial ends on ${_formatDate(trialEndsAt)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                        ] else ...[
+                                          if (subEnded)
+                                            Text('Your Subscription Ended', style: TextStyle(color: Colors.red.shade600, fontSize: 12, fontWeight: FontWeight.bold))
+                                          else if (nextBillingDate != null)
+                                            Text('Renews on ${_formatDate(nextBillingDate)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                        ],
                                       ],
                                     ),
                                   ),
-                                  if (isTrial && daysLeft >= 0)
+                                  if (!trialEnded && !subEnded && daysLeft >= 0)
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                       decoration: BoxDecoration(

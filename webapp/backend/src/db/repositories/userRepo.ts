@@ -7,8 +7,9 @@ import type { UserRow, PublicUser } from '../rows.js';
  * disambiguate.
  */
 export async function findForLogin(phone: string): Promise<UserRow | null> {
+  // Fetch regardless of is_active so we can return a proper SUSPENDED error
   const { rows } = await query<UserRow>(
-    `SELECT * FROM users WHERE phone = $1 AND is_active = true`,
+    `SELECT * FROM users WHERE phone = $1`,
     [phone]
   );
   return rows[0] || null;

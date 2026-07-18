@@ -28,10 +28,12 @@ router.use(authMiddleware, roleGuard('coaching_admin'));
 router.get('/dashboard', ctrl.dashboard);
 router.get('/teachers', ctrl.listTeachers);
 router.get('/students', ctrl.listStudents);
+router.get('/students/:id/details', validate(idParamSchema, 'params'), ctrl.getStudentDetails);
 router.get('/batches', ctrl.listBatches);
 router.get('/subjects', ctrl.listSubjects);
 router.get('/timetable', ctrl.listTimetable);
 router.get('/fees', ctrl.listFees);
+router.get('/fees/analytics', ctrl.feeAnalytics);
 router.get('/branding', ctrl.getBranding);
 router.get('/notifications', ctrl.listNotifications);
 router.get('/notifications/unread-count', ctrl.unreadNotificationCount);
@@ -63,6 +65,7 @@ router.delete('/teachers/:id', subscriptionGuard, validate(idParamSchema, 'param
 router.post('/students', subscriptionGuard, validate(createStudentSchema), ctrl.createStudent);
 router.put('/students/:id', subscriptionGuard, ctrl.updateStudent);
 router.delete('/students/:id', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.deleteStudent);
+router.patch('/students/:id/suspend', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.suspendStudent);
 
 router.post('/batches', subscriptionGuard, validate(createBatchSchema), ctrl.createBatch);
 router.post('/subjects', subscriptionGuard, validate(createSubjectSchema), ctrl.createSubject);

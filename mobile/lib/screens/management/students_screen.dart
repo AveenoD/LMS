@@ -31,6 +31,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF1F2E27),
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         bottom: false,
         child: Column(
