@@ -302,8 +302,9 @@ export async function suspendStudent(tenantId: number, actorUserId: number, id: 
 
 export async function getStudentDetails(tenantId: number, id: number) {
   // Verify student
-  const { rowCount } = await query(`SELECT id FROM students WHERE id=$1 AND tenant_id=$2`, [id, tenantId]);
-  if (!rowCount) throw ApiError.notFound('STUDENT_NOT_FOUND');
+  const { rows: studentRows } = await query(`SELECT roll_no, grade FROM students WHERE id=$1 AND tenant_id=$2`, [id, tenantId]);
+  if (!studentRows.length) throw ApiError.notFound('STUDENT_NOT_FOUND');
+  const studentBasic = studentRows[0];
 
   // Academics: Subjects, test marks
   const { rows: testRows } = await query(
@@ -424,6 +425,10 @@ export async function getStudentDetails(tenantId: number, id: number) {
   const lastPayment = feeHistory.length > 0 ? { date: feeHistory[0].date, amount: feeHistory[0].amount } : null;
 
   return {
+    student: {
+      roll_no: studentBasic.roll_no,
+      grade: studentBasic.grade,
+    },
     academics: {
       overallPercentage: (overallPct * 100).toFixed(1),
       grade: overallGrade,

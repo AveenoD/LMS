@@ -9,6 +9,8 @@ import '../../widgets/record_payment_bottom_sheet.dart';
 import '../../widgets/fee_overview_card.dart';
 import '../../widgets/installment_row.dart';
 import '../../widgets/payment_history_row.dart';
+import 'receipt_screen.dart';
+import 'package:intl/intl.dart';
 
 class StudentFeeDetailsScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> student;
@@ -78,6 +80,7 @@ class _StudentFeeDetailsScreenState
     );
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFF8F9FA),
       body: NestedScrollView(
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
@@ -88,6 +91,7 @@ class _StudentFeeDetailsScreenState
                 expandedHeight: 180,
                 backgroundColor: const Color(0xFF1F2E27), // Dark green background
                 pinned: true,
+                title: Text(fullName, style: const TextStyle(fontSize: 16)),
                 iconTheme: const IconThemeData(color: Colors.white),
                 actions: [
                   IconButton(
@@ -150,7 +154,7 @@ class _StudentFeeDetailsScreenState
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Class $grade • Roll No. $rollNo',
+                                  '${grade.toLowerCase().startsWith('class') ? grade : 'Class $grade'} • Roll No. $rollNo',
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 14,
@@ -186,9 +190,9 @@ class _StudentFeeDetailsScreenState
           controller: _tabController,
           children: [
             _buildOverviewTab(s, details, isLoading, hasError),
-            _buildPaymentsTab(details, isLoading, hasError),
-            _buildInstallmentsTab(details, isLoading, hasError),
-            _buildReceiptsTab(details, isLoading, hasError),
+            _buildPaymentsTab(s, details, isLoading, hasError),
+            _buildInstallmentsTab(s, details, isLoading, hasError),
+            _buildReceiptsTab(s, details, isLoading, hasError),
           ],
         ),
       ),
@@ -229,7 +233,17 @@ class _StudentFeeDetailsScreenState
     );
   }
   
-  Widget _buildPaymentsTab(Map<String, dynamic>? details, bool isLoading, bool hasError) {
+  Widget _buildPaymentsTab(Map<String, dynamic> s, Map<String, dynamic>? details, bool isLoading, bool hasError) {
+    if (isLoading) return const Center(child: CircularProgressIndicator());
+    if (hasError) return const Center(child: Text('Failed to load details', style: TextStyle(color: Colors.red)));
+
+    final feesData = details?['fees'] as Map<String, dynamic>?;
+    final history = feesData?['history'] as List<dynamic>? ?? [];
+
+    if (history.isEmpty) {
+      return const Center(child: Text('No payments recorded yet.', style: TextStyle(color: Colors.grey)));
+    }
+
     return Builder(
       builder: (BuildContext context) {
         return CustomScrollView(
@@ -237,10 +251,18 @@ class _StudentFeeDetailsScreenState
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('Payments will appear here.'),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final h = history[index] as Map<String, dynamic>;
+                  return PaymentHistoryRow(
+                    date: h['date'] != null ? DateFormat('dd MMM yyyy').format(DateTime.parse(h['date'].toString())) : 'N/A',
+                    amount: '₹${h['amount'] ?? 0}',
+                    method: h['method']?.toString() ?? 'N/A',
+                    receiptNo: h['receiptNo']?.toString() ?? 'N/A',
+                  );
+                },
+                childCount: history.length,
               ),
             ),
           ],
@@ -249,7 +271,17 @@ class _StudentFeeDetailsScreenState
     );
   }
 
-  Widget _buildInstallmentsTab(Map<String, dynamic>? details, bool isLoading, bool hasError) {
+  Widget _buildInstallmentsTab(Map<String, dynamic> s, Map<String, dynamic>? details, bool isLoading, bool hasError) {
+    if (isLoading) return const Center(child: CircularProgressIndicator());
+    if (hasError) return const Center(child: Text('Failed to load details', style: TextStyle(color: Colors.red)));
+
+    final feesData = details?['fees'] as Map<String, dynamic>?;
+    final installments = feesData?['installments'] as List<dynamic>? ?? [];
+
+    if (installments.isEmpty) {
+      return const Center(child: Text('No installments found.', style: TextStyle(color: Colors.grey)));
+    }
+
     return Builder(
       builder: (BuildContext context) {
         return CustomScrollView(
@@ -257,10 +289,19 @@ class _StudentFeeDetailsScreenState
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('Installments will appear here.'),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final inst = installments[index] as Map<String, dynamic>;
+                  return InstallmentRow(
+                    index: index + 1,
+                    title: inst['title']?.toString() ?? 'Installment',
+                    dueDate: inst['dueDate'] != null ? DateFormat('dd MMM yyyy').format(DateTime.parse(inst['dueDate'].toString())) : 'No Due Date',
+                    amount: inst['amount'] as num? ?? 0,
+                    status: inst['status']?.toString() ?? 'Pending',
+                  );
+                },
+                childCount: installments.length,
               ),
             ),
           ],
@@ -269,7 +310,22 @@ class _StudentFeeDetailsScreenState
     );
   }
 
-  Widget _buildReceiptsTab(Map<String, dynamic>? details, bool isLoading, bool hasError) {
+  Widget _buildReceiptsTab(Map<String, dynamic> s, Map<String, dynamic>? details, bool isLoading, bool hasError) {
+    if (isLoading) return const Center(child: CircularProgressIndicator());
+    if (hasError) return const Center(child: Text('Failed to load details', style: TextStyle(color: Colors.red)));
+
+    final feesData = details?['fees'] as Map<String, dynamic>?;
+    final history = feesData?['history'] as List<dynamic>? ?? [];
+
+    if (history.isEmpty) {
+      return const Center(child: Text('No receipts available.', style: TextStyle(color: Colors.grey)));
+    }
+
+    final studentInfo = details?['student'] as Map<String, dynamic>?;
+    final rollNo = studentInfo?['roll_no']?.toString() ?? 'N/A';
+    final grade = studentInfo?['grade']?.toString() ?? 'N/A';
+    final fullName = s['fullName']?.toString() ?? 'Unknown Student';
+
     return Builder(
       builder: (BuildContext context) {
         return CustomScrollView(
@@ -277,10 +333,34 @@ class _StudentFeeDetailsScreenState
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('Receipts will appear here.'),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final h = history[index] as Map<String, dynamic>;
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReceiptScreen(
+                            tenantName: 'Apex Educational Institute',
+                            studentName: fullName,
+                            rollNo: rollNo,
+                            grade: grade,
+                            paymentData: h,
+                          ),
+                        ),
+                      );
+                    },
+                    child: PaymentHistoryRow(
+                      date: h['date'] != null ? DateFormat('dd MMM yyyy').format(DateTime.parse(h['date'].toString())) : 'N/A',
+                      amount: '₹${h['amount'] ?? 0}',
+                      method: h['method']?.toString() ?? 'N/A',
+                      receiptNo: h['receiptNo']?.toString() ?? 'N/A',
+                    ),
+                  );
+                },
+                childCount: history.length,
               ),
             ),
           ],
@@ -297,6 +377,11 @@ class _StudentFeeDetailsScreenState
     final overview = feesData?['overview'] as Map<String, dynamic>?;
     final installments = feesData?['installments'] as List<dynamic>? ?? [];
     final history = feesData?['history'] as List<dynamic>? ?? [];
+
+    final studentInfo = details?['student'] as Map<String, dynamic>?;
+    final rollNo = studentInfo?['roll_no']?.toString() ?? 'N/A';
+    final grade = studentInfo?['grade']?.toString() ?? 'N/A';
+    final fullName = s['fullName']?.toString() ?? 'Unknown Student';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -317,40 +402,48 @@ class _StudentFeeDetailsScreenState
           // Action Buttons
           Row(
             children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => showRecordPaymentBottomSheet(context, ref, prefillStudentId: s['id'] as int),
-                  icon: const Icon(Icons.receipt_long, size: 18),
-                  label: const Text('Receive Payment', style: TextStyle(fontSize: 12)),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFA87D26),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
+              _buildActionButton(
+                context, 
+                'Receive\nPayment', 
+                Icons.receipt_long, 
+                const Color(0xFFA87D26), 
+                true, 
+                () => showRecordPaymentBottomSheet(context, ref, prefillStudentId: s['id'] as int),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _sendWhatsAppReminder(s),
-                  icon: const Icon(Icons.chat_outlined, color: Colors.green, size: 18),
-                  label: const Text('Send Reminder', style: TextStyle(fontSize: 12, color: Colors.green)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.green),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
+              _buildActionButton(
+                context, 
+                'Send\nReminder', 
+                Icons.chat_outlined, 
+                Colors.green, 
+                false, 
+                () => _sendWhatsAppReminder(s),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {}, // placeholder
-                  icon: const Icon(Icons.print_outlined, color: Colors.grey, size: 18),
-                  label: const Text('Print Receipt', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.grey),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
+              _buildActionButton(
+                context, 
+                'Print\nReceipt', 
+                Icons.print_outlined, 
+                Colors.grey, 
+                false, 
+                () {
+                  if (history.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReceiptScreen(
+                          tenantName: 'Apex Educational Institute',
+                          studentName: fullName,
+                          rollNo: rollNo,
+                          grade: grade,
+                          paymentData: history.first as Map<String, dynamic>,
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No payments found to print')));
+                  }
+                },
               ),
             ],
           ),
@@ -445,21 +538,7 @@ class _StudentFeeDetailsScreenState
             ),
           ),
           
-          const SizedBox(height: 12),
-          // Notes section
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF9E6),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFFD54F).withValues(alpha: 0.5)),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.sticky_note_2, color: Color(0xFFA87D26)),
-              title: const Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Parent requested to pay next installment by next week.', style: TextStyle(fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            ),
-          ),
+          // (Notes section removed)
           const SizedBox(height: 40),
         ],
       ),
@@ -492,5 +571,41 @@ class _StudentFeeDetailsScreenState
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
       }
     }
+  }
+
+  Widget _buildActionButton(BuildContext context, String title, IconData icon, Color color, bool isFilled, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: isFilled ? color : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: isFilled ? null : Border.all(color: color),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: isFilled ? Colors.white : color),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isFilled ? Colors.white : color,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -7,8 +7,6 @@ import '../../providers/management_providers.dart' as mgmt;
 import '../../services/api_service.dart';
 import '../../widgets/record_payment_bottom_sheet.dart';
 import 'students_screen.dart';
-import '../../widgets/fee_overview_card.dart';
-import '../../widgets/installment_row.dart';
 import '../../widgets/payment_history_row.dart';
 
 class StudentDetailsScreen extends ConsumerStatefulWidget {
@@ -724,8 +722,6 @@ class _StudentDetailsScreenState extends ConsumerState<StudentDetailsScreen>
     if (hasError) return const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('Failed to load details', style: TextStyle(color: Colors.red))));
 
     final feesData = details?['fees'] as Map<String, dynamic>?;
-    final overview = feesData?['overview'] as Map<String, dynamic>?;
-    final installments = feesData?['installments'] as List<dynamic>? ?? [];
     final history = feesData?['history'] as List<dynamic>? ?? [];
 
     return Padding(
@@ -734,95 +730,13 @@ class _StudentDetailsScreenState extends ConsumerState<StudentDetailsScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (overview != null)
-            FeeOverviewCard(
-              total: overview['total'] ?? 0,
-              paid: overview['paid'] ?? 0,
-              pending: overview['pending'] ?? 0,
-              lastPaymentDate: overview['lastPayment']?['date']?.toString(),
-              lastPaymentAmount: overview['lastPayment']?['amount'],
-              nextDueDate: overview['nextDue']?.toString(),
-            ),
-          const SizedBox(height: 20),
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => showRecordPaymentBottomSheet(context, ref, prefillStudentId: s['id'] as int),
-                  icon: const Icon(Icons.receipt_long, size: 18),
-                  label: const Text('Receive Payment', style: TextStyle(fontSize: 12)),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFA87D26),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _sendWhatsAppReminder(s),
-                  icon: const Icon(Icons.chat_outlined, color: Colors.green, size: 18),
-                  label: const Text('Send Reminder', style: TextStyle(fontSize: 12, color: Colors.green)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.green),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {}, // placeholder
-                  icon: const Icon(Icons.print_outlined, color: Colors.grey, size: 18),
-                  label: const Text('Print Receipt', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.grey),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Installment Schedule', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              TextButton(onPressed: () {}, child: const Text('View All', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold))),
-            ],
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Column(
-              children: [
-                if (installments.isEmpty)
-                  const Padding(padding: EdgeInsets.all(20), child: Text('No installments found.'))
-                else
-                  ...installments.asMap().entries.map((e) => InstallmentRow(
-                    index: e.key + 1,
-                    title: e.value['title']?.toString() ?? '',
-                    amount: e.value['amount'] ?? 0,
-                    status: e.value['status']?.toString() ?? 'Upcoming',
-                    dueDate: e.value['dueDate']?.toString(),
-                  )),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Payment History', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              TextButton(onPressed: () {}, child: const Text('View All', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold))),
             ],
           ),
+          const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -849,34 +763,6 @@ class _StudentDetailsScreenState extends ConsumerState<StudentDetailsScreen>
         ],
       ),
     );
-  }
-
-  Future<void> _sendWhatsAppReminder(Map<String, dynamic> s) async {
-    try {
-      final studentId = s['id'] as int?;
-      if (studentId == null) return;
-      final result =
-          await mgmt.sendFeeReminder(ref.read(apiServiceProvider), studentId);
-      final waUrl = result['waUrl']?.toString() ?? '';
-      
-      if (waUrl.isNotEmpty) {
-        final uri = Uri.parse(waUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Could not launch WhatsApp. Copying link instead.')),
-            );
-            Clipboard.setData(ClipboardData(text: waUrl));
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-      }
-    }
   }
 
   // ── Reusable small widgets ────────────────────────────────────────────────
