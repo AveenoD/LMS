@@ -77,6 +77,7 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: _openAction,
         icon: const Icon(Icons.add),
         label: Text(isPaymentTab ? 'Record Payment' : 'Add Fee Structure'),

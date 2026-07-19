@@ -13,82 +13,78 @@ Future<bool> _canAccessManagement() async {
 // Provides a list of students
 final studentsProvider = FutureProvider<List<dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return []; // Return empty list for non-coaching_admin roles
-  }
+  if (!canAccess) return [];
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/students');
-  return response as List<dynamic>;
+  final result = await api.cachedGet('/admin/students', cacheKey: 'admin_students');
+  return result.data as List<dynamic>;
+});
+
+// Provides students for a specific batch
+final batchStudentsProvider = FutureProvider.family<List<dynamic>, int>((ref, batchId) async {
+  final canAccess = await _canAccessManagement();
+  if (!canAccess) return [];
+  final api = ref.watch(apiServiceProvider);
+  final result = await api.cachedGet('/admin/students?batchId=$batchId', cacheKey: 'admin_students_$batchId');
+  return result.data as List<dynamic>;
 });
 
 // Provides a list of teachers
 final teachersProvider = FutureProvider<List<dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return [];
-  }
+  if (!canAccess) return [];
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/teachers');
-  return response as List<dynamic>;
+  final result = await api.cachedGet('/admin/teachers', cacheKey: 'admin_teachers');
+  return result.data as List<dynamic>;
 });
 
 // Provides a list of batches
 final batchesProvider = FutureProvider<List<dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return [];
-  }
+  if (!canAccess) return [];
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/batches');
-  return response as List<dynamic>;
+  final result = await api.cachedGet('/admin/batches', cacheKey: 'admin_batches');
+  return result.data as List<dynamic>;
 });
 
 // Provides a list of subjects
 final subjectsProvider = FutureProvider<List<dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return [];
-  }
+  if (!canAccess) return [];
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/subjects');
-  return response as List<dynamic>;
+  final result = await api.cachedGet('/admin/subjects', cacheKey: 'admin_subjects');
+  return result.data as List<dynamic>;
 });
 
 // Provides the timetable
 final timetableProvider = FutureProvider<List<dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return [];
-  }
+  if (!canAccess) return [];
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/timetable');
-  return response as List<dynamic>;
+  final result = await api.cachedGet('/admin/timetable', cacheKey: 'admin_timetable');
+  return result.data as List<dynamic>;
 });
 
 // Provides fee records
 final feesProvider = FutureProvider.family<List<dynamic>, String?>((ref, status) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return [];
-  }
+  if (!canAccess) return [];
   final api = ref.watch(apiServiceProvider);
   String endpoint = '/admin/fees';
   if (status != null && status.isNotEmpty && status != 'all') {
     endpoint += '?status=$status';
   }
-  final response = await api.get(endpoint);
-  return response as List<dynamic>;
+  final cacheKey = 'admin_fees_${status ?? 'all'}';
+  final result = await api.cachedGet(endpoint, cacheKey: cacheKey);
+  return result.data as List<dynamic>;
 });
 
 // Provides fee analytics data
 final feeAnalyticsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return {};
-  }
+  if (!canAccess) return {};
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/fees/analytics');
-  return response as Map<String, dynamic>;
+  final result = await api.cachedGet('/admin/fees/analytics', cacheKey: 'admin_fee_analytics');
+  return result.data as Map<String, dynamic>;
 });
 
 // Provides performance reports. `batchId` is optional — null means "all
@@ -110,23 +106,19 @@ final performanceReportProvider = FutureProvider.family<Map<String, dynamic>, in
 // Provides branding settings
 final brandingProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return {};
-  }
+  if (!canAccess) return {};
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/branding');
-  return response as Map<String, dynamic>;
+  final result = await api.cachedGet('/admin/branding', cacheKey: 'admin_branding');
+  return result.data as Map<String, dynamic>;
 });
 
 // Provides the logged-in coaching_admin's own notification inbox
 final notificationsProvider = FutureProvider<List<dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
-  if (!canAccess) {
-    return [];
-  }
+  if (!canAccess) return [];
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/admin/notifications');
-  return response as List<dynamic>;
+  final result = await api.cachedGet('/admin/notifications', cacheKey: 'admin_notifications');
+  return result.data as List<dynamic>;
 });
 
 final unreadNotificationCountProvider = FutureProvider<int>((ref) async {
@@ -224,7 +216,8 @@ Future<Map<String, dynamic>> getStudentDetails(ApiService api, int id) async {
 
 final studentDetailsProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, id) async {
   final api = ref.watch(apiServiceProvider);
-  return getStudentDetails(api, id);
+  final result = await api.cachedGet('/admin/students/$id/details', cacheKey: 'admin_student_details_$id');
+  return result.data as Map<String, dynamic>;
 });
 
 Future<Map<String, dynamic>> createBatch(ApiService api, {

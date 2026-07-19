@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/management_providers.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_textfield.dart';
+import '../../widgets/custom_button.dart';
+
+import 'batch_students_screen.dart';
 
 class BatchesScreen extends ConsumerWidget {
   const BatchesScreen({super.key});
@@ -12,104 +15,207 @@ class BatchesScreen extends ConsumerWidget {
     final batchesAsync = ref.watch(batchesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Batches')),
+      backgroundColor: const Color(0xFFF4F6F3),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F2E27),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Batches', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+            Text(
+              'Manage your classroom batches and grades',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w400),
+            ),
+          ],
+        ),
+      ),
       body: batchesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
         data: (batches) {
-          if (batches.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.class_outlined, size: 64, color: Color(0xFF2E6656)),
-                  SizedBox(height: 16),
-                  Text('No batches yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
-                  SizedBox(height: 8),
-                  Text('Tap "Create Batch" to add your first batch.', style: TextStyle(color: Color(0xFF2E6656))),
-                ],
-              ),
-            );
+          int totalStudents = 0;
+          for (var b in batches) {
+            totalStudents += (b['studentCount'] as int? ?? 0);
           }
+          final avgSize = batches.isEmpty ? 0 : (totalStudents / batches.length).round();
+
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(batchesProvider),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: batches.length,
-              itemBuilder: (context, index) {
-                final batch = batches[index] as Map<String, dynamic>;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E6656).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.class_outlined, color: Color(0xFF2E6656)),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                batch['name'] ?? 'Unknown Batch',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
-                              ),
-                              const SizedBox(height: 4),
-                              Text('${batch['studentCount'] ?? 0} students enrolled',
-                                  style: const TextStyle(color: Color(0xFF2E6656), fontSize: 13)),
-                            ],
-                          ),
-                        ),
-                        if (batch['grade'] != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFA87D26).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(batch['grade'].toString(),
-                                style: const TextStyle(color: Color(0xFFA87D26), fontWeight: FontWeight.bold, fontSize: 12)),
-                          ),
-                      ],
+            child: CustomScrollView(
+              slivers: [
+                if (batches.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        children: [
+                          Expanded(child: _buildStatCard('Total Batches', '${batches.length}', Icons.class_outlined, const Color(0xFF2E6656))),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildStatCard('Enrolled Students', '$totalStudents', Icons.people_outline, Colors.blue.shade700)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildStatCard('Avg. Batch Size', '$avgSize', Icons.pie_chart_outline, Colors.orange.shade700)),
+                        ],
+                      ),
                     ),
                   ),
-                );
-              },
+                ],
+                if (batches.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.class_outlined, size: 64, color: Color(0xFF2E6656)),
+                          const SizedBox(height: 16),
+                          const Text('No batches yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
+                          const SizedBox(height: 8),
+                          const Text('Tap "Create Batch" to add your first batch.', style: TextStyle(color: Color(0xFF2E6656))),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final batch = batches[index] as Map<String, dynamic>;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BatchStudentsScreen(
+                                      batchId: batch['id'] as int,
+                                      batchName: batch['name']?.toString() ?? 'Batch',
+                                    ),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 4))],
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF2E6656).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(Icons.class_outlined, color: Color(0xFF2E6656)),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              batch['name'] ?? 'Unknown Batch',
+                                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text('${batch['studentCount'] ?? 0} students enrolled',
+                                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+                                          ],
+                                        ),
+                                      ),
+                                      if (batch['grade'] != null)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFA87D26).withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(batch['grade'].toString(),
+                                              style: const TextStyle(color: Color(0xFFA87D26), fontWeight: FontWeight.bold, fontSize: 12)),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        childCount: batches.length,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
-        onPressed: () => showDialog(context: context, builder: (_) => const _AddBatchDialog()),
-        icon: const Icon(Icons.add),
-        label: const Text('Create Batch'),
+        onPressed: () => showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => const _AddBatchBottomSheet(),
+        ),
+        backgroundColor: const Color(0xFF1F2E27),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Create Batch', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: Color(0xFF1F2E27), fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 }
 
-class _AddBatchDialog extends ConsumerStatefulWidget {
-  const _AddBatchDialog();
+class _AddBatchBottomSheet extends ConsumerStatefulWidget {
+  const _AddBatchBottomSheet();
 
   @override
-  ConsumerState<_AddBatchDialog> createState() => _AddBatchDialogState();
+  ConsumerState<_AddBatchBottomSheet> createState() => _AddBatchBottomSheetState();
 }
 
-class _AddBatchDialogState extends ConsumerState<_AddBatchDialog> {
+class _AddBatchBottomSheetState extends ConsumerState<_AddBatchBottomSheet> {
   final _name = TextEditingController();
   final _grade = TextEditingController();
   bool _saving = false;
@@ -145,93 +251,71 @@ class _AddBatchDialogState extends ConsumerState<_AddBatchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return Dialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: screenWidth < 400 ? 16 : 32,
-        vertical: 24,
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2E6656).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.class_outlined, color: Color(0xFF2E6656)),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Create Batch',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
-                  ),
+                const Text(
+                  'Create New Batch',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
                 ),
                 IconButton(
-                  onPressed: _saving ? null : () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, size: 20),
-                  style: IconButton.styleFrom(foregroundColor: const Color(0xFF2E6656)),
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            const Divider(height: 1),
-            const SizedBox(height: 20),
-            CustomTextField(label: 'Batch Name', hint: 'e.g. JEE 2026 Morning', controller: _name),
+            const SizedBox(height: 24),
+            CustomTextField(
+              label: 'Batch Name',
+              hint: 'e.g. Class 11 Morning',
+              controller: _name,
+              prefixIcon: Icons.class_outlined,
+            ),
             const SizedBox(height: 16),
-            CustomTextField(label: 'Grade (optional)', hint: 'e.g. Class 11', controller: _grade),
+            CustomTextField(
+              label: 'Grade/Class (Optional)',
+              hint: 'e.g. Class 11',
+              controller: _grade,
+              prefixIcon: Icons.grade_outlined,
+            ),
             if (_error != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFA93327).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                  ],
                 ),
-                child: Text(_error!, style: const TextStyle(color: Color(0xFFA93327), fontSize: 13)),
               ),
             ],
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _saving ? null : () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: Color(0xFF2E6656)),
-                      foregroundColor: const Color(0xFF2E6656),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            const SizedBox(height: 32),
+            _saving
+                ? const Center(child: CircularProgressIndicator())
+                : SizedBox(
+                    height: 52,
+                    child: CustomButton(
+                      text: 'Create Batch',
+                      onPressed: _submit,
                     ),
-                    child: const Text('Cancel'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _saving ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: _saving
-                        ? const SizedBox(
-                            width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Create Batch'),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),

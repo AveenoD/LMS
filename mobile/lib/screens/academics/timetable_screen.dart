@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/management_providers.dart';
 import '../../services/api_service.dart';
+import '../../widgets/custom_button.dart';
 
 const _dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -13,9 +14,12 @@ class TimetableScreen extends ConsumerWidget {
     final timetableAsync = ref.watch(timetableProvider);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F3),
       appBar: AppBar(
-        title: const Text('Timetable'),
-              ),
+        backgroundColor: const Color(0xFF1F2E27),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Timetable', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+      ),
       body: timetableAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -32,9 +36,11 @@ class TimetableScreen extends ConsumerWidget {
                 final dayLabel = (dayOfWeek is int && dayOfWeek >= 0 && dayOfWeek <= 6) ? _dayNames[dayOfWeek] : '';
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
+                  color: Colors.white,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: const Color(0xFF1F2E27).withValues(alpha: 0.2)),
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: Colors.grey.shade200),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -44,28 +50,53 @@ class TimetableScreen extends ConsumerWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('${slot['startTime'] ?? 'N/A'} - ${slot['endTime'] ?? 'N/A'}',
-                                style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF1F2E27))),
-                            Text(dayLabel, style: const TextStyle(color: Colors.grey)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(color: const Color(0xFF1F2E27).withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+                              child: Text(
+                                '${slot['startTime'] ?? 'N/A'} - ${slot['endTime'] ?? 'N/A'}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(16)),
+                              child: Text(dayLabel, style: TextStyle(color: Colors.blue.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
                           ],
                         ),
-                        const Divider(height: 24),
+                        const SizedBox(height: 16),
                         Row(
                           children: [
                             CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.orange.shade100,
-                              child: const Icon(Icons.person, size: 16, color: Colors.orange),
+                              radius: 20,
+                              backgroundColor: Colors.orange.shade50,
+                              child: const Icon(Icons.person, size: 20, color: Colors.orange),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                '${slot['teacher'] ?? 'Unknown'} (${slot['subject'] ?? 'No subject'})',
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                                overflow: TextOverflow.ellipsis,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${slot['teacher'] ?? 'Unknown'}',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${slot['subject'] ?? 'No subject'}',
+                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(slot['batch'] ?? 'No Batch', style: const TextStyle(color: Colors.black54)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+                              child: Text(slot['batch'] ?? 'No Batch', style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w600)),
+                            ),
                           ],
                         ),
                       ],
@@ -78,7 +109,8 @@ class TimetableScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openScheduleDialog(context, ref),
+        heroTag: null,
+        onPressed: () => _openScheduleBottomSheet(context, ref),
         backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Schedule Class', style: TextStyle(color: Colors.white)),
@@ -86,7 +118,7 @@ class TimetableScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openScheduleDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _openScheduleBottomSheet(BuildContext context, WidgetRef ref) async {
     final results = await Future.wait([
       ref.read(batchesProvider.future),
       ref.read(teachersProvider.future),
@@ -102,25 +134,27 @@ class TimetableScreen extends ConsumerWidget {
       );
       return;
     }
-    await showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (_) => _ScheduleClassDialog(batches: batches, teachers: teachers, subjects: subjects),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ScheduleClassBottomSheet(batches: batches, teachers: teachers, subjects: subjects),
     );
   }
 }
 
-class _ScheduleClassDialog extends ConsumerStatefulWidget {
+class _ScheduleClassBottomSheet extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> batches;
   final List<Map<String, dynamic>> teachers;
   final List<Map<String, dynamic>> subjects;
 
-  const _ScheduleClassDialog({required this.batches, required this.teachers, required this.subjects});
+  const _ScheduleClassBottomSheet({required this.batches, required this.teachers, required this.subjects});
 
   @override
-  ConsumerState<_ScheduleClassDialog> createState() => _ScheduleClassDialogState();
+  ConsumerState<_ScheduleClassBottomSheet> createState() => _ScheduleClassBottomSheetState();
 }
 
-class _ScheduleClassDialogState extends ConsumerState<_ScheduleClassDialog> {
+class _ScheduleClassBottomSheetState extends ConsumerState<_ScheduleClassBottomSheet> {
   int? _batchId;
   int? _teacherId;
   int? _subjectId;
@@ -180,91 +214,188 @@ class _ScheduleClassDialogState extends ConsumerState<_ScheduleClassDialog> {
     }
   }
 
+  InputDecoration _dropdownDecoration(IconData icon) {
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: Colors.grey.shade600),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF1F2E27), width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Schedule Class'),
-      content: SingleChildScrollView(
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Batch', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            DropdownButtonFormField<int>(
-              initialValue: _batchId,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-              items: widget.batches
-                  .map((b) => DropdownMenuItem<int>(value: b['id'] as int, child: Text(b['name']?.toString() ?? '')))
-                  .toList(),
-              onChanged: (v) => setState(() => _batchId = v),
-            ),
-            const SizedBox(height: 14),
-            const Text('Teacher', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            DropdownButtonFormField<int>(
-              initialValue: _teacherId,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-              items: widget.teachers
-                  .map((t) => DropdownMenuItem<int>(value: t['id'] as int, child: Text(t['fullName']?.toString() ?? '')))
-                  .toList(),
-              onChanged: (v) => setState(() => _teacherId = v),
-            ),
-            const SizedBox(height: 14),
-            const Text('Subject (optional)', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            DropdownButtonFormField<int?>(
-              initialValue: _subjectId,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-              items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('None')),
-                ...widget.subjects.map((s) => DropdownMenuItem<int?>(value: s['id'] as int, child: Text(s['name']?.toString() ?? ''))),
-              ],
-              onChanged: (v) => setState(() => _subjectId = v),
-            ),
-            const SizedBox(height: 14),
-            const Text('Day of Week', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            DropdownButtonFormField<int>(
-              initialValue: _dayOfWeek,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-              items: List.generate(7, (i) => DropdownMenuItem<int>(value: i, child: Text(_dayNames[i]))),
-              onChanged: (v) => setState(() => _dayOfWeek = v ?? _dayOfWeek),
-            ),
-            const SizedBox(height: 14),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pickTime(true),
-                    child: Text('Start: ${_fmt(_startTime)}'),
-                  ),
+                const Text(
+                  'Schedule Class',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pickTime(false),
-                    child: Text('End: ${_fmt(_endTime)}'),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            ],
+            const SizedBox(height: 16),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Batch', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      initialValue: _batchId,
+                      decoration: _dropdownDecoration(Icons.group_outlined),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                      items: widget.batches
+                          .map((b) => DropdownMenuItem<int>(value: b['id'] as int, child: Text(b['name']?.toString() ?? '')))
+                          .toList(),
+                      onChanged: (v) => setState(() => _batchId = v),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Teacher', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      initialValue: _teacherId,
+                      decoration: _dropdownDecoration(Icons.person_outline),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                      items: widget.teachers
+                          .map((t) => DropdownMenuItem<int>(value: t['id'] as int, child: Text(t['fullName']?.toString() ?? '')))
+                          .toList(),
+                      onChanged: (v) => setState(() => _teacherId = v),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Subject (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int?>(
+                      initialValue: _subjectId,
+                      decoration: _dropdownDecoration(Icons.menu_book),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                      items: [
+                        const DropdownMenuItem<int?>(value: null, child: Text('None')),
+                        ...widget.subjects.map((s) => DropdownMenuItem<int?>(value: s['id'] as int, child: Text(s['name']?.toString() ?? ''))),
+                      ],
+                      onChanged: (v) => setState(() => _subjectId = v),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Day of Week', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      initialValue: _dayOfWeek,
+                      decoration: _dropdownDecoration(Icons.calendar_today_outlined),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                      items: List.generate(7, (i) => DropdownMenuItem<int>(value: i, child: Text(_dayNames[i]))),
+                      onChanged: (v) => setState(() => _dayOfWeek = v ?? _dayOfWeek),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _pickTime(true),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.access_time, color: Colors.grey.shade600, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text('Start: ${_fmt(_startTime)}', style: const TextStyle(fontWeight: FontWeight.w500))),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _pickTime(false),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.access_time_filled, color: Colors.grey.shade600, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text('End: ${_fmt(_endTime)}', style: const TextStyle(fontWeight: FontWeight.w500))),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _saving
+                ? const Center(child: CircularProgressIndicator())
+                : SizedBox(
+                    height: 52,
+                    child: CustomButton(
+                      text: 'Schedule Class',
+                      onPressed: _submit,
+                    ),
+                  ),
           ],
         ),
       ),
-      actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Schedule'),
-        ),
-      ],
     );
   }
 }

@@ -263,10 +263,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                         ],
                                       ),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(Icons.more_vert, color: Color(0xFF1F2E27)),
-                                      onPressed: () {},
-                                    ),
+
                                   ],
                                 ),
                                 const SizedBox(height: 16),

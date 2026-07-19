@@ -34,7 +34,10 @@ final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 
     // Select endpoint based on role
     if (userRole == 'super_admin') {
+      // Super admin always needs live data — no caching
       endpoint = '/superadmin/analytics?month=${selectedMonth.month}&year=${selectedMonth.year}';
+      final response = await api.get(endpoint);
+      return response as Map<String, dynamic>;
     } else if (userRole == 'coaching_admin') {
       endpoint = '/admin/dashboard?month=${selectedMonth.month}&year=${selectedMonth.year}';
     } else if (userRole == 'student') {
@@ -45,9 +48,15 @@ final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
       throw Exception('Unknown role: $userRole');
     }
 
-    final response = await api.get(endpoint);
-    return response as Map<String, dynamic>;
+    // Role-specific cache key (includes month/year for admin)
+    final cacheKey = userRole == 'coaching_admin'
+        ? 'dashboard_admin_${selectedMonth.month}_${selectedMonth.year}'
+        : 'dashboard_$userRole';
+
+    final result = await api.cachedGet(endpoint, cacheKey: cacheKey);
+    return result.data as Map<String, dynamic>;
   } catch (e) {
     throw Exception('Failed to load dashboard data: $e');
   }
 });
+

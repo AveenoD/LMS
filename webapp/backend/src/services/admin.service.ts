@@ -26,11 +26,15 @@ export interface TeacherItem {
   fullName: string;
   phone: string;
   email: string | null;
+  status: string;
+  leaveStart: string | null;
+  leaveEnd: string | null;
 }
 
 export async function listTeachers(tenantId: number): Promise<TeacherItem[]> {
   const { rows } = await query<TeacherItem>(
-    `SELECT id, full_name AS "fullName", phone, email
+    `SELECT id, full_name AS "fullName", phone, email,
+            status, leave_start AS "leaveStart", leave_end AS "leaveEnd"
        FROM users WHERE tenant_id = $1 AND role='teacher' ORDER BY full_name`,
     [tenantId]
   );
@@ -65,6 +69,49 @@ export async function createTeacher(
     meta: { fullName, phone },
   });
   return rows[0];
+}
+
+export async function updateTeacher(
+  tenantId: number,
+  actorUserId: number,
+  id: number,
+  { fullName, phone, email, status, leaveStart, leaveEnd }: {
+    fullName?: string;
+    phone?: string;
+    email?: string;
+    status?: string;
+    leaveStart?: string | null;
+    leaveEnd?: string | null;
+  }
+): Promise<TeacherItem> {
+  const updates: string[] = [];
+  const values: any[] = [id, tenantId];
+  let i = 3;
+
+  if (fullName !== undefined) { updates.push(`full_name=$${i++}`); values.push(fullName); }
+  if (phone !== undefined) { updates.push(`phone=$${i++}`); values.push(phone); }
+  if (email !== undefined) { updates.push(`email=$${i++}`); values.push(email); }
+  if (status !== undefined) { updates.push(`status=$${i++}`); values.push(status); }
+  if (leaveStart !== undefined) { updates.push(`leave_start=$${i++}`); values.push(leaveStart || null); }
+  if (leaveEnd !== undefined) { updates.push(`leave_end=$${i++}`); values.push(leaveEnd || null); }
+
+  if (updates.length === 0) {
+    const { rows } = await query(
+      `SELECT id, full_name as "fullName", phone, email, status, leave_start as "leaveStart", leave_end as "leaveEnd" FROM users WHERE id=$1 AND tenant_id=$2`,
+      [id, tenantId]
+    );
+    return rows[0] as any;
+  }
+
+  const { rows, rowCount } = await query(
+    `UPDATE users SET ${updates.join(', ')} WHERE id=$1 AND tenant_id=$2 AND role='teacher'
+     RETURNING id, full_name as "fullName", phone, email, status, leave_start as "leaveStart", leave_end as "leaveEnd"`,
+    values
+  );
+
+  if (!rowCount) throw ApiError.notFound('TEACHER_NOT_FOUND');
+  await writeAudit({ tenantId, actorUserId, action: 'teacher_updated', entity: 'user', entityId: id });
+  return rows[0] as any;
 }
 
 export async function deleteTeacher(tenantId: number, actorUserId: number, id: number): Promise<void> {
@@ -827,6 +874,10 @@ export async function feeReminderLink(
 export interface PerformanceReport {
   avgAttendance: string | null;
   avgMarksPct: string | null;
+  totalTests: number;
+  totalClasses: number;
+  topPerformers: any[];
+  needingAttention: any[];
 }
 
 export async function performanceReport(
@@ -836,21 +887,78 @@ export async function performanceReport(
   const params: unknown[] = [tenantId];
   let attWhere = '';
   let resWhere = '';
+  let beWhere = '';
   if (batchId) {
     params.push(batchId);
     attWhere = `AND a.batch_id = $2`;
     resWhere = `AND t.batch_id = $2`;
+    beWhere = `AND be.batch_id = $2`;
   }
-  const { rows } = await query<PerformanceReport>(
+
+  // Aggregate metrics
+  const { rows: stats } = await query(
     `SELECT
        (SELECT ROUND(100.0 * count(*) FILTER (WHERE a.status='present') / NULLIF(count(*),0), 1)
           FROM attendance a WHERE a.tenant_id=$1 ${attWhere}) AS "avgAttendance",
        (SELECT ROUND(AVG(100.0 * tr.marks_obtained / NULLIF(t.max_marks,0)), 1)
           FROM test_results tr JOIN tests t ON t.id=tr.test_id
-         WHERE tr.tenant_id=$1 ${resWhere}) AS "avgMarksPct"`,
+         WHERE tr.tenant_id=$1 ${resWhere}) AS "avgMarksPct",
+       (SELECT count(*)::int FROM tests t WHERE t.tenant_id=$1 ${resWhere}) AS "totalTests",
+       (SELECT count(DISTINCT date)::int FROM attendance a WHERE a.tenant_id=$1 ${attWhere}) AS "totalClasses"
+    `,
     params
   );
-  return rows[0];
+
+  // Student metrics
+  const { rows: students } = await query(
+    `SELECT 
+       s.id, u.full_name as "fullName", s.grade, s.roll_no as "rollNo", b.name as "batchName",
+       (SELECT ROUND(100.0 * count(*) FILTER (WHERE a.status='present') / NULLIF(count(*),0), 1)
+        FROM attendance a WHERE a.student_id = s.id AND a.tenant_id=$1 ${attWhere}) as "avgAttendance",
+       (SELECT ROUND(AVG(100.0 * tr.marks_obtained / NULLIF(t2.max_marks,0)), 1) 
+        FROM test_results tr JOIN tests t2 ON t2.id=tr.test_id 
+        WHERE tr.student_id = s.id AND tr.tenant_id=$1 ${resWhere.replace(/t\./g, 't2.')}) as "avgMarksPct"
+     FROM students s
+     JOIN users u ON u.id = s.user_id
+     JOIN batch_enrollments be ON be.student_id = s.id
+     JOIN batches b ON b.id = be.batch_id
+     WHERE s.tenant_id = $1 ${beWhere}
+    `,
+    params
+  );
+
+  const parsedStudents = students.map(st => ({
+    ...st,
+    avgAttendance: st.avgAttendance ? Number(st.avgAttendance) : null,
+    avgMarksPct: st.avgMarksPct ? Number(st.avgMarksPct) : null,
+  }));
+
+  const topPerformers = parsedStudents
+    .filter(st => st.avgMarksPct !== null)
+    .sort((a, b) => b.avgMarksPct! - a.avgMarksPct!)
+    .slice(0, 3);
+
+  const needingAttention = parsedStudents
+    .filter(st => {
+      const lowAtt = st.avgAttendance !== null && st.avgAttendance < 75;
+      const lowMarks = st.avgMarksPct !== null && st.avgMarksPct < 60;
+      return lowAtt || lowMarks;
+    })
+    .sort((a, b) => {
+      const aScore = (a.avgMarksPct ?? 100) + (a.avgAttendance ?? 100);
+      const bScore = (b.avgMarksPct ?? 100) + (b.avgAttendance ?? 100);
+      return aScore - bScore; // Lowest first
+    })
+    .slice(0, 5); // Limit to 5 for UI
+
+  return {
+    avgAttendance: stats[0].avgAttendance,
+    avgMarksPct: stats[0].avgMarksPct,
+    totalTests: stats[0].totalTests,
+    totalClasses: stats[0].totalClasses,
+    topPerformers,
+    needingAttention,
+  };
 }
 
 /* ─────────────── Branding ─────────────── */

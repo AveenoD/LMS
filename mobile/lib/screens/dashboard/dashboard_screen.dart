@@ -384,21 +384,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey.shade300),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Text('This Week', style: TextStyle(fontSize: 10)),
-                                      const SizedBox(width: 4),
-                                      Icon(Icons.keyboard_arrow_down, size: 12, color: Colors.grey.shade700),
-                                    ],
-                                  ),
-                                ),
+
                               ],
                             ),
                             const SizedBox(height: 16),

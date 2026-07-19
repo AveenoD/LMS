@@ -376,7 +376,7 @@ export async function getTenantDashboard(tenantId: number, month?: number, year?
       feesPendingGrowth: 0,
     },
     studentChart: chartRes.rows,
-    feesChart: { collected: stats.feesCollected, pending: feesPending },
+    feesChart: { collected: stats.feesCollectedThisMonth, pending: feesPending },
     upcomingSchedule: scheduleRes.rows
   };
 }

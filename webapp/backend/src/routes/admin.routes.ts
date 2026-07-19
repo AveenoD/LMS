@@ -60,6 +60,7 @@ router.post(
   validate(createTeacherSchema),
   ctrl.createTeacher
 );
+router.put('/teachers/:id', subscriptionGuard, ctrl.updateTeacher);
 router.delete('/teachers/:id', subscriptionGuard, validate(idParamSchema, 'params'), ctrl.deleteTeacher);
 
 router.post('/students', subscriptionGuard, validate(createStudentSchema), ctrl.createStudent);

@@ -20,122 +20,327 @@ class ReportsScreen extends ConsumerWidget {
     final batchesAsync = ref.watch(batchesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Performance Reports')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Batch Analytics',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
-            ),
-            const SizedBox(height: 12),
-            batchesAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (_, _) => const SizedBox.shrink(),
-              data: (batches) {
-                if (batches.isEmpty) return const SizedBox.shrink();
-                return DropdownButtonFormField<int?>(
-                  initialValue: selectedBatch,
-                  decoration: const InputDecoration(labelText: 'Filter by batch', isDense: true),
-                  items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('All batches')),
-                    ...batches.cast<Map<String, dynamic>>().map(
-                          (b) => DropdownMenuItem<int?>(
-                            value: b['id'] as int,
-                            child: Text(b['name']?.toString() ?? ''),
-                          ),
-                        ),
-                  ],
-                  onChanged: (v) => ref.read(_selectedBatchProvider.notifier).set(v),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            reportAsync.when(
-              loading: () => const Center(
-                child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()),
-              ),
-              error: (err, stack) => Center(
-                child: Text('Error: $err', style: const TextStyle(color: Color(0xFFA93327))),
-              ),
-              data: (report) {
-                final avgAttendance = report['avgAttendance'];
-                final avgMarks = report['avgMarksPct'];
-                return Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        'Avg Attendance',
-                        avgAttendance == null ? 'No data' : '$avgAttendance%',
-                        Icons.event_available,
-                        const Color(0xFF2E6656),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildMetricCard(
-                        'Avg Marks',
-                        avgMarks == null ? 'No data' : '$avgMarks%',
-                        Icons.grade,
-                        const Color(0xFFA87D26),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "Based on attendance records and test results entered for this institute. "
-              "Per-student rankings aren't available yet.",
-              style: TextStyle(
-                fontSize: 13,
-                color: const Color(0xFF2E6656).withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: const Color(0xFFF4F6F3),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F2E27),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Performance Reports', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => ref.invalidate(performanceReportProvider(selectedBatch)),
-        icon: const Icon(Icons.refresh),
-        label: const Text('Refresh'),
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(performanceReportProvider(selectedBatch)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Batch Analytics', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
+              const SizedBox(height: 12),
+              
+              // Batch Filter
+              batchesAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
+                data: (batches) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int?>(
+                        value: selectedBatch,
+                        isExpanded: true,
+                        hint: const Text('Filter by batch'),
+                        icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade700),
+                        items: [
+                          const DropdownMenuItem<int?>(value: null, child: Text('All Batches', style: TextStyle(fontWeight: FontWeight.w500))),
+                          ...batches.cast<Map<String, dynamic>>().map(
+                                (b) => DropdownMenuItem<int?>(
+                                  value: b['id'] as int,
+                                  child: Text(b['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
+                                ),
+                              ),
+                        ],
+                        onChanged: (v) => ref.read(_selectedBatchProvider.notifier).set(v),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              
+              // Analytics Content
+              reportAsync.when(
+                loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
+                error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.red))),
+                data: (report) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 4 Metric Cards
+                      Row(
+                        children: [
+                          Expanded(child: _buildMetricCard('Avg Attendance', report['avgAttendance'], Icons.event_available, const Color(0xFF2E6656), isPercentage: true)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildMetricCard('Avg Marks', report['avgMarksPct'], Icons.star, const Color(0xFFA87D26), isPercentage: true)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(child: _buildMetricCard('Total Tests', report['totalTests'], Icons.assignment_outlined, const Color(0xFF6B4CA4), isPercentage: false)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildMetricCard('Total Classes', report['totalClasses'], Icons.menu_book, const Color(0xFF2E7D32), isPercentage: false)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Top Performers
+                      _buildSectionTitle(Icons.emoji_events, 'Top Performers (Hall of Fame)', Colors.orange.shade700),
+                      const SizedBox(height: 12),
+                      _buildTopPerformers(report['topPerformers'] as List<dynamic>? ?? []),
+                      const SizedBox(height: 24),
+                      
+                      // Attention Required
+                      _buildSectionTitle(Icons.warning_amber_rounded, 'Students Needing Attention', Colors.red.shade700),
+                      const SizedBox(height: 12),
+                      _buildAttentionList(report['needingAttention'] as List<dynamic>? ?? []),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              
+              // Info Box
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.description_outlined, color: Colors.green.shade800),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "Based on attendance records and test results entered for this institute.",
+                        style: TextStyle(color: Colors.green.shade900, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+  Widget _buildSectionTitle(IconData icon, String title, Color iconColor) {
+    return Row(
+      children: [
+        Icon(icon, color: iconColor, size: 22),
+        const SizedBox(width: 8),
+        Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)))),
+        const Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E6656))),
+      ],
+    );
+  }
+
+  Widget _buildMetricCard(String title, dynamic value, IconData icon, Color color, {required bool isPercentage}) {
+    final displayValue = value == null ? '0' : value.toString();
+    final suffix = isPercentage && displayValue != '0' ? '%' : '';
+    
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 12),
           Text(
-            value,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
-            textAlign: TextAlign.center,
+            '$displayValue$suffix',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF2E6656), fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF1F2E27), fontWeight: FontWeight.w600),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value == null ? 'No data' : 'Verified',
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopPerformers(List<dynamic> performers) {
+    if (performers.isEmpty) {
+      return const Card(
+        color: Colors.white,
+        child: Padding(padding: EdgeInsets.all(16), child: Text('No test data available for top performers.')),
+      );
+    }
+    
+    // Sort logic handled in backend, just layout 2-1-3 if 3 exist, otherwise linear.
+    // For mobile, a horizontal scroll or a row if 3 fit.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (performers.length > 1) _buildRankCard(performers[1], 2, Colors.grey.shade300, 140),
+          const SizedBox(width: 12),
+          if (performers.isNotEmpty) _buildRankCard(performers[0], 1, Colors.amber.shade400, 160),
+          const SizedBox(width: 12),
+          if (performers.length > 2) _buildRankCard(performers[2], 3, Colors.brown.shade300, 140),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankCard(Map<String, dynamic> student, int rank, Color badgeColor, double height) {
+    return Container(
+      width: 110,
+      height: height,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: rank == 1 ? const Color(0xFFFFFDF5) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: rank == 1 ? Colors.amber.shade200 : Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 4))],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              CircleAvatar(
+                radius: rank == 1 ? 28 : 24,
+                backgroundColor: badgeColor.withValues(alpha: 0.2),
+                child: Icon(Icons.person, color: badgeColor.withValues(alpha: 0.8), size: rank == 1 ? 36 : 28),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                student['fullName'] ?? '',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${student['avgMarksPct']}%',
+                style: const TextStyle(color: Color(0xFF2E6656), fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ],
+          ),
+          Positioned(
+            top: -20,
+            child: CircleAvatar(
+              radius: 12,
+              backgroundColor: badgeColor,
+              child: Text('$rank', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAttentionList(List<dynamic> students) {
+    if (students.isEmpty) {
+      return const Card(
+        color: Colors.white,
+        child: Padding(padding: EdgeInsets.all(16), child: Text('No students need immediate attention.')),
+      );
+    }
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5F5), // Light red bg
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade100),
+      ),
+      child: Column(
+        children: students.map((s) => _buildAttentionTile(s as Map<String, dynamic>)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildAttentionTile(Map<String, dynamic> student) {
+    final name = student['fullName'] ?? 'Unknown';
+    final initials = name.toString().split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join().toUpperCase();
+    final att = student['avgAttendance'];
+    final marks = student['avgMarksPct'];
+    
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.red.shade100,
+                child: Text(initials, style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1F2E27))),
+                    const SizedBox(height: 2),
+                    Text('${student['grade'] ?? ''} • Roll ${student['rollNo'] ?? 'N/A'}', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('Attendance', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                  Text(att == null ? 'N/A' : '$att%', style: TextStyle(color: att != null && att < 75 ? Colors.red : Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('Marks (Avg)', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                  Text(marks == null ? 'N/A' : '$marks%', style: TextStyle(color: marks != null && marks < 60 ? Colors.red : Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: Colors.red.shade50),
+      ],
     );
   }
 }

@@ -5,7 +5,10 @@
  * Used for: fee reminders, absentee alerts, and student doubt-solving.
  */
 export function buildWaUrl(phone: string | number, message: string): string {
-  const clean = String(phone).replace(/[^\d]/g, ''); // strip +, spaces, dashes
+  let clean = String(phone).replace(/[^\d]/g, ''); // strip +, spaces, dashes
+  if (clean.length === 10) {
+    clean = '91' + clean; // Auto-append India country code
+  }
   return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
 }
 

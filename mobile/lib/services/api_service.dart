@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
+import 'cache_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final apiServiceProvider = Provider((ref) => ApiService());
@@ -16,6 +17,14 @@ class ApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Wraps a [cachedGet] response — tells the caller whether data came
+/// from the local SQLite cache or a fresh network call.
+class CachedResponse {
+  final dynamic data;
+  final bool fromCache;
+  const CachedResponse({required this.data, required this.fromCache});
 }
 
 class ApiService {
@@ -38,6 +47,28 @@ class ApiService {
   Future<dynamic> patch(String endpoint, Map<String, dynamic> data) =>
       _request('PATCH', endpoint, data);
   Future<dynamic> delete(String endpoint) => _request('DELETE', endpoint);
+
+  /// Cache-first GET. Attempts a live network call and stores the result
+  /// in SQLite. If the call fails (offline / server error), falls back to
+  /// the last-cached value. Throws only when both network AND cache miss.
+  ///
+  /// [cacheKey] defaults to [endpoint] but can be overridden for endpoints
+  /// with query params (e.g. `/admin/fees?status=pending` → `admin_fees_pending`).
+  Future<CachedResponse> cachedGet(String endpoint, {String? cacheKey}) async {
+    final key = cacheKey ?? endpoint;
+    final cache = CacheService.instance;
+    try {
+      final fresh = await get(endpoint);
+      await cache.write(key, fresh);
+      return CachedResponse(data: fresh, fromCache: false);
+    } catch (_) {
+      final cached = await cache.read(key);
+      if (cached != null) {
+        return CachedResponse(data: cached, fromCache: true);
+      }
+      rethrow;
+    }
+  }
 
   Future<dynamic> _request(
     String method,

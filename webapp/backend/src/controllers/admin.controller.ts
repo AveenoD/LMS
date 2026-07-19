@@ -17,6 +17,9 @@ export const listTeachers = asyncHandler(async (req: Request, res: Response) =>
 export const createTeacher = asyncHandler(async (req: Request, res: Response) =>
   res.status(201).json(await svc.createTeacher(tenantId(req), userId(req), req.body))
 );
+export const updateTeacher = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.updateTeacher(tenantId(req), userId(req), Number(req.params.id), req.body))
+);
 export const deleteTeacher = asyncHandler(async (req: Request, res: Response) => {
   await svc.deleteTeacher(tenantId(req), userId(req), Number(req.params.id));
   res.json({ success: true });

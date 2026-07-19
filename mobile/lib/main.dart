@@ -5,8 +5,11 @@ import 'screens/auth/login_screen.dart';
 import 'providers/auth_provider.dart';
 import 'utils/constants.dart';
 import 'utils/role_router.dart';
+import 'services/cache_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await CacheService.instance.init();
   runApp(
     // Wrap the entire app in a ProviderScope so Riverpod can manage state
     const ProviderScope(
