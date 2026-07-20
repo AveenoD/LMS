@@ -235,6 +235,14 @@ Future<Map<String, dynamic>> createSubject(ApiService api, {required String name
   return await api.post('/admin/subjects', {'name': name}) as Map<String, dynamic>;
 }
 
+Future<void> updateSubject(ApiService api, int id, {required String name}) async {
+  await api.put('/admin/subjects/$id', {'name': name});
+}
+
+Future<void> deleteSubject(ApiService api, int id) async {
+  await api.delete('/admin/subjects/$id');
+}
+
 Future<Map<String, dynamic>> createTimetableEntry(ApiService api, {
   required int batchId,
   required int teacherId,

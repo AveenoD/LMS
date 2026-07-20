@@ -163,6 +163,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               subEnded = daysLeft < 0 || status == 'past_due' || status == 'expired';
                             }
 
+                            if (!trialEnded && !subEnded && daysLeft > 7) {
+                              return const SizedBox.shrink();
+                            }
+
                             return Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(

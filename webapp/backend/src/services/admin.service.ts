@@ -562,6 +562,27 @@ export async function createSubject(
   return rows[0];
 }
 
+export async function updateSubject(
+  tenantId: number,
+  subjectId: number,
+  { name }: { name: string }
+): Promise<{ id: number; name: string }> {
+  const { rows } = await query<{ id: number; name: string }>(
+    `UPDATE subjects SET name = $1 WHERE id = $2 AND tenant_id = $3 RETURNING id, name`,
+    [name, subjectId, tenantId]
+  );
+  if (rows.length === 0) throw new Error('Subject not found or unauthorized');
+  return rows[0];
+}
+
+export async function deleteSubject(tenantId: number, subjectId: number): Promise<void> {
+  const { rowCount } = await query(
+    `DELETE FROM subjects WHERE id = $1 AND tenant_id = $2`,
+    [subjectId, tenantId]
+  );
+  if (rowCount === 0) throw new Error('Subject not found or unauthorized');
+}
+
 /* ─────────────── Timetable (teacher allocation) ─────────────── */
 export interface TimetableItem {
   id: number;
@@ -936,7 +957,7 @@ export async function performanceReport(
   const topPerformers = parsedStudents
     .filter(st => st.avgMarksPct !== null)
     .sort((a, b) => b.avgMarksPct! - a.avgMarksPct!)
-    .slice(0, 3);
+    .slice(0, 20);
 
   const needingAttention = parsedStudents
     .filter(st => {
@@ -949,7 +970,7 @@ export async function performanceReport(
       const bScore = (b.avgMarksPct ?? 100) + (b.avgAttendance ?? 100);
       return aScore - bScore; // Lowest first
     })
-    .slice(0, 5); // Limit to 5 for UI
+    .slice(0, 20); // Limit to 20 for View All UI
 
   return {
     avgAttendance: stats[0].avgAttendance,

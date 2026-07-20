@@ -17,6 +17,46 @@ class SubjectsScreen extends ConsumerWidget {
     );
   }
 
+  void _showEditSubjectBottomSheet(BuildContext context, WidgetRef ref, Map<String, dynamic> subject) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddSubjectBottomSheet(subject: subject),
+    );
+  }
+
+  Future<void> _deleteSubject(BuildContext context, WidgetRef ref, Map<String, dynamic> subject) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Subject'),
+        content: Text('Are you sure you want to delete ${subject['name']}? This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await deleteSubject(ref.read(apiServiceProvider), subject['id']);
+      ref.invalidate(subjectsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subject deleted successfully')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subjectsAsync = ref.watch(subjectsProvider);
@@ -55,6 +95,37 @@ class SubjectsScreen extends ConsumerWidget {
                       child: Icon(Icons.menu_book, color: Colors.blue.shade700),
                     ),
                     title: Text(subject['name'] ?? 'Unknown Subject', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _showEditSubjectBottomSheet(context, ref, subject);
+                        } else if (value == 'delete') {
+                          _deleteSubject(context, ref, subject);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 20, color: Colors.blue),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -74,7 +145,9 @@ class SubjectsScreen extends ConsumerWidget {
 }
 
 class _AddSubjectBottomSheet extends ConsumerStatefulWidget {
-  const _AddSubjectBottomSheet();
+  final Map<String, dynamic>? subject;
+  
+  const _AddSubjectBottomSheet({this.subject});
 
   @override
   ConsumerState<_AddSubjectBottomSheet> createState() => _AddSubjectBottomSheetState();
@@ -84,6 +157,14 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
   final _name = TextEditingController();
   bool _saving = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.subject != null) {
+      _name.text = widget.subject!['name'] ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -101,7 +182,11 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
       _error = null;
     });
     try {
-      await createSubject(ref.read(apiServiceProvider), name: _name.text.trim());
+      if (widget.subject != null) {
+        await updateSubject(ref.read(apiServiceProvider), widget.subject!['id'], name: _name.text.trim());
+      } else {
+        await createSubject(ref.read(apiServiceProvider), name: _name.text.trim());
+      }
       ref.invalidate(subjectsProvider);
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -131,9 +216,9 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Add New Subject',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                Text(
+                  widget.subject != null ? 'Edit Subject' : 'Add New Subject',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.grey),
@@ -168,8 +253,8 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
                 : SizedBox(
                     height: 52,
                     child: CustomButton(
-                      text: 'Create Subject',
-                      onPressed: _submit,
+                      text: widget.subject != null ? 'Update Subject' : 'Save Subject',
+                      onPressed: _saving ? () {} : () => _submit(),
                     ),
                   ),
           ],

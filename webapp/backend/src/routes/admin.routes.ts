@@ -70,6 +70,8 @@ router.patch('/students/:id/suspend', subscriptionGuard, validate(idParamSchema,
 
 router.post('/batches', subscriptionGuard, validate(createBatchSchema), ctrl.createBatch);
 router.post('/subjects', subscriptionGuard, validate(createSubjectSchema), ctrl.createSubject);
+router.put('/subjects/:id', subscriptionGuard, validate(createSubjectSchema), ctrl.updateSubject);
+router.delete('/subjects/:id', subscriptionGuard, ctrl.deleteSubject);
 
 router.post('/timetable', subscriptionGuard, validate(createTimetableSchema), ctrl.createTimetable);
 

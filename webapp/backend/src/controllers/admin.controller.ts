@@ -61,6 +61,13 @@ export const listSubjects = asyncHandler(async (req: Request, res: Response) =>
 export const createSubject = asyncHandler(async (req: Request, res: Response) =>
   res.status(201).json(await svc.createSubject(tenantId(req), req.body))
 );
+export const updateSubject = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.updateSubject(tenantId(req), Number(req.params.id), req.body))
+);
+export const deleteSubject = asyncHandler(async (req: Request, res: Response) => {
+  await svc.deleteSubject(tenantId(req), Number(req.params.id));
+  res.status(204).send();
+});
 
 /* Timetable */
 export const listTimetable = asyncHandler(async (req: Request, res: Response) =>

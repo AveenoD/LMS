@@ -33,14 +33,33 @@ class MoreMenuScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1F2E27)),
-            currentAccountPicture: const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.account_circle, size: 40, color: Colors.grey),
+          Container(
+            width: double.infinity,
+            color: const Color(0xFF1F2E27),
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  radius: 36,
+                  child: Icon(Icons.account_circle, size: 50, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  authState.fullName ?? 'User',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  authState.instituteName ?? authState.userRole ?? '',
+                  style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            accountName: Text(authState.fullName ?? 'User'),
-            accountEmail: Text(authState.instituteName ?? authState.userRole ?? ''),
           ),
           for (final item in items)
             ListTile(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/management_providers.dart';
+import 'ranked_students_screen.dart';
 
 class _SelectedBatchNotifier extends Notifier<int?> {
   @override
@@ -99,15 +100,46 @@ class ReportsScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
                       
                       // Top Performers
-                      _buildSectionTitle(Icons.emoji_events, 'Top Performers (Hall of Fame)', Colors.orange.shade700),
+                      _buildSectionTitle(
+                        Icons.emoji_events, 
+                        'Top Performers (Hall of Fame)', 
+                        Colors.orange.shade700,
+                        onTapViewAll: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RankedStudentsScreen(
+                                title: 'Top Performers (Hall of Fame)',
+                                students: report['topPerformers'] as List<dynamic>? ?? [],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(height: 12),
-                      _buildTopPerformers(report['topPerformers'] as List<dynamic>? ?? []),
+                      _buildTopPerformers((report['topPerformers'] as List<dynamic>? ?? []).take(3).toList()),
                       const SizedBox(height: 24),
                       
                       // Attention Required
-                      _buildSectionTitle(Icons.warning_amber_rounded, 'Students Needing Attention', Colors.red.shade700),
+                      _buildSectionTitle(
+                        Icons.warning_amber_rounded, 
+                        'Students Needing Attention', 
+                        Colors.red.shade700,
+                        onTapViewAll: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RankedStudentsScreen(
+                                title: 'Students Needing Attention',
+                                students: report['needingAttention'] as List<dynamic>? ?? [],
+                                isAttention: true,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(height: 12),
-                      _buildAttentionList(report['needingAttention'] as List<dynamic>? ?? []),
+                      _buildAttentionList((report['needingAttention'] as List<dynamic>? ?? []).take(3).toList()),
                     ],
                   );
                 },
@@ -142,13 +174,17 @@ class ReportsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(IconData icon, String title, Color iconColor) {
+  Widget _buildSectionTitle(IconData icon, String title, Color iconColor, {VoidCallback? onTapViewAll}) {
     return Row(
       children: [
         Icon(icon, color: iconColor, size: 22),
         const SizedBox(width: 8),
         Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)))),
-        const Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E6656))),
+        if (onTapViewAll != null)
+          GestureDetector(
+            onTap: onTapViewAll,
+            child: const Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E6656))),
+          ),
       ],
     );
   }
