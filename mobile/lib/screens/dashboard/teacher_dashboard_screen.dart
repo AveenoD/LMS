@@ -1,0 +1,64 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../theme/app_colors.dart';
+import '../../providers/auth_provider.dart';
+
+import '../notifications/teacher_notifications_screen.dart';
+
+// Import our new sub-components
+import '../../widgets/teacher/teacher_welcome_header.dart';
+import '../../widgets/teacher/teacher_quick_actions.dart';
+import '../../widgets/teacher/teacher_schedule_list.dart';
+import '../../widgets/teacher/teacher_batch_list.dart';
+import '../../widgets/teacher/teacher_pending_tasks.dart';
+
+class TeacherDashboardScreen extends ConsumerWidget {
+  const TeacherDashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final teacherName = authState.fullName?.split(' ')[0] ?? 'Teacher';
+    final instituteName = authState.instituteName ?? 'EdTech OS';
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: Text(instituteName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: AppColors.primaryDark,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherNotificationsScreen()));
+            },
+            icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TeacherWelcomeHeader(teacherName: teacherName, classesToday: 3),
+              const SizedBox(height: 8),
+              
+              const TeacherQuickActions(),
+              const SizedBox(height: 32),
+              
+              const TeacherScheduleList(),
+              const SizedBox(height: 32),
+              
+              const TeacherBatchList(),
+              const SizedBox(height: 32),
+              
+              const TeacherPendingTasks(),
+              const SizedBox(height: 48), // Bottom padding
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

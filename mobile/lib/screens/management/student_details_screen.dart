@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/management_providers.dart' as mgmt;
+import 'student_report_screen.dart';
 import '../../services/api_service.dart';
 import '../../widgets/record_payment_bottom_sheet.dart';
 import 'students_screen.dart';
@@ -67,6 +68,7 @@ class _StudentDetailsScreenState extends ConsumerState<StudentDetailsScreen>
     final tabBar = TabBar(
       controller: _tabController,
       isScrollable: true,
+      tabAlignment: TabAlignment.start,
       labelColor: AppColors.primary,
       unselectedLabelColor: Colors.grey,
       indicatorColor: AppColors.primary,
@@ -297,15 +299,19 @@ class _StudentDetailsScreenState extends ConsumerState<StudentDetailsScreen>
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              _buildActionIcon(Icons.fact_check_outlined, 'Mark Attendance'),
-              const SizedBox(width: 8),
+
               _buildActionIcon(
                 Icons.account_balance_wallet_outlined,
                 'Add Fees',
                 onTap: () => showRecordPaymentBottomSheet(context, ref, prefillStudentId: studentId),
               ),
               const SizedBox(width: 8),
-              _buildActionIcon(Icons.bar_chart, 'View Reports'),
+              _buildActionIcon(Icons.bar_chart, 'View Reports', onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => StudentReportScreen(student: widget.student)),
+                );
+              }),
               const SizedBox(width: 8),
               Builder(
                 builder: (context) {

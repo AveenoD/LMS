@@ -31,6 +31,28 @@ export async function todaySchedule(
   return { day: dow, count: rows.length, classes: rows };
 }
 
+export interface MyBatch {
+  id: number;
+  name: string;
+  studentCount: number;
+  progress: number; // Placeholder for now
+}
+
+export async function myBatches(tenantId: number, teacherId: number): Promise<MyBatch[]> {
+  // Find distinct batches assigned to this teacher in timetable
+  const { rows } = await query<MyBatch>(
+    `SELECT b.id, b.name, 
+            (SELECT COUNT(*) FROM batch_enrollments be WHERE be.batch_id = b.id) AS "studentCount",
+            0 AS progress
+       FROM batches b
+      WHERE b.tenant_id = $1
+        AND b.id IN (SELECT DISTINCT batch_id FROM timetable WHERE tenant_id = $1 AND teacher_id = $2)
+      ORDER BY b.name`,
+    [tenantId, teacherId]
+  );
+  return rows;
+}
+
 /** Students of a batch (for attendance). Verifies batch belongs to tenant. */
 export interface BatchStudent {
   studentId: number;

@@ -7,6 +7,10 @@ export const todaySchedule = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.todaySchedule(tenantId(req), userId(req)))
 );
 
+export const myBatches = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.myBatches(tenantId(req), userId(req)))
+);
+
 export const batchStudents = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.batchStudents(tenantId(req), Number(req.params.batchId)))
 );

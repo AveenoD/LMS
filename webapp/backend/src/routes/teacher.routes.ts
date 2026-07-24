@@ -17,6 +17,7 @@ const router = Router();
 router.use(authMiddleware, roleGuard('teacher'));
 
 router.get('/schedule/today', ctrl.todaySchedule);
+router.get('/batches', ctrl.myBatches);
 router.get('/batches/:batchId/students', validate(batchIdParamSchema, 'params'), ctrl.batchStudents);
 
 // Attendance — all plans (present/absent/late saved for everyone)

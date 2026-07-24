@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/dashboard/coaching_admin_shell.dart';
+import '../screens/dashboard/teacher_shell.dart';
 import '../screens/dashboard/unsupported_role_screen.dart';
 import '../screens/superadmin/superadmin_shell.dart';
 
@@ -12,6 +13,8 @@ Widget homeScreenForRole(String? role) {
       return const SuperAdminShell();
     case 'coaching_admin':
       return const CoachingAdminShell();
+    case 'teacher':
+      return const TeacherShell();
     default:
       return const UnsupportedRoleScreen();
   }
