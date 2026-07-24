@@ -25,3 +25,18 @@ final batchStudentsProvider = FutureProvider.family<List<dynamic>, int>((ref, ba
   final api = ref.read(apiServiceProvider);
   return await api.get('/teacher/batches/$batchId/students');
 });
+
+final testsProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/tests');
+});
+
+final testQuestionsProvider = FutureProvider.family<List<dynamic>, int>((ref, testId) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/tests/$testId/questions');
+});
+
+final teacherContentProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/content');
+});

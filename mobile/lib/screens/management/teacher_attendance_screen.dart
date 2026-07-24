@@ -9,13 +9,13 @@ import '../../widgets/custom_button.dart';
 class TeacherAttendanceScreen extends ConsumerStatefulWidget {
   final int batchId;
   final String batchName;
-  final int timetableId;
+  final int? timetableId;
 
   const TeacherAttendanceScreen({
     super.key,
     required this.batchId,
     required this.batchName,
-    required this.timetableId,
+    this.timetableId,
   });
 
   @override

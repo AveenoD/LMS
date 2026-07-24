@@ -14,6 +14,7 @@ class AuthState {
   final String? userRole;
   final String? tenantSlug;
   final String? fullName;
+  final String? email;
   final String? instituteName;
   final String? primaryColor;
   final String? logoUrl;
@@ -25,6 +26,7 @@ class AuthState {
     this.userRole,
     this.tenantSlug,
     this.fullName,
+    this.email,
     this.instituteName,
     this.primaryColor,
     this.logoUrl,
@@ -37,6 +39,7 @@ class AuthState {
     String? userRole,
     String? tenantSlug,
     String? fullName,
+    String? email,
     String? instituteName,
     String? primaryColor,
     String? logoUrl,
@@ -48,6 +51,7 @@ class AuthState {
       userRole: userRole ?? this.userRole,
       tenantSlug: tenantSlug ?? this.tenantSlug,
       fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
       instituteName: instituteName ?? this.instituteName,
       primaryColor: primaryColor ?? this.primaryColor,
       logoUrl: logoUrl ?? this.logoUrl,
@@ -75,6 +79,7 @@ class AuthNotifier extends Notifier<AuthState> {
       userRole: prefs.getString('user_role'),
       tenantSlug: prefs.getString('tenant_slug'),
       fullName: prefs.getString('full_name'),
+      email: prefs.getString('email'),
       instituteName: prefs.getString('institute_name'),
       primaryColor: prefs.getString('primary_color'),
       logoUrl: prefs.getString('logo_url'),
@@ -129,11 +134,14 @@ class AuthNotifier extends Notifier<AuthState> {
 
     String? userRole;
     String? fullName;
+    String? email;
     if (user is Map) {
       userRole = user['role']?.toString();
       fullName = user['fullName']?.toString();
+      email = user['email']?.toString();
       if (userRole != null) await prefs.setString('user_role', userRole);
       if (fullName != null) await prefs.setString('full_name', fullName);
+      if (email != null) await prefs.setString('email', email);
     }
 
     String? tenantSlug;
@@ -153,8 +161,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
     state = state.copyWith(
       userRole: userRole,
-      tenantSlug: tenantSlug,
       fullName: fullName,
+      email: email,
+      tenantSlug: tenantSlug,
       instituteName: instituteName,
       primaryColor: primaryColor,
       logoUrl: logoUrl,

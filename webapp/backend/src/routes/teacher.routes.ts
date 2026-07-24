@@ -11,6 +11,10 @@ import {
   batchIdParamSchema,
   studentIdParamSchema,
   doubtLinkQuerySchema,
+  createTestSchema,
+  createQuestionSchema,
+  testIdParamSchema,
+  questionIdParamSchema,
 } from '../validators/teacher.validators.js';
 
 const router = Router();
@@ -19,6 +23,12 @@ router.use(authMiddleware, roleGuard('teacher'));
 router.get('/schedule/today', ctrl.todaySchedule);
 router.get('/batches', ctrl.myBatches);
 router.get('/batches/:batchId/students', validate(batchIdParamSchema, 'params'), ctrl.batchStudents);
+
+// Cloudinary Upload Signature
+import { generateSignature } from '../services/cloudinary.service.js';
+router.get('/upload-signature', (req, res) => {
+  res.json(generateSignature('edtech_os'));
+});
 
 // Attendance — all plans (present/absent/late saved for everyone)
 // WhatsApp absent-reminder links are filtered inside the service based on plan
@@ -44,6 +54,16 @@ router.get(
   validate(doubtLinkQuerySchema, 'query'),
   ctrl.doubtLink
 );
+
+// --- Tests & Quizzes ---
+router.get('/tests', ctrl.listTests);
+router.post('/tests', validate(createTestSchema), ctrl.createTest);
+
+router.get('/tests/:testId/questions', validate(testIdParamSchema, 'params'), ctrl.getTestQuestions);
+router.post('/tests/:testId/questions', validate(testIdParamSchema, 'params'), validate(createQuestionSchema), ctrl.addQuestion);
+
+router.put('/questions/:questionId', validate(questionIdParamSchema, 'params'), validate(createQuestionSchema), ctrl.updateQuestion);
+router.delete('/questions/:questionId', validate(questionIdParamSchema, 'params'), ctrl.deleteQuestion);
 
 export default router;
 

@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 
+import '../../screens/management/teacher_mark_attendance_select_batch.dart';
+import '../../screens/management/teacher_upload_material_screen.dart';
+import '../../screens/management/teacher_manage_tests_screen.dart';
+import '../../screens/management/teacher_student_reports_screen.dart';
+
 class TeacherQuickActions extends StatelessWidget {
   const TeacherQuickActions({super.key});
 
-  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color, Widget destination) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => destination));
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -55,31 +62,35 @@ class TeacherQuickActions extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 0.85,
+            childAspectRatio: 1.1,
             children: [
               _buildActionCard(
+                context,
                 'Mark\nAttendance', 
-                Icons.fact_check_outlined, 
-                Colors.blue, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(title: const Text('Mark Attendance')), body: const Center(child: Text('Coming Soon')))))
+                Icons.how_to_reg, 
+                AppColors.primary,
+                const TeacherMarkAttendanceSelectBatchScreen(),
               ),
               _buildActionCard(
+                context,
                 'Upload\nMaterial', 
-                Icons.cloud_upload_outlined, 
-                Colors.purple, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(title: const Text('Upload Material')), body: const Center(child: Text('Coming Soon')))))
+                Icons.upload_file, 
+                Colors.orange,
+                const TeacherUploadMaterialScreen(),
               ),
               _buildActionCard(
+                context,
                 'Manage\nTests', 
-                Icons.assignment_outlined, 
-                Colors.orange, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(title: const Text('Manage Tests')), body: const Center(child: Text('Coming Soon')))))
+                Icons.quiz, 
+                Colors.purple,
+                const TeacherManageTestsScreen(),
               ),
               _buildActionCard(
+                context,
                 'Student\nReports', 
-                Icons.bar_chart_outlined, 
-                AppColors.success, 
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(title: const Text('Student Reports')), body: const Center(child: Text('Coming Soon')))))
+                Icons.bar_chart, 
+                Colors.green,
+                const TeacherStudentReportsScreen(),
               ),
             ],
           ),

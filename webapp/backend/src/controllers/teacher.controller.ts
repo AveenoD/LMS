@@ -35,3 +35,29 @@ export const doubtLink = asyncHandler(async (req: Request, res: Response) => {
   const text = typeof req.query.text === 'string' ? req.query.text : undefined;
   res.json(await svc.doubtLink(tenantId(req), userId(req), Number(req.params.studentId), text));
 });
+
+import * as testSvc from '../services/test.service.js';
+
+export const createTest = asyncHandler(async (req: Request, res: Response) =>
+  res.status(201).json(await testSvc.createTest(tenantId(req), req.body))
+);
+
+export const listTests = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await testSvc.listTests(tenantId(req)))
+);
+
+export const addQuestion = asyncHandler(async (req: Request, res: Response) =>
+  res.status(201).json(await testSvc.addQuestion(tenantId(req), Number(req.params.testId), req.body))
+);
+
+export const updateQuestion = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await testSvc.updateQuestion(tenantId(req), Number(req.params.questionId), req.body))
+);
+
+export const deleteQuestion = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await testSvc.deleteQuestion(tenantId(req), Number(req.params.questionId)))
+);
+
+export const getTestQuestions = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await testSvc.getTestQuestions(tenantId(req), Number(req.params.testId)))
+);

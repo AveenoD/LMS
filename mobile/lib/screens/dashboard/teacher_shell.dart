@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_colors.dart';
 import 'teacher_dashboard_screen.dart';
 import '../../providers/teacher_providers.dart';
+import 'teacher_schedule_screen.dart';
+import 'teacher_batches_screen.dart';
+import 'teacher_profile_screen.dart';
 
 class TeacherShell extends ConsumerStatefulWidget {
   const TeacherShell({super.key});
@@ -14,9 +17,9 @@ class TeacherShell extends ConsumerStatefulWidget {
 class _TeacherShellState extends ConsumerState<TeacherShell> {
   final List<Widget> _screens = [
     const TeacherDashboardScreen(),
-    const Center(child: Text('Timetable Screen (Coming Soon)')),
-    const Center(child: Text('My Batches Screen (Coming Soon)')),
-    const Center(child: Text('Profile Screen (Coming Soon)')),
+    const TeacherScheduleScreen(),
+    const TeacherBatchesScreen(),
+    const TeacherProfileScreen(),
   ];
 
   @override

@@ -18,7 +18,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final teacherName = authState.fullName?.split(' ')[0] ?? 'Teacher';
+    final fullName = authState.fullName ?? 'Teacher';
     final instituteName = authState.instituteName ?? 'EdTech OS';
 
     return Scaffold(
@@ -41,8 +41,8 @@ class TeacherDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TeacherWelcomeHeader(teacherName: teacherName, classesToday: 3),
-              const SizedBox(height: 8),
+              TeacherWelcomeHeader(teacherName: fullName, classesToday: 3),
+              const SizedBox(height: 24),
               
               const TeacherQuickActions(),
               const SizedBox(height: 32),

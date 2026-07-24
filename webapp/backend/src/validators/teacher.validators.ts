@@ -39,3 +39,40 @@ export const createLiveClassSchema = z
 export const batchIdParamSchema = z.object({ batchId: z.coerce.number().int().positive() }).strict();
 export const studentIdParamSchema = z.object({ studentId: z.coerce.number().int().positive() }).strict();
 export const doubtLinkQuerySchema = z.object({ text: z.string().trim().max(500).optional() }).strict();
+
+export const createTestSchema = z
+  .object({
+    title: z.string().trim().min(1).max(150),
+    batchId: z.coerce.number().int().positive().optional(),
+    subjectId: z.coerce.number().int().positive().optional(),
+    maxMarks: z.coerce.number().int().nonnegative().optional().default(0),
+    testDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD').optional(),
+    durationMinutes: z.coerce.number().int().positive().optional(),
+    isOnline: z.boolean().default(false),
+  })
+  .strict();
+
+export const optionSchema = z
+  .object({
+    id: z.coerce.number().int().positive().optional(), // Used for updates
+    optionText: z.string().trim().optional(),
+    imageUrl: z.string().url().optional(),
+    isCorrect: z.boolean().default(false),
+  })
+  .strict()
+  .refine(data => data.optionText || data.imageUrl, {
+    message: 'Either optionText or imageUrl must be provided',
+    path: ['optionText'],
+  });
+
+export const createQuestionSchema = z
+  .object({
+    questionText: z.string().trim().min(1),
+    imageUrl: z.string().url().optional(),
+    marks: z.coerce.number().int().nonnegative().default(1),
+    options: z.array(optionSchema).min(2).max(10), // A question should have 2-10 options
+  })
+  .strict();
+
+export const testIdParamSchema = z.object({ testId: z.coerce.number().int().positive() }).strict();
+export const questionIdParamSchema = z.object({ questionId: z.coerce.number().int().positive() }).strict();

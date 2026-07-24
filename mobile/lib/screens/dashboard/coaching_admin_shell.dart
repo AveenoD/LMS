@@ -12,6 +12,7 @@ import '../settings/branding_screen.dart';
 import '../notifications/admin_notifications_screen.dart';
 import '../notifications/broadcast_students_screen.dart';
 import '../settings/subscription_screen.dart';
+import '../settings/support_screens.dart';
 import '../../providers/management_providers.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/more_menu_screen.dart';
@@ -51,6 +52,16 @@ class CoachingAdminShell extends StatelessWidget {
                 icon: Icons.payment,
                 label: 'Subscription & Billing',
                 destination: SubscriptionScreen(),
+              ),
+              MoreMenuItem(
+                icon: Icons.help,
+                label: 'Help & FAQs',
+                destination: HelpScreen(),
+              ),
+              MoreMenuItem(
+                icon: Icons.description,
+                label: 'Terms & Privacy Policy',
+                destination: PrivacyPolicyScreen(),
               ),
             ],
           ),

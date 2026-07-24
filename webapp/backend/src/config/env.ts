@@ -86,6 +86,11 @@ export interface AppEnv {
     email: EmailConfig;
     telegram: TelegramConfig;
   };
+  cloudinary: {
+    cloudName?: string;
+    apiKey?: string;
+    apiSecret?: string;
+  };
 }
 
 const nodeEnv = optional('NODE_ENV', 'development');
@@ -143,10 +148,15 @@ export const env: AppEnv = {
       from: optional('NOTIFY_EMAIL_FROM', 'EdTech OS <no-reply@edtechos.com>'),
     },
     telegram: {
-      enabled: bool('NOTIFY_TELEGRAM_ENABLED', false),
+      enabled: bool('TELEGRAM_NOTIFY_ENABLED', false),
       botToken: optional('TELEGRAM_BOT_TOKEN', ''),
       chatId: optional('TELEGRAM_CHAT_ID', ''),
     },
+  },
+  cloudinary: {
+    cloudName: process.env.CLOUD_NAME,
+    apiKey: process.env.API_KEY,
+    apiSecret: process.env.API_SECRET,
   },
 };
 
