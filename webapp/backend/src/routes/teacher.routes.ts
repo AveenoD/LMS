@@ -10,6 +10,7 @@ import {
   createChapterSchema,
   createLiveClassSchema,
   batchIdParamSchema,
+  batchStudentsQuerySchema,
   studentIdParamSchema,
   doubtLinkQuerySchema,
   createTestSchema,
@@ -23,7 +24,12 @@ router.use(authMiddleware, roleGuard('teacher'));
 
 router.get('/schedule/today', ctrl.todaySchedule);
 router.get('/batches', ctrl.myBatches);
-router.get('/batches/:batchId/students', validate(batchIdParamSchema, 'params'), ctrl.batchStudents);
+router.get(
+  '/batches/:batchId/students',
+  validate(batchIdParamSchema, 'params'),
+  validate(batchStudentsQuerySchema, 'query'),
+  ctrl.batchStudents
+);
 
 // Cloudinary Upload Signature
 import { generateSignature } from '../services/cloudinary.service.js';

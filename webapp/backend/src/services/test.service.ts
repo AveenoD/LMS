@@ -1,5 +1,6 @@
 import { query, withTransaction } from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
+import type { PoolClient } from 'pg';
 
 export interface CreateTestInput {
   title: string;
@@ -12,6 +13,15 @@ export interface CreateTestInput {
 }
 
 export async function createTest(tenantId: number, data: CreateTestInput) {
+  if (data.batchId) {
+    const b = await query('SELECT 1 FROM batches WHERE id = $1 AND tenant_id = $2', [data.batchId, tenantId]);
+    if (!b.rowCount) throw ApiError.badRequest('INVALID_BATCH');
+  }
+  if (data.subjectId) {
+    const s = await query('SELECT 1 FROM subjects WHERE id = $1 AND tenant_id = $2', [data.subjectId, tenantId]);
+    if (!s.rowCount) throw ApiError.badRequest('INVALID_SUBJECT');
+  }
+
   const { rows } = await query(
     `INSERT INTO tests (tenant_id, title, batch_id, subject_id, max_marks, test_date, duration_minutes, is_online)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
@@ -34,8 +44,8 @@ export async function listTests(tenantId: number) {
     `SELECT t.*, b.name as batch_name, s.name as subject_name,
             (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) as question_count
      FROM tests t
-     LEFT JOIN batches b ON b.id = t.batch_id
-     LEFT JOIN subjects s ON s.id = t.subject_id
+     LEFT JOIN batches b ON b.id = t.batch_id AND b.tenant_id = t.tenant_id
+     LEFT JOIN subjects s ON s.id = t.subject_id AND s.tenant_id = t.tenant_id
      WHERE t.tenant_id = $1
      ORDER BY t.id DESC`,
     [tenantId]
@@ -80,7 +90,7 @@ export async function addQuestion(tenantId: number, testId: number, data: Create
       );
     }
 
-    return getQuestionWithOptions(tenantId, questionId);
+    return getQuestionWithOptions(tenantId, questionId, client);
   });
 }
 
@@ -126,7 +136,7 @@ export async function updateQuestion(tenantId: number, questionId: number, data:
       await client.query('DELETE FROM options WHERE id = $1 AND tenant_id = $2', [idToDelete, tenantId]);
     }
 
-    return getQuestionWithOptions(tenantId, questionId);
+    return getQuestionWithOptions(tenantId, questionId, client);
   });
 }
 
@@ -161,15 +171,21 @@ export async function getTestQuestions(tenantId: number, testId: number) {
   }));
 }
 
-export async function getQuestionWithOptions(tenantId: number, questionId: number) {
-  const { rows: qRows } = await query(
+/**
+ * `client` is required whenever this is called from inside an open transaction
+ * (addQuestion/updateQuestion just wrote via that same connection) — reading
+ * back through the shared pool instead would run on a different connection
+ * and, under READ COMMITTED, not see the as-yet-uncommitted write.
+ */
+export async function getQuestionWithOptions(tenantId: number, questionId: number, client: PoolClient) {
+  const { rows: qRows } = await client.query(
     `SELECT id, test_id as "testId", question_text as "questionText", image_url as "imageUrl", marks
      FROM questions WHERE id = $1 AND tenant_id = $2`,
     [questionId, tenantId]
   );
   if (!qRows.length) throw ApiError.notFound('QUESTION_NOT_FOUND');
 
-  const { rows: opts } = await query(
+  const { rows: opts } = await client.query(
     `SELECT id, option_text as "optionText", image_url as "imageUrl", is_correct as "isCorrect"
      FROM options WHERE question_id = $1 AND tenant_id = $2 ORDER BY id ASC`,
     [questionId, tenantId]
