@@ -52,17 +52,20 @@ class TeacherScheduleList extends ConsumerWidget {
                   // Mocking isLive for the demo based on index for now, or just setting all to false unless time matches.
                   // Real implementation would parse startTime/endTime and compare with DateTime.now()
                   final isLive = classes.indexOf(c) == 0; // Just mock the first one as live for demo
+                  final isAttendanceMarked = c['isAttendanceMarked'] ?? false;
                   
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: _buildScheduleCard(
                       context,
+                      ref: ref,
                       time: '${c['startTime']} - ${c['endTime']}',
                       batchName: c['batch'] ?? 'Unknown Batch',
                       subject: c['subject'] ?? 'General',
                       isLive: isLive,
                       batchId: c['batchId'],
                       timetableId: c['timetableId'],
+                      isAttendanceMarked: isAttendanceMarked,
                     ),
                   );
                 }).toList(),
@@ -76,12 +79,14 @@ class TeacherScheduleList extends ConsumerWidget {
 
   Widget _buildScheduleCard(
     BuildContext context, {
+    required WidgetRef ref,
     required String time,
     required String batchName,
     required String subject,
     required bool isLive,
     required int batchId,
     required int timetableId,
+    required bool isAttendanceMarked,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -142,8 +147,9 @@ class TeacherScheduleList extends ConsumerWidget {
                     width: double.infinity,
                     height: 48,
                     child: CustomButton(
-                      text: 'Mark Attendance',
-                      onPressed: () {
+                      text: isAttendanceMarked ? 'Attendance Marked' : 'Mark Attendance',
+                      backgroundColor: isAttendanceMarked ? AppColors.success : null,
+                      onPressed: isAttendanceMarked ? () {} : () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -153,7 +159,10 @@ class TeacherScheduleList extends ConsumerWidget {
                               timetableId: timetableId,
                             ),
                           ),
-                        );
+                        ).then((_) {
+                          // Refresh schedule after returning
+                          ref.invalidate(todayScheduleProvider);
+                        });
                       },
                     ),
                   ),

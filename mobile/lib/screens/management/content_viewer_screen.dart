@@ -69,8 +69,13 @@ class _ContentViewerScreenState extends ConsumerState<ContentViewerScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          YoutubePlayer(
-            controller: _ytController!,
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(12),
+            ),
+            child: YoutubePlayer(
+              controller: _ytController!,
+            ),
           ),
           const SizedBox(height: 16),
           Padding(

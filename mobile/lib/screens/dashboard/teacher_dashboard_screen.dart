@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/teacher_providers.dart';
 
 import '../notifications/teacher_notifications_screen.dart';
 
@@ -20,6 +21,15 @@ class TeacherDashboardScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final fullName = authState.fullName ?? 'Teacher';
     final instituteName = authState.instituteName ?? 'EdTech OS';
+    
+    final scheduleAsync = ref.watch(todayScheduleProvider);
+    final classesToday = scheduleAsync.maybeWhen(
+      data: (data) {
+        final classes = List<Map<String, dynamic>>.from(data['classes'] ?? []);
+        return classes.length;
+      },
+      orElse: () => 0,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,7 +51,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TeacherWelcomeHeader(teacherName: fullName, classesToday: 3),
+              TeacherWelcomeHeader(teacherName: fullName, classesToday: classesToday),
               const SizedBox(height: 24),
               
               const TeacherQuickActions(),

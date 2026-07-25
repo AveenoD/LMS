@@ -50,6 +50,7 @@ dependencies:
   youtube_player_flutter: ^10.0.1
   syncfusion_flutter_pdfviewer: ^33.2.13
   youtube_player_iframe: ^6.0.2
+  device_info_plus: ^12.4.0
 
 dependency_overrides:
   flutter_plugin_android_lifecycle: 2.0.22

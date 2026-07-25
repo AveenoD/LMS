@@ -2,7 +2,6 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import YAML from 'yaml';
@@ -13,6 +12,7 @@ import logger from './utils/logger.js';
 import { healthCheck } from './config/db.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import { scheduleBillingJob } from './jobs/billing.job.js';
 
 // Load OpenAPI spec (works from both tsx dev mode and compiled dist/)
@@ -48,7 +48,8 @@ app.use(
   })
 );
 app.use(express.json({ limit: '1mb' }));
-app.use(morgan(env.isProd ? 'combined' : 'dev'));
+// Custom request/response logger for detailed readable terminal output
+app.use(requestLogger);
 app.use(globalLimiter);
 
 // ── Swagger UI (/docs) — development only ──────────────────────────────────

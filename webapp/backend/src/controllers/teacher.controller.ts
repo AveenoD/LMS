@@ -12,7 +12,7 @@ export const myBatches = asyncHandler(async (req: Request, res: Response) =>
 );
 
 export const batchStudents = asyncHandler(async (req: Request, res: Response) =>
-  res.json(await svc.batchStudents(tenantId(req), Number(req.params.batchId)))
+  res.json(await svc.batchStudents(tenantId(req), Number(req.params.batchId), req.query.date as string | undefined))
 );
 
 export const markAttendance = asyncHandler(async (req: Request, res: Response) =>

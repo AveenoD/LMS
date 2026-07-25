@@ -20,7 +20,13 @@ export async function todaySchedule(
   const { rows } = await query<ScheduleClass>(
     `SELECT tt.id AS "timetableId", b.name AS batch, sub.name AS subject,
             tt.start_time AS "startTime", tt.end_time AS "endTime",
-            tt.batch_id AS "batchId"
+            tt.batch_id AS "batchId",
+            EXISTS(
+              SELECT 1 FROM attendance a 
+              WHERE a.batch_id = tt.batch_id 
+                AND a.timetable_id = tt.id 
+                AND a.date = CURRENT_DATE
+            ) AS "isAttendanceMarked"
        FROM timetable tt
        JOIN batches b ON b.id = tt.batch_id
        LEFT JOIN subjects sub ON sub.id = tt.subject_id
@@ -60,19 +66,34 @@ export interface BatchStudent {
   rollNo: string | null;
 }
 
-export async function batchStudents(tenantId: number, batchId: number): Promise<BatchStudent[]> {
+export async function batchStudents(tenantId: number, batchId: number, date?: string): Promise<any[]> {
   const b = await query(`SELECT 1 FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
   if (!b.rowCount) throw ApiError.notFound('BATCH_NOT_FOUND');
-  const { rows } = await query<BatchStudent>(
-    `SELECT s.id AS "studentId", u.full_name AS name, s.roll_no AS "rollNo"
-       FROM batch_enrollments be
-       JOIN students s ON s.id = be.student_id
-       JOIN users u ON u.id = s.user_id
-      WHERE be.tenant_id=$1 AND be.batch_id=$2
-      ORDER BY u.full_name`,
-    [tenantId, batchId]
-  );
-  return rows;
+  
+  if (date) {
+    const { rows } = await query(
+      `SELECT s.id AS "studentId", u.full_name AS name, s.roll_no AS "rollNo", a.status
+         FROM batch_enrollments be
+         JOIN students s ON s.id = be.student_id
+         JOIN users u ON u.id = s.user_id
+         LEFT JOIN attendance a ON a.student_id = s.id AND a.date = $3 AND a.batch_id = $2
+        WHERE be.tenant_id=$1 AND be.batch_id=$2
+        ORDER BY u.full_name`,
+      [tenantId, batchId, date]
+    );
+    return rows;
+  } else {
+    const { rows } = await query(
+      `SELECT s.id AS "studentId", u.full_name AS name, s.roll_no AS "rollNo"
+         FROM batch_enrollments be
+         JOIN students s ON s.id = be.student_id
+         JOIN users u ON u.id = s.user_id
+        WHERE be.tenant_id=$1 AND be.batch_id=$2
+        ORDER BY u.full_name`,
+      [tenantId, batchId]
+    );
+    return rows;
+  }
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'late';

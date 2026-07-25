@@ -26,6 +26,13 @@ final batchStudentsProvider = FutureProvider.family<List<dynamic>, int>((ref, ba
   return await api.get('/teacher/batches/$batchId/students');
 });
 
+final attendanceBatchStudentsProvider = FutureProvider.family<List<dynamic>, ({int batchId, String date})>((ref, params) async {
+  final api = ref.read(apiServiceProvider);
+  final batchId = params.batchId;
+  final date = params.date;
+  return await api.get('/teacher/batches/$batchId/students?date=$date');
+});
+
 final testsProvider = FutureProvider<List<dynamic>>((ref) async {
   final api = ref.read(apiServiceProvider);
   return await api.get('/teacher/tests');

@@ -30,14 +30,26 @@ class _TeacherAttendanceScreenState extends ConsumerState<TeacherAttendanceScree
   void _markAll(String status, List<dynamic> students) {
     setState(() {
       for (final s in students) {
-        _attendanceState[s['studentId']] = status;
+        final sidRaw = s['studentId'];
+        final int sid = sidRaw is int ? sidRaw : int.tryParse(sidRaw?.toString() ?? '0') ?? 0;
+        _attendanceState[sid] = status;
       }
     });
   }
 
   Future<void> _submitAttendance(List<dynamic> students) async {
+    final records = students.map((s) {
+      final sidRaw = s['studentId'];
+      final int sid = sidRaw is int ? sidRaw : int.tryParse(sidRaw?.toString() ?? '0') ?? 0;
+      final status = _attendanceState.containsKey(sid) ? _attendanceState[sid] : s['status'];
+      return {
+        'studentId': sid,
+        'status': status,
+      };
+    }).toList();
+
     // Check if all students have been marked
-    if (_attendanceState.length < students.length) {
+    if (records.any((r) => r['status'] == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please mark attendance for all students before submitting.')),
       );
@@ -47,18 +59,15 @@ class _TeacherAttendanceScreenState extends ConsumerState<TeacherAttendanceScree
     setState(() => _isSubmitting = true);
 
     try {
-      final records = _attendanceState.entries.map((e) => {
-        'studentId': e.key,
-        'status': e.value,
-      }).toList();
-
-      final api = ref.read(apiServiceProvider);
-      await api.post('/teacher/attendance', {
+      final payload = <String, dynamic>{
         'batchId': widget.batchId,
-        'timetableId': widget.timetableId,
+        if (widget.timetableId != null) 'timetableId': widget.timetableId,
         'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
         'records': records,
-      });
+      };
+
+      final api = ref.read(apiServiceProvider);
+      await api.post('/teacher/attendance', payload);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -76,7 +85,11 @@ class _TeacherAttendanceScreenState extends ConsumerState<TeacherAttendanceScree
 
   @override
   Widget build(BuildContext context) {
-    final studentsAsync = ref.watch(batchStudentsProvider(widget.batchId));
+    final todayStrAPI = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final studentsAsync = ref.watch(attendanceBatchStudentsProvider((
+      batchId: widget.batchId,
+      date: todayStrAPI,
+    )));
     final todayStr = DateFormat('dd MMM yyyy').format(DateTime.now());
 
     return Scaffold(
@@ -124,9 +137,10 @@ class _TeacherAttendanceScreenState extends ConsumerState<TeacherAttendanceScree
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final student = students[index];
-                    final sid = student['studentId'];
+                    final sidRaw = student['studentId'];
+                    final int sid = sidRaw is int ? sidRaw : int.tryParse(sidRaw?.toString() ?? '0') ?? 0;
                     final name = student['name'];
-                    final status = _attendanceState[sid];
+                    final status = _attendanceState.containsKey(sid) ? _attendanceState[sid] : student['status'];
 
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
