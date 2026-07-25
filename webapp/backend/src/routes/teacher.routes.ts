@@ -7,6 +7,7 @@ import { validate } from '../middleware/validate.js';
 import {
   markAttendanceSchema,
   createContentSchema,
+  createChapterSchema,
   createLiveClassSchema,
   batchIdParamSchema,
   studentIdParamSchema,
@@ -33,6 +34,11 @@ router.get('/upload-signature', (req, res) => {
 // Attendance — all plans (present/absent/late saved for everyone)
 // WhatsApp absent-reminder links are filtered inside the service based on plan
 router.post('/attendance', validate(markAttendanceSchema), ctrl.markAttendance);
+
+// Subjects & Chapters
+router.get('/subjects', ctrl.listSubjects);
+router.get('/chapters', ctrl.listChapters);
+router.post('/chapters', validate(createChapterSchema), ctrl.createChapter);
 
 // Video content — all plans (Basic has video library)
 router.get('/content', ctrl.listContent);

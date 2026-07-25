@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 
 import '../../screens/management/teacher_mark_attendance_select_batch.dart';
-import '../../screens/management/teacher_upload_material_screen.dart';
+import '../../screens/management/teacher_subjects_screen.dart';
 import '../../screens/management/teacher_manage_tests_screen.dart';
 import '../../screens/management/teacher_student_reports_screen.dart';
 
@@ -76,7 +76,7 @@ class TeacherQuickActions extends StatelessWidget {
                 'Upload\nMaterial', 
                 Icons.upload_file, 
                 Colors.orange,
-                const TeacherUploadMaterialScreen(),
+                const TeacherSubjectsScreen(),
               ),
               _buildActionCard(
                 context,

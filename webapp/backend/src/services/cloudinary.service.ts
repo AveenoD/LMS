@@ -2,11 +2,11 @@ import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
 
 // Configure cloudinary only if variables are present (to avoid crashing if not set yet)
-if (env.CLOUD_NAME && env.API_KEY && env.API_SECRET) {
+if (env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret) {
   cloudinary.config({
-    cloud_name: env.CLOUD_NAME,
-    api_key: env.API_KEY,
-    api_secret: env.API_SECRET,
+    cloud_name: env.cloudinary.cloudName,
+    api_key: env.cloudinary.apiKey,
+    api_secret: env.cloudinary.apiSecret,
   });
 }
 
@@ -17,14 +17,14 @@ export function generateSignature(folder: string = 'edtech_os') {
       timestamp,
       folder,
     },
-    env.API_SECRET || ''
+    env.cloudinary.apiSecret || ''
   );
 
   return {
     timestamp,
     signature,
-    cloudName: env.CLOUD_NAME,
-    apiKey: env.API_KEY,
+    cloudName: env.cloudinary.cloudName,
+    apiKey: env.cloudinary.apiKey,
     folder,
   };
 }

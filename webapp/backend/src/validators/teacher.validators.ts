@@ -21,9 +21,17 @@ export const markAttendanceSchema = z
 export const createContentSchema = z
   .object({
     title: z.string().trim().min(1).max(150),
-    youtubeUrl: z.string().url(),
+    fileUrl: z.string().url(),
+    contentType: z.enum(['video', 'document', 'image']),
     batchId: z.coerce.number().int().positive().optional(),
-    subjectId: z.coerce.number().int().positive().optional(),
+    chapterId: z.coerce.number().int().positive(),
+  })
+  .strict();
+
+export const createChapterSchema = z
+  .object({
+    name: z.string().trim().min(1).max(150),
+    subjectId: z.coerce.number().int().positive(),
   })
   .strict();
 

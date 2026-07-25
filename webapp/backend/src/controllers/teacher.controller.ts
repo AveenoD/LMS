@@ -19,12 +19,26 @@ export const markAttendance = asyncHandler(async (req: Request, res: Response) =
   res.status(201).json(await svc.markAttendance(tenantId(req), userId(req), req.body))
 );
 
-export const listContent = asyncHandler(async (req: Request, res: Response) =>
-  res.json(await svc.listContent(tenantId(req), userId(req)))
-);
+export const listContent = asyncHandler(async (req: Request, res: Response) => {
+  const chapterId = req.query.chapterId ? Number(req.query.chapterId) : undefined;
+  res.json(await svc.listContent(tenantId(req), userId(req), chapterId));
+});
 
 export const createContent = asyncHandler(async (req: Request, res: Response) =>
   res.status(201).json(await svc.createContent(tenantId(req), userId(req), req.body))
+);
+
+export const listSubjects = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.listSubjects(tenantId(req)))
+);
+
+export const listChapters = asyncHandler(async (req: Request, res: Response) => {
+  const subjectId = req.query.subjectId ? Number(req.query.subjectId) : undefined;
+  res.json(await svc.listChapters(tenantId(req), subjectId));
+});
+
+export const createChapter = asyncHandler(async (req: Request, res: Response) =>
+  res.status(201).json(await svc.createChapter(tenantId(req), req.body.subjectId, req.body.name))
 );
 
 export const createLiveClass = asyncHandler(async (req: Request, res: Response) =>

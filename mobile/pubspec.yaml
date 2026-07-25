@@ -47,6 +47,9 @@ dependencies:
   printing: ^5.15.0
   razorpay_flutter: ^1.4.5
   file_picker: ^8.1.2
+  youtube_player_flutter: ^10.0.1
+  syncfusion_flutter_pdfviewer: ^33.2.13
+  youtube_player_iframe: ^6.0.2
 
 dependency_overrides:
   flutter_plugin_android_lifecycle: 2.0.22

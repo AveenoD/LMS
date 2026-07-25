@@ -24,8 +24,10 @@ async function enrolledBatchIds(tenantId: number, studentId: number): Promise<nu
 export interface VideoItem {
   id: number;
   title: string;
-  youtubeUrl: string;
+  fileUrl: string;
+  contentType: string;
   subject?: string | null;
+  chapter?: string | null;
 }
 
 export interface LiveClassItem {
@@ -71,9 +73,12 @@ export async function dashboard(tenantId: number, userId: number): Promise<Stude
 
   const recentVideos = (
     await query<VideoItem>(
-      `SELECT id, title, youtube_url AS "youtubeUrl"
-       FROM content WHERE tenant_id=$1 AND (batch_id = ANY($2::int[]) OR batch_id IS NULL)
-      ORDER BY created_at DESC LIMIT 5`,
+      `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType", ch.name AS chapter, sub.name AS subject
+       FROM content c 
+       LEFT JOIN chapters ch ON ch.id = c.chapter_id
+       LEFT JOIN subjects sub ON sub.id = ch.subject_id
+       WHERE c.tenant_id=$1 AND (c.batch_id = ANY($2::int[]) OR c.batch_id IS NULL)
+      ORDER BY c.created_at DESC LIMIT 5`,
       [tenantId, safeBatches]
     )
   ).rows;
@@ -93,11 +98,13 @@ export async function listVideos(
   let subFilter = '';
   if (subjectId) {
     params.push(subjectId);
-    subFilter = `AND c.subject_id = $3`;
+    subFilter = `AND ch.subject_id = $3`;
   }
   const { rows } = await query<VideoItem>(
-    `SELECT c.id, c.title, c.youtube_url AS "youtubeUrl", sub.name AS subject
-       FROM content c LEFT JOIN subjects sub ON sub.id=c.subject_id
+    `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType", ch.name AS chapter, sub.name AS subject
+       FROM content c 
+       LEFT JOIN chapters ch ON ch.id = c.chapter_id
+       LEFT JOIN subjects sub ON sub.id=ch.subject_id
       WHERE c.tenant_id=$1 AND (c.batch_id = ANY($2::int[]) OR c.batch_id IS NULL) ${subFilter}
       ORDER BY c.created_at DESC`,
     params
@@ -110,9 +117,9 @@ export async function videoDetail(tenantId: number, userId: number, id: number):
   const batchIds = await enrolledBatchIds(tenantId, studentId);
   const safeBatches = batchIds.length ? batchIds : [-1];
   const { rows } = await query<VideoItem>(
-    `SELECT id, title, youtube_url AS "youtubeUrl"
-       FROM content
-      WHERE tenant_id=$1 AND id=$2 AND (batch_id = ANY($3::int[]) OR batch_id IS NULL)`,
+    `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType"
+       FROM content c
+      WHERE c.tenant_id=$1 AND c.id=$2 AND (c.batch_id = ANY($3::int[]) OR c.batch_id IS NULL)`,
     [tenantId, id, safeBatches]
   );
   if (!rows[0]) throw ApiError.notFound('VIDEO_NOT_FOUND');

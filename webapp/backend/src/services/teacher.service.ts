@@ -144,51 +144,103 @@ export async function markAttendance(
   return { saved: records.length, absentReminders };
 }
 
-/* Content (VOD) */
+/* Chapters */
+export interface ChapterItem {
+  id: number;
+  subjectId: number;
+  name: string;
+}
+
+export async function listChapters(tenantId: number, subjectId?: number): Promise<ChapterItem[]> {
+  const params: any[] = [tenantId];
+  let q = `SELECT id, subject_id AS "subjectId", name FROM chapters WHERE tenant_id=$1`;
+  if (subjectId) {
+    params.push(subjectId);
+    q += ` AND subject_id=$2`;
+  }
+  q += ` ORDER BY created_at DESC`;
+  const { rows } = await query<ChapterItem>(q, params);
+  return rows;
+}
+
+export async function createChapter(tenantId: number, subjectId: number, name: string): Promise<ChapterItem> {
+  const sub = await query(`SELECT 1 FROM subjects WHERE id=$1 AND tenant_id=$2`, [subjectId, tenantId]);
+  if (!sub.rowCount) throw ApiError.badRequest('INVALID_SUBJECT');
+  
+  const { rows } = await query<ChapterItem>(
+    `INSERT INTO chapters (tenant_id, subject_id, name)
+     VALUES ($1,$2,$3)
+     RETURNING id, subject_id AS "subjectId", name`,
+    [tenantId, subjectId, name]
+  );
+  return rows[0];
+}
+
+export async function listSubjects(tenantId: number): Promise<{ id: number; name: string }[]> {
+  const { rows } = await query<{ id: number; name: string }>(
+    `SELECT id, name FROM subjects WHERE tenant_id=$1 ORDER BY name`,
+    [tenantId]
+  );
+  return rows;
+}
+
+/* Content (VOD & Notes) */
 export interface ContentItem {
   id: number;
   title: string;
-  youtubeUrl: string;
-  batch: string | null;
+  fileUrl: string;
+  contentType: string;
+  chapterId: number;
+  chapterName: string;
+  subjectId: number;
   batchId: number | null;
 }
 
-export async function listContent(tenantId: number, teacherId: number): Promise<ContentItem[]> {
-  const { rows } = await query<ContentItem>(
-    `SELECT c.id, c.title, c.youtube_url AS "youtubeUrl", b.name AS batch, c.batch_id AS "batchId"
-       FROM content c LEFT JOIN batches b ON b.id=c.batch_id
-      WHERE c.tenant_id=$1 AND c.created_by=$2
-      ORDER BY c.created_at DESC`,
-    [tenantId, teacherId]
-  );
+export async function listContent(tenantId: number, teacherId: number, chapterId?: number): Promise<ContentItem[]> {
+  const params: any[] = [tenantId, teacherId];
+  let q = `
+    SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType",
+           c.chapter_id AS "chapterId", ch.name AS "chapterName", ch.subject_id AS "subjectId",
+           c.batch_id AS "batchId"
+      FROM content c
+      JOIN chapters ch ON ch.id = c.chapter_id
+     WHERE c.tenant_id=$1 AND c.created_by=$2
+  `;
+  if (chapterId) {
+    params.push(chapterId);
+    q += ` AND c.chapter_id=$3`;
+  }
+  q += ` ORDER BY c.created_at DESC`;
+  
+  const { rows } = await query<ContentItem>(q, params);
   return rows;
 }
 
 export interface CreateContentInput {
   title: string;
-  youtubeUrl: string;
+  fileUrl: string;
+  contentType: string;
   batchId?: number;
-  subjectId?: number;
+  chapterId: number;
 }
 
 export async function createContent(
   tenantId: number,
   teacherId: number,
-  { title, youtubeUrl, batchId, subjectId }: CreateContentInput
+  { title, fileUrl, contentType, batchId, chapterId }: CreateContentInput
 ) {
   if (batchId) {
     const b = await query(`SELECT 1 FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
     if (!b.rowCount) throw ApiError.badRequest('INVALID_BATCH');
   }
-  if (subjectId) {
-    const sub = await query(`SELECT 1 FROM subjects WHERE id=$1 AND tenant_id=$2`, [subjectId, tenantId]);
-    if (!sub.rowCount) throw ApiError.badRequest('INVALID_SUBJECT');
-  }
+  const ch = await query(`SELECT subject_id FROM chapters WHERE id=$1 AND tenant_id=$2`, [chapterId, tenantId]);
+  if (!ch.rowCount) throw ApiError.badRequest('INVALID_CHAPTER');
+
   const { rows } = await query(
-    `INSERT INTO content (tenant_id, batch_id, subject_id, title, youtube_url, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     RETURNING id, title, youtube_url AS "youtubeUrl", batch_id AS "batchId"`,
-    [tenantId, batchId || null, subjectId || null, title, youtubeUrl, teacherId]
+    `INSERT INTO content (tenant_id, batch_id, subject_id, chapter_id, content_type, title, file_url, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     RETURNING id, title, file_url AS "fileUrl", content_type AS "contentType", chapter_id AS "chapterId", batch_id AS "batchId"`,
+    [tenantId, batchId || null, ch.rows[0].subject_id, chapterId, contentType, title, fileUrl, teacherId]
   );
   return rows[0];
 }

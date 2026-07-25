@@ -36,7 +36,19 @@ final testQuestionsProvider = FutureProvider.family<List<dynamic>, int>((ref, te
   return await api.get('/teacher/tests/$testId/questions');
 });
 
-final teacherContentProvider = FutureProvider<List<dynamic>>((ref) async {
+final teacherContentProvider = FutureProvider.family<List<dynamic>, int?>((ref, chapterId) async {
   final api = ref.read(apiServiceProvider);
-  return await api.get('/teacher/content');
+  final query = chapterId != null ? '?chapterId=$chapterId' : '';
+  return await api.get('/teacher/content$query');
+});
+
+final teacherSubjectsProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/subjects');
+});
+
+final teacherChaptersProvider = FutureProvider.family<List<dynamic>, int?>((ref, subjectId) async {
+  final api = ref.read(apiServiceProvider);
+  final query = subjectId != null ? '?subjectId=$subjectId' : '';
+  return await api.get('/teacher/chapters$query');
 });
