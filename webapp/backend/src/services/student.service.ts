@@ -38,10 +38,42 @@ export interface LiveClassItem {
   joinable?: boolean;
 }
 
+export interface TimetableItem {
+  id: number;
+  subject: string;
+  teacherName: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface UpcomingTest {
+  id: number;
+  title: string;
+  subject: string | null;
+  testDate: string | null;
+  maxMarks: number;
+}
+
+export interface ContinuePlaying {
+  id: number;
+  title: string;
+  fileUrl: string;
+  contentType: string;
+  chapter: string | null;
+  subject: string | null;
+  chapterId: number | null;
+  progressSeconds: number;
+  durationMinutes: number;
+}
+
 export interface StudentDashboard {
   nextLiveClass: LiveClassItem | null;
   pendingFees: number;
   recentVideos: VideoItem[];
+  continuePlaying: ContinuePlaying | null;
+  attendancePct: number;       // 0-100
+  todaySchedule: TimetableItem[];
+  nextTest: UpcomingTest | null;
 }
 
 export async function dashboard(tenantId: number, userId: number): Promise<StudentDashboard> {
@@ -72,8 +104,8 @@ export async function dashboard(tenantId: number, userId: number): Promise<Stude
   ).rows[0];
 
   const recentVideos = (
-    await query<VideoItem>(
-      `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType", ch.name AS chapter, sub.name AS subject
+    await query<VideoItem & { chapterId: number }>(
+      `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType", ch.name AS chapter, ch.id AS "chapterId", sub.name AS subject
        FROM content c 
        LEFT JOIN chapters ch ON ch.id = c.chapter_id
        LEFT JOIN subjects sub ON sub.id = ch.subject_id
@@ -83,7 +115,81 @@ export async function dashboard(tenantId: number, userId: number): Promise<Stude
     )
   ).rows;
 
-  return { nextLiveClass: nextLive, pendingFees: fees.pending, recentVideos };
+  // Attendance %
+  const attRow = (
+    await query<{ total: number; present: number }>(
+      `SELECT
+         COUNT(*)::int AS total,
+         COUNT(*) FILTER (WHERE status='present' OR status='late')::int AS present
+       FROM attendance
+       WHERE tenant_id=$1 AND student_id=$2`,
+      [tenantId, studentId]
+    )
+  ).rows[0];
+  const attendancePct = attRow.total > 0 ? Math.round((attRow.present / attRow.total) * 100) : 0;
+
+  // Today's timetable
+  const dow = new Date().getDay(); // 0=Sun..6=Sat
+  const todaySchedule = (
+    await query<TimetableItem>(
+      `SELECT t.id, s.name AS subject, u.full_name AS "teacherName",
+              to_char(t.start_time,'HH12:MI AM') AS "startTime",
+              to_char(t.end_time,'HH12:MI AM') AS "endTime"
+       FROM timetable t
+       JOIN subjects s ON s.id = t.subject_id
+       JOIN users u ON u.id = t.teacher_id
+       WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[]) AND t.day_of_week=$3
+       ORDER BY t.start_time`,
+      [tenantId, safeBatches, dow]
+    )
+  ).rows;
+
+  // Next upcoming test
+  const nextTest = (
+    await query<UpcomingTest>(
+      `SELECT t.id, t.title, s.name AS subject, t.test_date AS "testDate", t.max_marks AS "maxMarks"
+       FROM tests t LEFT JOIN subjects s ON s.id = t.subject_id
+       WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[]) AND t.test_date >= CURRENT_DATE
+       ORDER BY t.test_date ASC LIMIT 1`,
+      [tenantId, safeBatches]
+    )
+  ).rows[0] || null;
+
+  const continuePlaying = (
+    await query<ContinuePlaying>(
+      `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType", c.duration_minutes AS "durationMinutes",
+              ch.name AS chapter, ch.id AS "chapterId", sub.name AS subject,
+              p.progress_seconds AS "progressSeconds"
+       FROM user_content_progress p
+       JOIN content c ON c.id = p.content_id
+       LEFT JOIN chapters ch ON ch.id = c.chapter_id
+       LEFT JOIN subjects sub ON sub.id = ch.subject_id
+       WHERE p.tenant_id=$1 AND p.user_id=$2 AND c.content_type LIKE '%video%'
+       ORDER BY p.updated_at DESC LIMIT 1`,
+      [tenantId, userId]
+    )
+  ).rows[0] || null;
+
+  return {
+    nextLiveClass: nextLive,
+    pendingFees: fees.pending,
+    recentVideos,
+    continuePlaying,
+    attendancePct,
+    todaySchedule,
+    nextTest,
+  };
+}
+
+export async function updateProgress(tenantId: number, userId: number, contentId: number, progressSeconds: number): Promise<void> {
+  await query(
+    `INSERT INTO user_content_progress (tenant_id, user_id, content_id, progress_seconds, updated_at)
+     VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+     ON CONFLICT (user_id, content_id) DO UPDATE 
+     SET progress_seconds = EXCLUDED.progress_seconds,
+         updated_at = CURRENT_TIMESTAMP`,
+    [tenantId, userId, contentId, progressSeconds]
+  );
 }
 
 export async function listVideos(
@@ -240,4 +346,427 @@ export async function askDoubt(
     chapter: chapter || 'a topic',
   });
   return { waUrl: buildWaUrl(teacher.phone, msg) };
+}
+
+// ─── SUBJECTS ───────────────────────────────────────────────────────────────
+
+export interface SubjectWithStats {
+  id: number;
+  name: string;
+  totalChapters: number;
+  totalVideos: number;
+}
+
+export async function listSubjects(tenantId: number, userId: number): Promise<SubjectWithStats[]> {
+  const studentId = await getStudentId(tenantId, userId);
+  const batchIds = await enrolledBatchIds(tenantId, studentId);
+  const safeBatches = batchIds.length ? batchIds : [-1];
+
+  // Get subjects linked via timetable for this student's batches
+  const { rows } = await query<SubjectWithStats>(
+    `SELECT s.id, s.name,
+            COUNT(DISTINCT ch.id)::int AS "totalChapters",
+            COUNT(DISTINCT c.id) FILTER (WHERE c.content_type = 'video')::int AS "totalVideos"
+       FROM subjects s
+       LEFT JOIN chapters ch ON ch.subject_id = s.id AND ch.tenant_id = s.tenant_id
+       LEFT JOIN content c ON c.chapter_id = ch.id
+      WHERE s.tenant_id=$1
+        AND s.id IN (
+          SELECT DISTINCT t.subject_id FROM timetable t
+          WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[]) AND t.subject_id IS NOT NULL
+        )
+      GROUP BY s.id, s.name
+      ORDER BY s.name`,
+    [tenantId, safeBatches]
+  );
+  return rows;
+}
+
+// ─── CHAPTERS ───────────────────────────────────────────────────────────────
+
+export interface ChapterWithCounts {
+  id: number;
+  name: string;
+  videoCount: number;
+  docCount: number;
+  sortOrder: number;
+}
+
+export async function listChapters(
+  tenantId: number,
+  userId: number,
+  subjectId: number
+): Promise<ChapterWithCounts[]> {
+  await getStudentId(tenantId, userId); // auth check
+  const { rows } = await query<ChapterWithCounts>(
+    `SELECT ch.id, ch.name,
+            COUNT(c.id) FILTER (WHERE c.content_type = 'video')::int AS "videoCount",
+            COUNT(c.id) FILTER (WHERE c.content_type != 'video')::int AS "docCount",
+            ROW_NUMBER() OVER (ORDER BY ch.created_at)::int AS "sortOrder"
+       FROM chapters ch
+       LEFT JOIN content c ON c.chapter_id = ch.id
+      WHERE ch.tenant_id=$1 AND ch.subject_id=$2
+      GROUP BY ch.id, ch.name, ch.created_at
+      ORDER BY ch.created_at`,
+    [tenantId, subjectId]
+  );
+  return rows;
+}
+
+// ─── CHAPTER CONTENT ─────────────────────────────────────────────────────────
+
+export interface ContentItem {
+  id: number;
+  title: string;
+  fileUrl: string;
+  contentType: string;
+}
+
+export async function listChapterContent(
+  tenantId: number,
+  userId: number,
+  chapterId: number
+): Promise<ContentItem[]> {
+  await getStudentId(tenantId, userId); // auth check
+  const { rows } = await query<ContentItem>(
+    `SELECT id, title, file_url AS "fileUrl", content_type AS "contentType", duration_minutes AS "durationMinutes"
+       FROM content
+      WHERE tenant_id=$1 AND chapter_id=$2
+      ORDER BY created_at ASC`,
+    [tenantId, chapterId]
+  );
+  return rows;
+}
+
+// ─── TESTS ──────────────────────────────────────────────────────────────────
+
+export interface StudentTest {
+  id: number;
+  title: string;
+  subject: string | null;
+  testDate: string | null;
+  maxMarks: number;
+  durationMinutes: number | null;
+  isOnline: boolean;
+  // for completed:
+  marksObtained?: number;
+}
+
+export async function listTests(
+  tenantId: number,
+  userId: number
+): Promise<{ active: StudentTest[]; completed: StudentTest[] }> {
+  const studentId = await getStudentId(tenantId, userId);
+  const batchIds = await enrolledBatchIds(tenantId, studentId);
+  const safeBatches = batchIds.length ? batchIds : [-1];
+
+  const active = (
+    await query<StudentTest>(
+      `SELECT t.id, t.title, s.name AS subject, t.test_date AS "testDate",
+              t.max_marks AS "maxMarks", t.duration_minutes AS "durationMinutes", t.is_online AS "isOnline"
+         FROM tests t
+         LEFT JOIN subjects s ON s.id = t.subject_id
+        WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[])
+          AND (t.test_date IS NULL OR t.test_date >= now()::date)
+          AND NOT EXISTS (
+            SELECT 1 FROM test_results tr
+            WHERE tr.test_id = t.id AND tr.student_id = $3
+          )
+        ORDER BY t.test_date ASC NULLS LAST`,
+      [tenantId, safeBatches, studentId]
+    )
+  ).rows;
+
+  const completed = (
+    await query<StudentTest>(
+      `SELECT t.id, t.title, s.name AS subject, t.test_date AS "testDate",
+              t.max_marks AS "maxMarks", t.duration_minutes AS "durationMinutes", t.is_online AS "isOnline",
+              tr.marks_obtained AS "marksObtained"
+         FROM tests t
+         JOIN test_results tr ON tr.test_id = t.id AND tr.student_id = $3
+         LEFT JOIN subjects s ON s.id = t.subject_id
+        WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[])
+        ORDER BY t.test_date DESC NULLS FIRST`,
+      [tenantId, safeBatches, studentId]
+    )
+  ).rows;
+
+  return { active, completed };
+}
+
+// ─── QUIZ QUESTIONS ──────────────────────────────────────────────────────────
+
+export interface QuizQuestion {
+  id: number;
+  questionText: string;
+  imageUrl: string | null;
+  marks: number;
+  options: { id: number; optionText: string | null; imageUrl: string | null }[];
+}
+
+export async function getTestQuestions(
+  tenantId: number,
+  userId: number,
+  testId: number
+): Promise<QuizQuestion[]> {
+  const studentId = await getStudentId(tenantId, userId);
+  const batchIds = await enrolledBatchIds(tenantId, studentId);
+  const safeBatches = batchIds.length ? batchIds : [-1];
+
+  // Verify test belongs to student's batch
+  const testCheck = await query(
+    `SELECT id FROM tests WHERE id=$1 AND tenant_id=$2 AND batch_id = ANY($3::int[])`,
+    [testId, tenantId, safeBatches]
+  );
+  if (!testCheck.rows[0]) throw ApiError.notFound('TEST_NOT_FOUND');
+
+  const questions = (
+    await query<{ id: number; questionText: string; imageUrl: string | null; marks: number }>(
+      `SELECT id, question_text AS "questionText", image_url AS "imageUrl", marks
+         FROM questions WHERE tenant_id=$1 AND test_id=$2 ORDER BY id`,
+      [tenantId, testId]
+    )
+  ).rows;
+
+  if (questions.length === 0) return [];
+
+  const questionIds = questions.map((q) => q.id);
+  const options = (
+    await query<{ id: number; questionId: number; optionText: string | null; imageUrl: string | null }>(
+      `SELECT id, question_id AS "questionId", option_text AS "optionText", image_url AS "imageUrl"
+         FROM options WHERE tenant_id=$1 AND question_id = ANY($2::int[]) ORDER BY id`,
+      [tenantId, questionIds]
+    )
+  ).rows;
+
+  return questions.map((q) => ({
+    ...q,
+    options: options.filter((o) => o.questionId === q.id).map(({ questionId: _qi, ...o }) => o),
+  }));
+}
+
+// ─── SUBMIT QUIZ ─────────────────────────────────────────────────────────────
+
+export interface QuizSubmitPayload {
+  answers: Record<string, number>; // questionId -> optionId
+}
+
+export interface QuizResult {
+  marksObtained: number;
+  maxMarks: number;
+  correct: number;
+  incorrect: number;
+  skipped: number;
+  total: number;
+}
+
+export async function submitTest(
+  tenantId: number,
+  userId: number,
+  testId: number,
+  payload: QuizSubmitPayload
+): Promise<QuizResult> {
+  const studentId = await getStudentId(tenantId, userId);
+
+  // Verify not already submitted
+  const existing = await query(
+    `SELECT id FROM test_results WHERE test_id=$1 AND student_id=$2`,
+    [testId, studentId]
+  );
+  if (existing.rows[0]) throw ApiError.badRequest('TEST_ALREADY_SUBMITTED');
+
+  // Load questions + correct options
+  const questions = (
+    await query<{ id: number; marks: number }>(
+      `SELECT q.id, q.marks FROM questions q WHERE q.tenant_id=$1 AND q.test_id=$2`,
+      [tenantId, testId]
+    )
+  ).rows;
+
+  if (questions.length === 0) throw ApiError.notFound('TEST_HAS_NO_QUESTIONS');
+
+  const correctOptions = (
+    await query<{ questionId: number; id: number }>(
+      `SELECT question_id AS "questionId", id FROM options
+        WHERE tenant_id=$1 AND question_id = ANY($2::int[]) AND is_correct=true`,
+      [tenantId, questions.map((q) => q.id)]
+    )
+  ).rows;
+
+  // Grade
+  const test = (
+    await query<{ max_marks: number }>(
+      `SELECT max_marks FROM tests WHERE id=$1 AND tenant_id=$2`,
+      [testId, tenantId]
+    )
+  ).rows[0];
+  if (!test) throw ApiError.notFound('TEST_NOT_FOUND');
+
+  let correct = 0;
+  let incorrect = 0;
+  let skipped = 0;
+  let marksObtained = 0;
+
+  for (const q of questions) {
+    const submitted = payload.answers[String(q.id)];
+    const correctOpt = correctOptions.find((o) => o.questionId === q.id);
+    if (submitted === undefined || submitted === null) {
+      skipped++;
+    } else if (correctOpt && submitted === correctOpt.id) {
+      correct++;
+      marksObtained += q.marks;
+    } else {
+      incorrect++;
+    }
+  }
+
+  // Save result
+  await query(
+    `INSERT INTO test_results (tenant_id, test_id, student_id, marks_obtained)
+     VALUES ($1, $2, $3, $4)`,
+    [tenantId, testId, studentId, marksObtained]
+  );
+
+  return {
+    marksObtained,
+    maxMarks: test.max_marks,
+    correct,
+    incorrect,
+    skipped,
+    total: questions.length,
+  };
+}
+
+// ─── ATTENDANCE MONTHLY ──────────────────────────────────────────────────────
+
+export interface MonthlyAttendance {
+  month: string;  // e.g. "July 2025"
+  present: number;
+  absent: number;
+  total: number;
+}
+
+export async function monthlyAttendance(
+  tenantId: number,
+  userId: number
+): Promise<MonthlyAttendance[]> {
+  const studentId = await getStudentId(tenantId, userId);
+  const { rows } = await query<MonthlyAttendance>(
+    `SELECT to_char(date, 'Month YYYY') AS month,
+            COUNT(*) FILTER (WHERE status='present' OR status='late')::int AS present,
+            COUNT(*) FILTER (WHERE status='absent')::int AS absent,
+            COUNT(*)::int AS total
+       FROM attendance
+      WHERE tenant_id=$1 AND student_id=$2
+      GROUP BY to_char(date, 'Month YYYY'), date_trunc('month', date)
+      ORDER BY date_trunc('month', date) DESC
+      LIMIT 6`,
+    [tenantId, studentId]
+  );
+  return rows;
+}
+
+// ─── PERFORMANCE ─────────────────────────────────────────────────────────────
+
+export interface SubjectPerformance {
+  subject: string;
+  totalMarks: number;
+  obtainedMarks: number;
+  testCount: number;
+}
+
+export async function subjectPerformance(
+  tenantId: number,
+  userId: number
+): Promise<SubjectPerformance[]> {
+  const studentId = await getStudentId(tenantId, userId);
+  const { rows } = await query<SubjectPerformance>(
+    `SELECT s.name AS subject,
+            SUM(t.max_marks)::int AS "totalMarks",
+            SUM(tr.marks_obtained)::int AS "obtainedMarks",
+            COUNT(*)::int AS "testCount"
+       FROM test_results tr
+       JOIN tests t ON t.id = tr.test_id
+       LEFT JOIN subjects s ON s.id = t.subject_id
+      WHERE tr.tenant_id=$1 AND tr.student_id=$2
+      GROUP BY s.name
+      ORDER BY s.name`,
+    [tenantId, studentId]
+  );
+  return rows;
+}
+
+// ─── STUDENT PROFILE ─────────────────────────────────────────────────────────
+
+export interface StudentProfile {
+  fullName: string;
+  phone: string | null;
+  rollNo: string | null;
+  grade: string | null;
+  batchName: string | null;
+  parentName: string | null;
+  parentPhone: string | null;
+  attendancePct: number;
+  testsGiven: number;
+  avgScore: number | null;
+}
+
+export async function getProfile(tenantId: number, userId: number): Promise<StudentProfile> {
+  const studentId = await getStudentId(tenantId, userId);
+
+  const profileRow = (
+    await query<{
+      fullName: string;
+      phone: string | null;
+      rollNo: string | null;
+      grade: string | null;
+      batchName: string | null;
+      parentName: string | null;
+      parentPhone: string | null;
+    }>(
+      `SELECT u.full_name AS "fullName", u.phone,
+              s.roll_no AS "rollNo", s.grade, s.parent_name AS "parentName", s.parent_phone AS "parentPhone",
+              b.name AS "batchName"
+         FROM students s
+         JOIN users u ON u.id = s.user_id
+         LEFT JOIN batch_enrollments be ON be.student_id = s.id AND be.tenant_id = s.tenant_id
+         LEFT JOIN batches b ON b.id = be.batch_id
+        WHERE s.tenant_id=$1 AND s.user_id=$2
+        LIMIT 1`,
+      [tenantId, userId]
+    )
+  ).rows[0];
+
+  if (!profileRow) throw ApiError.notFound('STUDENT_PROFILE_NOT_FOUND');
+
+  const attRow = (
+    await query<{ total: number; present: number }>(
+      `SELECT COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE status='present' OR status='late')::int AS present
+         FROM attendance WHERE tenant_id=$1 AND student_id=$2`,
+      [tenantId, studentId]
+    )
+  ).rows[0];
+  const attendancePct =
+    attRow && attRow.total > 0 ? Math.round((attRow.present / attRow.total) * 100) : 0;
+
+  const testStats = (
+    await query<{ testsGiven: number; avgScore: number | null }>(
+      `SELECT COUNT(*)::int AS "testsGiven",
+              CASE WHEN SUM(t.max_marks) > 0
+                   THEN ROUND(SUM(tr.marks_obtained)::numeric / SUM(t.max_marks) * 100)::int
+                   ELSE NULL END AS "avgScore"
+         FROM test_results tr
+         JOIN tests t ON t.id = tr.test_id
+        WHERE tr.tenant_id=$1 AND tr.student_id=$2`,
+      [tenantId, studentId]
+    )
+  ).rows[0];
+
+  return {
+    ...profileRow,
+    attendancePct,
+    testsGiven: testStats?.testsGiven ?? 0,
+    avgScore: testStats?.avgScore ?? null,
+  };
 }

@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 export const idParamSchema = z.object({ id: z.coerce.number().int().positive() }).strict();
 export const paymentIdParamSchema = z.object({ paymentId: z.coerce.number().int().positive() }).strict();
+export const subjectIdParamSchema = z.object({ subjectId: z.coerce.number().int().positive() }).strict();
+export const chapterIdParamSchema = z.object({ chapterId: z.coerce.number().int().positive() }).strict();
+export const testIdParamSchema = z.object({ testId: z.coerce.number().int().positive() }).strict();
 
 export const listVideosQuerySchema = z
   .object({
@@ -15,3 +18,8 @@ export const askDoubtQuerySchema = z
     chapter: z.string().trim().max(200).optional(),
   })
   .strict();
+
+export const submitTestSchema = z.object({
+  answers: z.record(z.string(), z.number().int().positive()),
+});
+

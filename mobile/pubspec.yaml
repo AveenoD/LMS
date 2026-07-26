@@ -51,6 +51,8 @@ dependencies:
   syncfusion_flutter_pdfviewer: ^33.2.13
   youtube_player_iframe: ^6.0.2
   device_info_plus: ^12.4.0
+  flutter_file_dialog: ^3.3.2
+  path_provider: ^2.1.6
 
 dependency_overrides:
   flutter_plugin_android_lifecycle: 2.0.22

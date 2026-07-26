@@ -1,6 +1,7 @@
 import { query, withTransaction } from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
 import { buildWaUrl, absentMessage } from './whatsapp.service.js';
+import * as https from 'https';
 
 /** Today's classes for this teacher (by current day_of_week). */
 export interface ScheduleClass {
@@ -257,11 +258,41 @@ export async function createContent(
   const ch = await query(`SELECT subject_id FROM chapters WHERE id=$1 AND tenant_id=$2`, [chapterId, tenantId]);
   if (!ch.rowCount) throw ApiError.badRequest('INVALID_CHAPTER');
 
+  let durationMinutes = 0;
+  if (contentType === 'video' && fileUrl) {
+    try {
+      durationMinutes = await new Promise<number>((resolve) => {
+        if (!fileUrl.includes('youtube.com') && !fileUrl.includes('youtu.be')) return resolve(0);
+        https.get(fileUrl, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            const match = data.match(/<meta itemprop="duration" content="([^"]+)">/);
+            if (match && match[1]) {
+              let minutes = 0;
+              const h = match[1].match(/(\d+)H/);
+              const m = match[1].match(/(\d+)M/);
+              const s = match[1].match(/(\d+)S/);
+              if (h) minutes += parseInt(h[1]) * 60;
+              if (m) minutes += parseInt(m[1]);
+              if (s && parseInt(s[1]) > 30) minutes += 1;
+              resolve(minutes);
+            } else {
+              resolve(0);
+            }
+          });
+        }).on('error', () => resolve(0));
+      });
+    } catch (e) {
+      durationMinutes = 0;
+    }
+  }
+
   const { rows } = await query(
-    `INSERT INTO content (tenant_id, batch_id, subject_id, chapter_id, content_type, title, file_url, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     RETURNING id, title, file_url AS "fileUrl", content_type AS "contentType", chapter_id AS "chapterId", batch_id AS "batchId"`,
-    [tenantId, batchId || null, ch.rows[0].subject_id, chapterId, contentType, title, fileUrl, teacherId]
+    `INSERT INTO content (tenant_id, batch_id, subject_id, chapter_id, content_type, title, file_url, created_by, duration_minutes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     RETURNING id, title, file_url AS "fileUrl", content_type AS "contentType", chapter_id AS "chapterId", batch_id AS "batchId", duration_minutes AS "durationMinutes"`,
+    [tenantId, batchId || null, ch.rows[0].subject_id, chapterId, contentType, title, fileUrl, teacherId, durationMinutes]
   );
   return rows[0];
 }

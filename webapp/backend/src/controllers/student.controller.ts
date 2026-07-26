@@ -46,3 +46,53 @@ export const markNotificationRead = asyncHandler(async (req: Request, res: Respo
   await notificationCenter.markNotificationRead(Number(req.params.id), userId(req));
   res.json({ success: true });
 });
+
+/* Learn — Subjects */
+export const listSubjects = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.listSubjects(tenantId(req), userId(req)))
+);
+
+/* Learn — Chapters */
+export const listChapters = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.listChapters(tenantId(req), userId(req), Number(req.params.subjectId)))
+);
+
+/* Learn — Chapter Content */
+export const listChapterContent = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.listChapterContent(tenantId(req), userId(req), Number(req.params.chapterId)))
+);
+
+/* Tests */
+export const listTests = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.listTests(tenantId(req), userId(req)))
+);
+
+export const getTestQuestions = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.getTestQuestions(tenantId(req), userId(req), Number(req.params.testId)))
+);
+
+export const submitTest = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.submitTest(tenantId(req), userId(req), Number(req.params.testId), req.body))
+);
+
+/* Profile — Attendance Monthly */
+export const monthlyAttendance = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.monthlyAttendance(tenantId(req), userId(req)))
+);
+
+/* Profile — Performance */
+export const subjectPerformance = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.subjectPerformance(tenantId(req), userId(req)))
+);
+
+/* Student Profile (detailed) */
+export const getProfile = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.getProfile(tenantId(req), userId(req)))
+);
+
+export const updateProgress = asyncHandler(async (req: Request, res: Response) => {
+  const { contentId, progressSeconds } = req.body;
+  if (!contentId || progressSeconds == null) throw ApiError.badRequest('Missing contentId or progressSeconds');
+  await svc.updateProgress(tenantId(req), userId(req), Number(contentId), Number(progressSeconds));
+  res.json({ success: true });
+});

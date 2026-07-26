@@ -40,6 +40,7 @@ class TeacherManageTestsScreen extends ConsumerWidget {
               final dateStr = test['test_date'] != null 
                   ? DateFormat('dd MMM yyyy').format(DateTime.parse(test['test_date']))
                   : 'No Date';
+              final maxMarks = test['max_marks'];
 
               return InkWell(
                 onTap: () {
@@ -85,7 +86,10 @@ class TeacherManageTestsScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Batch: ${test['batch_name'] ?? 'All'} | Subject: ${test['subject_name'] ?? 'General'}', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+                      Text(
+                        'Batch: ${test['batch_name'] ?? 'All'} | Subject: ${test['subject_name'] ?? 'General'}',
+                        style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                      ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -97,6 +101,8 @@ class TeacherManageTestsScreen extends ConsumerWidget {
                           const SizedBox(width: 4),
                           Text(duration != null ? '$duration mins' : 'Untimed', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
                           const Spacer(),
+                          if (maxMarks != null && maxMarks != 0)
+                            Text('${maxMarks}M | ', style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey)),
                           Text('$questionCount Qs', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
                         ],
                       ),
@@ -118,72 +124,199 @@ class TeacherManageTestsScreen extends ConsumerWidget {
   }
 
   void _showCreateTestModal(BuildContext context, WidgetRef ref) {
-    final titleCtrl = TextEditingController();
-    final durationCtrl = TextEditingController();
-    bool isOnline = true;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setModalState) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 24, right: 24, top: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (ctx) => _CreateTestModal(onCreated: () => ref.invalidate(testsProvider)),
+    );
+  }
+}
+
+// ─── Dedicated StatefulWidget so it can watch providers cleanly ───────────────
+class _CreateTestModal extends ConsumerStatefulWidget {
+  final VoidCallback onCreated;
+  const _CreateTestModal({required this.onCreated});
+
+  @override
+  ConsumerState<_CreateTestModal> createState() => _CreateTestModalState();
+}
+
+class _CreateTestModalState extends ConsumerState<_CreateTestModal> {
+  final _titleCtrl = TextEditingController();
+  final _durationCtrl = TextEditingController();
+  final _maxMarksCtrl = TextEditingController();
+  bool _isOnline = true;
+  int? _selectedBatchId;
+  int? _selectedSubjectId;
+  DateTime? _selectedDate;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _durationCtrl.dispose();
+    _maxMarksCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
+  }
+
+  Future<void> _submit() async {
+    if (_titleCtrl.text.isEmpty) return;
+    setState(() => _isSubmitting = true);
+
+    try {
+      final api = ref.read(apiServiceProvider);
+      await api.post('/teacher/tests', {
+        'title': _titleCtrl.text.trim(),
+        if (_durationCtrl.text.isNotEmpty) 'durationMinutes': int.tryParse(_durationCtrl.text),
+        if (_maxMarksCtrl.text.isNotEmpty) 'maxMarks': int.tryParse(_maxMarksCtrl.text),
+        if (_selectedBatchId != null) 'batchId': _selectedBatchId,
+        if (_selectedSubjectId != null) 'subjectId': _selectedSubjectId,
+        if (_selectedDate != null) 'testDate': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+        'isOnline': _isOnline,
+      });
+      widget.onCreated();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final batchesAsync = ref.watch(myBatchesProvider);
+    final subjectsAsync = ref.watch(teacherSubjectsProvider);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Create New Quiz', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: titleCtrl,
-                  decoration: const InputDecoration(labelText: 'Quiz Title', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: durationCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Duration (Minutes)', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile(
-                  title: const Text('Is Online MCQ Quiz?'),
-                  subtitle: const Text('If off, it acts as an offline test record.'),
-                  value: isOnline,
-                  onChanged: (val) => setModalState(() => isOnline = val),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-                    onPressed: () async {
-                      if (titleCtrl.text.isEmpty) return;
-                      try {
-                        final api = ref.read(apiServiceProvider);
-                        await api.post('/teacher/tests', {
-                          'title': titleCtrl.text,
-                          'durationMinutes': int.tryParse(durationCtrl.text),
-                          'isOnline': isOnline,
-                        });
-                        ref.invalidate(testsProvider);
-                        if (ctx.mounted) Navigator.pop(ctx);
-                      } catch (e) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
-                      }
-                    },
-                    child: const Text('Create Quiz'),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
               ],
             ),
-          );
-        });
-      },
+            const SizedBox(height: 20),
+
+            // Title
+            TextField(
+              controller: _titleCtrl,
+              decoration: const InputDecoration(labelText: 'Quiz Title *', border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 14),
+
+            // Batch dropdown
+            batchesAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const SizedBox(),
+              data: (batches) => DropdownButtonFormField<int?>(
+                value: _selectedBatchId,
+                decoration: const InputDecoration(labelText: 'Batch (Optional)', border: OutlineInputBorder()),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('All Batches')),
+                  ...batches.map((b) => DropdownMenuItem(value: b['id'] as int, child: Text(b['name'] ?? ''))),
+                ],
+                onChanged: (val) => setState(() => _selectedBatchId = val),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Subject dropdown
+            subjectsAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const SizedBox(),
+              data: (subjects) => DropdownButtonFormField<int?>(
+                value: _selectedSubjectId,
+                decoration: const InputDecoration(labelText: 'Subject (Optional)', border: OutlineInputBorder()),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('General')),
+                  ...subjects.map((s) => DropdownMenuItem(value: s['id'] as int, child: Text(s['name'] ?? ''))),
+                ],
+                onChanged: (val) => setState(() => _selectedSubjectId = val),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Date picker
+            InkWell(
+              onTap: _pickDate,
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'Test Date (Optional)', border: OutlineInputBorder(), suffixIcon: Icon(Icons.calendar_today, size: 18)),
+                child: Text(
+                  _selectedDate != null ? DateFormat('dd MMM yyyy').format(_selectedDate!) : 'Select Date',
+                  style: TextStyle(color: _selectedDate != null ? Colors.black87 : Colors.grey.shade500),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Duration & Max Marks row
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _durationCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Duration (mins)', border: OutlineInputBorder()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _maxMarksCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Max Marks', border: OutlineInputBorder()),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Online switch
+            SwitchListTile(
+              title: const Text('Is Online MCQ Quiz?'),
+              subtitle: const Text('If off, acts as offline test record.'),
+              value: _isOnline,
+              onChanged: (val) => setState(() => _isOnline = val),
+              contentPadding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 16),
+
+            // Submit
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                onPressed: _isSubmitting ? null : _submit,
+                child: _isSubmitting
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Create Quiz', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
     );
   }
 }
