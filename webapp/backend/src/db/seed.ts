@@ -59,20 +59,26 @@ async function seed(): Promise<void> {
         [hash]
       );
 
-      // Helper to make a user
+      // Helper to make a user. Teachers additionally get a row in `teachers`
+      // (status/leave_start/leave_end live there now, not on `users`).
       const mkUser = async (
         tenantId: number,
         role: string,
         name: string,
         phone: string
-      ): Promise<number> =>
-        (
+      ): Promise<number> => {
+        const id = (
           await client.query<{ id: number }>(
             `INSERT INTO users (tenant_id, role, full_name, phone, password_hash)
            VALUES ($1,$2,$3,$4,$5) RETURNING id`,
             [tenantId, role, name, phone, hash]
           )
         ).rows[0].id;
+        if (role === 'teacher') {
+          await client.query(`INSERT INTO teachers (tenant_id, user_id) VALUES ($1,$2)`, [tenantId, id]);
+        }
+        return id;
+      };
 
       // ---- Apex users ----
       await mkUser(apex, 'coaching_admin', 'Rajesh Deshmukh', '919000000011');
@@ -166,11 +172,17 @@ async function seed(): Promise<void> {
         [apex, apexStudent, apexFee]
       );
 
-      // ---- Content (VOD) ----
+      // ---- Chapter + Content (VOD) ----
+      const apexKinematics = (
+        await client.query<{ id: number }>(
+          `INSERT INTO chapters (tenant_id, subject_id, name) VALUES ($1,$2,'Kinematics') RETURNING id`,
+          [apex, apexPhysics]
+        )
+      ).rows[0].id;
       await client.query(
-        `INSERT INTO content (tenant_id, batch_id, subject_id, title, youtube_url, created_by)
-         VALUES ($1,$2,$3,'Kinematics - Lecture 1','https://youtu.be/dQw4w9WgXcQ',$4)`,
-        [apex, apexBatch, apexPhysics, apexTeacher]
+        `INSERT INTO content (tenant_id, batch_id, chapter_id, content_type, title, file_url, created_by)
+         VALUES ($1,$2,$3,'video','Kinematics - Lecture 1','https://youtu.be/dQw4w9WgXcQ',$4)`,
+        [apex, apexBatch, apexKinematics, apexTeacher]
       );
 
       // ---- Live class (today) ----

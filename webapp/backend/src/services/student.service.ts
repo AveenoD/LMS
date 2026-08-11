@@ -147,10 +147,10 @@ export async function dashboard(tenantId: number, userId: number): Promise<Stude
   // Next upcoming test
   const nextTest = (
     await query<UpcomingTest>(
-      `SELECT t.id, t.title, s.name AS subject, t.test_date AS "testDate", t.max_marks AS "maxMarks"
+      `SELECT t.id, t.title, s.name AS subject, t.scheduled_at AS "testDate", t.max_marks AS "maxMarks"
        FROM tests t LEFT JOIN subjects s ON s.id = t.subject_id
-       WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[]) AND t.test_date >= CURRENT_DATE
-       ORDER BY t.test_date ASC LIMIT 1`,
+       WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[]) AND t.scheduled_at >= now()
+       ORDER BY t.scheduled_at ASC LIMIT 1`,
       [tenantId, safeBatches]
     )
   ).rows[0] || null;
@@ -164,7 +164,7 @@ export async function dashboard(tenantId: number, userId: number): Promise<Stude
        JOIN content c ON c.id = p.content_id
        LEFT JOIN chapters ch ON ch.id = c.chapter_id
        LEFT JOIN subjects sub ON sub.id = ch.subject_id
-       WHERE p.tenant_id=$1 AND p.user_id=$2 AND c.content_type LIKE '%video%'
+       WHERE p.tenant_id=$1 AND p.user_id=$2 AND c.content_type = 'video'
        ORDER BY p.updated_at DESC LIMIT 1`,
       [tenantId, userId]
     )
@@ -462,31 +462,31 @@ export async function listTests(
 
   const active = (
     await query<StudentTest>(
-      `SELECT t.id, t.title, s.name AS subject, t.test_date AS "testDate",
+      `SELECT t.id, t.title, s.name AS subject, t.scheduled_at AS "testDate",
               t.max_marks AS "maxMarks", t.duration_minutes AS "durationMinutes", t.is_online AS "isOnline"
          FROM tests t
          LEFT JOIN subjects s ON s.id = t.subject_id
         WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[])
-          AND (t.test_date IS NULL OR t.test_date >= now()::date)
+          AND (t.scheduled_at IS NULL OR t.scheduled_at >= now())
           AND NOT EXISTS (
             SELECT 1 FROM test_results tr
             WHERE tr.test_id = t.id AND tr.student_id = $3
           )
-        ORDER BY t.test_date ASC NULLS LAST`,
+        ORDER BY t.scheduled_at ASC NULLS LAST`,
       [tenantId, safeBatches, studentId]
     )
   ).rows;
 
   const completed = (
     await query<StudentTest>(
-      `SELECT t.id, t.title, s.name AS subject, t.test_date AS "testDate",
+      `SELECT t.id, t.title, s.name AS subject, t.scheduled_at AS "testDate",
               t.max_marks AS "maxMarks", t.duration_minutes AS "durationMinutes", t.is_online AS "isOnline",
               tr.marks_obtained AS "marksObtained"
          FROM tests t
          JOIN test_results tr ON tr.test_id = t.id AND tr.student_id = $3
          LEFT JOIN subjects s ON s.id = t.subject_id
         WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[])
-        ORDER BY t.test_date DESC NULLS FIRST`,
+        ORDER BY t.scheduled_at DESC NULLS FIRST`,
       [tenantId, safeBatches, studentId]
     )
   ).rows;
@@ -504,6 +504,21 @@ export interface QuizQuestion {
   options: { id: number; optionText: string | null; imageUrl: string | null }[];
 }
 
+interface StoredOption {
+  id: number;
+  optionText: string | null;
+  imageUrl: string | null;
+  isCorrect: boolean;
+}
+
+interface StoredQuestion {
+  id: number;
+  questionText: string;
+  imageUrl: string | null;
+  marks: number;
+  options: StoredOption[];
+}
+
 export async function getTestQuestions(
   tenantId: number,
   userId: number,
@@ -514,34 +529,21 @@ export async function getTestQuestions(
   const safeBatches = batchIds.length ? batchIds : [-1];
 
   // Verify test belongs to student's batch
-  const testCheck = await query(
-    `SELECT id FROM tests WHERE id=$1 AND tenant_id=$2 AND batch_id = ANY($3::int[])`,
+  const testCheck = await query<{ questions: StoredQuestion[] }>(
+    `SELECT questions FROM tests WHERE id=$1 AND tenant_id=$2 AND batch_id = ANY($3::int[])`,
     [testId, tenantId, safeBatches]
   );
   if (!testCheck.rows[0]) throw ApiError.notFound('TEST_NOT_FOUND');
 
-  const questions = (
-    await query<{ id: number; questionText: string; imageUrl: string | null; marks: number }>(
-      `SELECT id, question_text AS "questionText", image_url AS "imageUrl", marks
-         FROM questions WHERE tenant_id=$1 AND test_id=$2 ORDER BY id`,
-      [tenantId, testId]
-    )
-  ).rows;
+  const questions = testCheck.rows[0].questions || [];
 
-  if (questions.length === 0) return [];
-
-  const questionIds = questions.map((q) => q.id);
-  const options = (
-    await query<{ id: number; questionId: number; optionText: string | null; imageUrl: string | null }>(
-      `SELECT id, question_id AS "questionId", option_text AS "optionText", image_url AS "imageUrl"
-         FROM options WHERE tenant_id=$1 AND question_id = ANY($2::int[]) ORDER BY id`,
-      [tenantId, questionIds]
-    )
-  ).rows;
-
+  // isCorrect is deliberately stripped — the student hasn't submitted yet.
   return questions.map((q) => ({
-    ...q,
-    options: options.filter((o) => o.questionId === q.id).map(({ questionId: _qi, ...o }) => o),
+    id: q.id,
+    questionText: q.questionText,
+    imageUrl: q.imageUrl,
+    marks: q.marks,
+    options: q.options.map((o) => ({ id: o.id, optionText: o.optionText, imageUrl: o.imageUrl })),
   }));
 }
 
@@ -575,56 +577,48 @@ export async function submitTest(
   );
   if (existing.rows[0]) throw ApiError.badRequest('TEST_ALREADY_SUBMITTED');
 
-  // Load questions + correct options
-  const questions = (
-    await query<{ id: number; marks: number }>(
-      `SELECT q.id, q.marks FROM questions q WHERE q.tenant_id=$1 AND q.test_id=$2`,
-      [tenantId, testId]
-    )
-  ).rows;
-
-  if (questions.length === 0) throw ApiError.notFound('TEST_HAS_NO_QUESTIONS');
-
-  const correctOptions = (
-    await query<{ questionId: number; id: number }>(
-      `SELECT question_id AS "questionId", id FROM options
-        WHERE tenant_id=$1 AND question_id = ANY($2::int[]) AND is_correct=true`,
-      [tenantId, questions.map((q) => q.id)]
-    )
-  ).rows;
-
-  // Grade
   const test = (
-    await query<{ max_marks: number }>(
-      `SELECT max_marks FROM tests WHERE id=$1 AND tenant_id=$2`,
+    await query<{ max_marks: number; questions: StoredQuestion[] }>(
+      `SELECT max_marks, questions FROM tests WHERE id=$1 AND tenant_id=$2`,
       [testId, tenantId]
     )
   ).rows[0];
   if (!test) throw ApiError.notFound('TEST_NOT_FOUND');
+
+  const questions = test.questions || [];
+  if (questions.length === 0) throw ApiError.notFound('TEST_HAS_NO_QUESTIONS');
 
   let correct = 0;
   let incorrect = 0;
   let skipped = 0;
   let marksObtained = 0;
 
+  // Per-question answer record, stored alongside the result so a future
+  // "review answers" screen has something to read (previously only the
+  // aggregate marks_obtained was persisted — individual answers were
+  // computed here and then discarded).
+  const answers: Record<string, { selectedOptionId: number | null; isCorrect: boolean }> = {};
+
   for (const q of questions) {
     const submitted = payload.answers[String(q.id)];
-    const correctOpt = correctOptions.find((o) => o.questionId === q.id);
+    const correctOpt = q.options.find((o) => o.isCorrect);
     if (submitted === undefined || submitted === null) {
       skipped++;
+      answers[String(q.id)] = { selectedOptionId: null, isCorrect: false };
     } else if (correctOpt && submitted === correctOpt.id) {
       correct++;
       marksObtained += q.marks;
+      answers[String(q.id)] = { selectedOptionId: submitted, isCorrect: true };
     } else {
       incorrect++;
+      answers[String(q.id)] = { selectedOptionId: submitted, isCorrect: false };
     }
   }
 
-  // Save result
   await query(
-    `INSERT INTO test_results (tenant_id, test_id, student_id, marks_obtained)
-     VALUES ($1, $2, $3, $4)`,
-    [tenantId, testId, studentId, marksObtained]
+    `INSERT INTO test_results (tenant_id, test_id, student_id, marks_obtained, answers)
+     VALUES ($1, $2, $3, $4, $5::jsonb)`,
+    [tenantId, testId, studentId, marksObtained, JSON.stringify(answers)]
   );
 
   return {

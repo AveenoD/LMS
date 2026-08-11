@@ -33,9 +33,11 @@ export interface TeacherItem {
 
 export async function listTeachers(tenantId: number): Promise<TeacherItem[]> {
   const { rows } = await query<TeacherItem>(
-    `SELECT id, full_name AS "fullName", phone, email,
-            status, leave_start AS "leaveStart", leave_end AS "leaveEnd"
-       FROM users WHERE tenant_id = $1 AND role='teacher' ORDER BY full_name`,
+    `SELECT u.id, u.full_name AS "fullName", u.phone, u.email,
+            t.status, t.leave_start AS "leaveStart", t.leave_end AS "leaveEnd"
+       FROM users u
+       JOIN teachers t ON t.user_id = u.id
+      WHERE u.tenant_id = $1 AND u.role='teacher' ORDER BY u.full_name`,
     [tenantId]
   );
   return rows;
@@ -54,21 +56,25 @@ export async function createTeacher(
   { fullName, phone, password, email }: CreateTeacherInput
 ): Promise<TeacherItem> {
   const hash = await bcrypt.hash(password, 10);
-  const { rows } = await query<TeacherItem>(
-    `INSERT INTO users (tenant_id, role, full_name, phone, email, password_hash)
-     VALUES ($1,'teacher',$2,$3,$4,$5)
-     RETURNING id, full_name AS "fullName", phone, email`,
-    [tenantId, fullName, phone, email || null, hash]
-  );
+  const user = await withTransaction(async (client) => {
+    const userRes = await client.query<{ id: number; fullName: string; phone: string; email: string | null }>(
+      `INSERT INTO users (tenant_id, role, full_name, phone, email, password_hash)
+       VALUES ($1,'teacher',$2,$3,$4,$5)
+       RETURNING id, full_name AS "fullName", phone, email`,
+      [tenantId, fullName, phone, email || null, hash]
+    );
+    await client.query(`INSERT INTO teachers (tenant_id, user_id) VALUES ($1,$2)`, [tenantId, userRes.rows[0].id]);
+    return userRes.rows[0];
+  });
   await writeAudit({
     tenantId,
     actorUserId,
     action: 'teacher_created',
     entity: 'user',
-    entityId: rows[0].id,
+    entityId: user.id,
     meta: { fullName, phone },
   });
-  return rows[0];
+  return { ...user, status: 'active', leaveStart: null, leaveEnd: null };
 }
 
 export async function updateTeacher(
@@ -84,33 +90,38 @@ export async function updateTeacher(
     leaveEnd?: string | null;
   }
 ): Promise<TeacherItem> {
-  const updates: string[] = [];
-  const values: any[] = [id, tenantId];
-  let i = 3;
+  const exists = await query(`SELECT 1 FROM users WHERE id=$1 AND tenant_id=$2 AND role='teacher'`, [id, tenantId]);
+  if (!exists.rowCount) throw ApiError.notFound('TEACHER_NOT_FOUND');
 
-  if (fullName !== undefined) { updates.push(`full_name=$${i++}`); values.push(fullName); }
-  if (phone !== undefined) { updates.push(`phone=$${i++}`); values.push(phone); }
-  if (email !== undefined) { updates.push(`email=$${i++}`); values.push(email); }
-  if (status !== undefined) { updates.push(`status=$${i++}`); values.push(status); }
-  if (leaveStart !== undefined) { updates.push(`leave_start=$${i++}`); values.push(leaveStart || null); }
-  if (leaveEnd !== undefined) { updates.push(`leave_end=$${i++}`); values.push(leaveEnd || null); }
-
-  if (updates.length === 0) {
-    const { rows } = await query(
-      `SELECT id, full_name as "fullName", phone, email, status, leave_start as "leaveStart", leave_end as "leaveEnd" FROM users WHERE id=$1 AND tenant_id=$2`,
-      [id, tenantId]
-    );
-    return rows[0] as any;
+  const userUpdates: string[] = [];
+  const userValues: any[] = [id, tenantId];
+  let ui = 3;
+  if (fullName !== undefined) { userUpdates.push(`full_name=$${ui++}`); userValues.push(fullName); }
+  if (phone !== undefined) { userUpdates.push(`phone=$${ui++}`); userValues.push(phone); }
+  if (email !== undefined) { userUpdates.push(`email=$${ui++}`); userValues.push(email); }
+  if (userUpdates.length) {
+    await query(`UPDATE users SET ${userUpdates.join(', ')} WHERE id=$1 AND tenant_id=$2`, userValues);
   }
 
-  const { rows, rowCount } = await query(
-    `UPDATE users SET ${updates.join(', ')} WHERE id=$1 AND tenant_id=$2 AND role='teacher'
-     RETURNING id, full_name as "fullName", phone, email, status, leave_start as "leaveStart", leave_end as "leaveEnd"`,
-    values
-  );
+  const teacherUpdates: string[] = [];
+  const teacherValues: any[] = [id];
+  let ti = 2;
+  if (status !== undefined) { teacherUpdates.push(`status=$${ti++}`); teacherValues.push(status); }
+  if (leaveStart !== undefined) { teacherUpdates.push(`leave_start=$${ti++}`); teacherValues.push(leaveStart || null); }
+  if (leaveEnd !== undefined) { teacherUpdates.push(`leave_end=$${ti++}`); teacherValues.push(leaveEnd || null); }
+  if (teacherUpdates.length) {
+    await query(`UPDATE teachers SET ${teacherUpdates.join(', ')} WHERE user_id=$1`, teacherValues);
+  }
 
-  if (!rowCount) throw ApiError.notFound('TEACHER_NOT_FOUND');
   await writeAudit({ tenantId, actorUserId, action: 'teacher_updated', entity: 'user', entityId: id });
+
+  const { rows } = await query(
+    `SELECT u.id, u.full_name as "fullName", u.phone, u.email,
+            t.status, t.leave_start as "leaveStart", t.leave_end as "leaveEnd"
+       FROM users u JOIN teachers t ON t.user_id = u.id
+      WHERE u.id=$1 AND u.tenant_id=$2`,
+    [id, tenantId]
+  );
   return rows[0] as any;
 }
 

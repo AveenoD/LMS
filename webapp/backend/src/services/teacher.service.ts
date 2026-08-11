@@ -255,7 +255,7 @@ export async function createContent(
     const b = await query(`SELECT 1 FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
     if (!b.rowCount) throw ApiError.badRequest('INVALID_BATCH');
   }
-  const ch = await query(`SELECT subject_id FROM chapters WHERE id=$1 AND tenant_id=$2`, [chapterId, tenantId]);
+  const ch = await query(`SELECT 1 FROM chapters WHERE id=$1 AND tenant_id=$2`, [chapterId, tenantId]);
   if (!ch.rowCount) throw ApiError.badRequest('INVALID_CHAPTER');
 
   let durationMinutes = 0;
@@ -289,10 +289,10 @@ export async function createContent(
   }
 
   const { rows } = await query(
-    `INSERT INTO content (tenant_id, batch_id, subject_id, chapter_id, content_type, title, file_url, created_by, duration_minutes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `INSERT INTO content (tenant_id, batch_id, chapter_id, content_type, title, file_url, created_by, duration_minutes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      RETURNING id, title, file_url AS "fileUrl", content_type AS "contentType", chapter_id AS "chapterId", batch_id AS "batchId", duration_minutes AS "durationMinutes"`,
-    [tenantId, batchId || null, ch.rows[0].subject_id, chapterId, contentType, title, fileUrl, teacherId, durationMinutes]
+    [tenantId, batchId || null, chapterId, contentType, title, fileUrl, teacherId, durationMinutes]
   );
   return rows[0];
 }

@@ -57,7 +57,11 @@ export const createTestSchema = z
     batchId: z.coerce.number().int().positive().optional(),
     subjectId: z.coerce.number().int().positive().optional(),
     maxMarks: z.coerce.number().int().nonnegative().optional().default(0),
-    testDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD').optional(),
+    testDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD')
+      .or(z.string().regex(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/, 'datetime must be YYYY-MM-DDTHH:MM'))
+      .optional(),
     durationMinutes: z.coerce.number().int().positive().optional(),
     isOnline: z.boolean().default(false),
   })

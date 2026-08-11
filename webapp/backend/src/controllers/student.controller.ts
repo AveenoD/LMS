@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import * as svc from '../services/student.service.js';
 import * as notificationCenter from '../services/notificationCenter.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import ApiError from '../utils/ApiError.js';
 import { tenantId, userId } from './helpers.js';
 
 export const dashboard = asyncHandler(async (req: Request, res: Response) =>
