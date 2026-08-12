@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/student_providers.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/greeting.dart';
 import 'student_chapter_content_screen.dart';
 import 'student_notifications_screen.dart';
 
@@ -15,9 +16,7 @@ class StudentHomeScreen extends ConsumerWidget {
     final studentName = authState.fullName ?? 'Student';
     final instituteName = authState.instituteName ?? 'Academy';
 
-    final now = DateTime.now();
-    final hour = now.hour;
-    final greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+    final greeting = timeBasedGreeting();
 
     final dashAsync = ref.watch(studentDashboardProvider);
 
@@ -166,8 +165,13 @@ class StudentHomeScreen extends ConsumerWidget {
                 final title = item['title'] as String? ?? '';
                 final subject = item['subject'] as String? ?? '';
                 final progressSecs = item['progressSeconds'] as int? ?? 0;
-                final durationMins = item['durationMinutes'] as int? ?? 1;
-                final totalSecs = durationMins * 60;
+                // Exact seconds when available — using the floor()'d minutes
+                // as the denominator would make the bar hit 100% before the
+                // video visually ends.
+                final durationSecondsField = item['durationSeconds'] as int?;
+                final totalSecs = (durationSecondsField != null && durationSecondsField > 0)
+                    ? durationSecondsField
+                    : (item['durationMinutes'] as int? ?? 0) * 60;
                 final progressPct = isContinue && totalSecs > 0 ? (progressSecs / totalSecs).clamp(0.0, 1.0) : 0.0;
 
                 return Padding(

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../../theme/app_colors.dart';
 import '../../providers/teacher_providers.dart';
 import '../../services/api_service.dart';
+import '../../utils/duration_format.dart';
 
 import 'content_viewer_screen.dart';
 
@@ -109,81 +110,24 @@ class _TeacherContentScreenState extends ConsumerState<TeacherContentScreen> wit
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final item = items[index];
-        final isVideo = item['contentType'] == 'video';
-        
-        Widget leadingIcon;
-        if (isVideo) {
-          final videoId = _extractYouTubeId(item['fileUrl'] ?? '');
-          if (videoId != null) {
-            leadingIcon = ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                'https://img.youtube.com/vi/$videoId/0.jpg',
-                width: 60,
-                height: 45,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.play_circle_filled, color: Colors.blue, size: 32),
-              ),
-            );
-          } else {
-            leadingIcon = const Icon(Icons.play_circle_filled, color: Colors.blue, size: 32);
-          }
-        } else {
-          leadingIcon = Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 32),
-          );
-        }
-
-        return InkWell(
+        final item = items[index] as Map<String, dynamic>;
+        return _TeacherContentTile(
+          item: item,
+          videoId: item['contentType'] == 'video' ? _extractYouTubeId(item['fileUrl'] ?? '') : null,
           onTap: () {
             final urlStr = item['fileUrl'] ?? '';
-            final title = item['title'] ?? 'Untitled';
-            final cType = item['contentType'] ?? 'document';
-            
-            if (urlStr.isNotEmpty) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ContentViewerScreen(
-                    title: title,
-                    fileUrl: urlStr,
-                    contentType: cType,
-                  ),
+            if (urlStr.isEmpty) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ContentViewerScreen(
+                  title: item['title'] ?? 'Untitled',
+                  fileUrl: urlStr,
+                  contentType: item['contentType'] ?? 'document',
                 ),
-              );
-            }
+              ),
+            );
           },
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                leadingIcon,
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 4),
-                      Text(item['fileUrl'] ?? 'null', style: TextStyle(color: Colors.blue.shade700, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
@@ -409,6 +353,104 @@ class _UploadModalContentState extends State<_UploadModalContent> {
                   : const Text('Publish Material', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Content list item ──────────────────────────────────────────────────────
+// Same visual language as the student-side lecture list (rounded thumbnail
+// with the real YouTube frame, play overlay, duration caption) instead of
+// a bare icon + raw file URL.
+
+class _TeacherContentTile extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final String? videoId;
+  final VoidCallback onTap;
+
+  const _TeacherContentTile({required this.item, required this.videoId, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = item['title'] as String? ?? 'Untitled';
+    final isVideo = item['contentType'] == 'video';
+    final durationText = formatExactDuration(
+      item['durationSeconds'] as int?,
+      fallbackMinutes: item['durationMinutes'] as int?,
+    );
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 3))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 70,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isVideo ? AppColors.infoLight : AppColors.errorLight,
+                borderRadius: BorderRadius.circular(8),
+                image: videoId != null
+                    ? DecorationImage(
+                        image: NetworkImage('https://img.youtube.com/vi/$videoId/hqdefault.jpg'),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: videoId == null
+                  ? Icon(
+                      isVideo ? Icons.play_arrow_rounded : Icons.picture_as_pdf_rounded,
+                      color: isVideo ? AppColors.info : AppColors.error,
+                      size: 22,
+                    )
+                  : Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
+                        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 16),
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.primaryDark),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        isVideo ? Icons.timer_outlined : Icons.description_outlined,
+                        size: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isVideo ? durationText : 'Document',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
           ],
         ),
       ),

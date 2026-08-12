@@ -18,6 +18,11 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
   res.json(result);
 });
 
+export const updateAvatar = asyncHandler(async (req: Request, res: Response) => {
+  const user = await authService.updateAvatar({ userId: userId(req), avatarUrl: req.body.avatarUrl });
+  res.json({ user });
+});
+
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
   // Stateless JWT: client discards tokens. (Refresh-token blacklist is a future item.)
   res.json({ success: true });

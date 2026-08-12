@@ -30,5 +30,16 @@ export function toPublicUser(u: UserRow | null | undefined): PublicUser | null {
     fullName: u.full_name,
     phone: u.phone,
     email: u.email,
+    avatarUrl: u.avatar_url,
   };
+}
+
+/** Persists a new avatar URL (already uploaded to Cloudinary by the
+ *  client) for the given user, regardless of role. */
+export async function updateAvatarUrl(userId: number, avatarUrl: string): Promise<PublicUser | null> {
+  const { rows } = await query<UserRow>(
+    `UPDATE users SET avatar_url = $1 WHERE id = $2 RETURNING *`,
+    [avatarUrl, userId]
+  );
+  return toPublicUser(rows[0]);
 }

@@ -309,7 +309,14 @@ class _StudentDetailsScreenState extends ConsumerState<StudentDetailsScreen>
               _buildActionIcon(Icons.bar_chart, 'View Reports', onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => StudentReportScreen(student: widget.student)),
+                  MaterialPageRoute(
+                    builder: (_) => Consumer(
+                      builder: (context, ref, _) => StudentReportScreen(
+                        student: widget.student,
+                        detailsAsync: ref.watch(mgmt.studentDetailsProvider(studentId)),
+                      ),
+                    ),
+                  ),
                 );
               }),
               const SizedBox(width: 8),

@@ -15,5 +15,12 @@ export const refreshSchema = z
   })
   .strict();
 
+export const updateAvatarSchema = z
+  .object({
+    avatarUrl: z.string().url(),
+  })
+  .strict();
+
 export type LoginBody = z.infer<typeof loginSchema>;
 export type RefreshBody = z.infer<typeof refreshSchema>;
+export type UpdateAvatarBody = z.infer<typeof updateAvatarSchema>;

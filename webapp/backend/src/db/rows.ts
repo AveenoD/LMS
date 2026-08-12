@@ -32,6 +32,7 @@ export interface UserRow {
   phone: string;
   email: string | null;
   password_hash: string;
+  avatar_url: string | null;
   is_active: boolean;
   created_at: Date;
 }
@@ -43,6 +44,7 @@ export interface PublicUser {
   fullName: string;
   phone: string;
   email: string | null;
+  avatarUrl: string | null;
 }
 
 export type LeadStatus = 'new' | 'contacted' | 'converted' | 'lost';

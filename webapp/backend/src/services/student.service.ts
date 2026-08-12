@@ -64,6 +64,7 @@ export interface ContinuePlaying {
   chapterId: number | null;
   progressSeconds: number;
   durationMinutes: number;
+  durationSeconds: number;
 }
 
 export interface StudentDashboard {
@@ -157,7 +158,8 @@ export async function dashboard(tenantId: number, userId: number): Promise<Stude
 
   const continuePlaying = (
     await query<ContinuePlaying>(
-      `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType", c.duration_minutes AS "durationMinutes",
+      `SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType",
+              c.duration_minutes AS "durationMinutes", c.duration_seconds AS "durationSeconds",
               ch.name AS chapter, ch.id AS "chapterId", sub.name AS subject,
               p.progress_seconds AS "progressSeconds"
        FROM user_content_progress p
@@ -362,7 +364,10 @@ export async function listSubjects(tenantId: number, userId: number): Promise<Su
   const batchIds = await enrolledBatchIds(tenantId, studentId);
   const safeBatches = batchIds.length ? batchIds : [-1];
 
-  // Get subjects linked via timetable for this student's batches
+  // Subjects come from the student's batches' subject_ids — set once at
+  // batch-create time — not from timetable entries. A batch with no
+  // timetable slots yet (or a subject with no class scheduled this week)
+  // still shows up here, which is the whole point.
   const { rows } = await query<SubjectWithStats>(
     `SELECT s.id, s.name,
             COUNT(DISTINCT ch.id)::int AS "totalChapters",
@@ -371,9 +376,9 @@ export async function listSubjects(tenantId: number, userId: number): Promise<Su
        LEFT JOIN chapters ch ON ch.subject_id = s.id AND ch.tenant_id = s.tenant_id
        LEFT JOIN content c ON c.chapter_id = ch.id
       WHERE s.tenant_id=$1
-        AND s.id IN (
-          SELECT DISTINCT t.subject_id FROM timetable t
-          WHERE t.tenant_id=$1 AND t.batch_id = ANY($2::int[]) AND t.subject_id IS NOT NULL
+        AND s.id = ANY(
+          SELECT DISTINCT unnest(b.subject_ids) FROM batches b
+          WHERE b.tenant_id=$1 AND b.id = ANY($2::int[])
         )
       GROUP BY s.id, s.name
       ORDER BY s.name`,
@@ -420,6 +425,8 @@ export interface ContentItem {
   title: string;
   fileUrl: string;
   contentType: string;
+  durationMinutes: number;
+  durationSeconds: number;
 }
 
 export async function listChapterContent(
@@ -429,7 +436,8 @@ export async function listChapterContent(
 ): Promise<ContentItem[]> {
   await getStudentId(tenantId, userId); // auth check
   const { rows } = await query<ContentItem>(
-    `SELECT id, title, file_url AS "fileUrl", content_type AS "contentType", duration_minutes AS "durationMinutes"
+    `SELECT id, title, file_url AS "fileUrl", content_type AS "contentType",
+            duration_minutes AS "durationMinutes", duration_seconds AS "durationSeconds"
        FROM content
       WHERE tenant_id=$1 AND chapter_id=$2
       ORDER BY created_at ASC`,

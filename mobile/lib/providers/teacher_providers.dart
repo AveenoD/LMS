@@ -59,3 +59,11 @@ final teacherChaptersProvider = FutureProvider.family<List<dynamic>, int?>((ref,
   final query = subjectId != null ? '?subjectId=$subjectId' : '';
   return await api.get('/teacher/chapters$query');
 });
+
+/// Same report shape as admin's `studentDetailsProvider` — same backend
+/// data (admin.service.getStudentDetails), just via the teacher-scoped
+/// route that checks the student is in one of this teacher's batches.
+final teacherStudentDetailsProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, studentId) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/students/$studentId/details') as Map<String, dynamic>;
+});

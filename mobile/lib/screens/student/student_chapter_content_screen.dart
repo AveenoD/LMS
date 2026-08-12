@@ -6,6 +6,7 @@ import '../../providers/student_providers.dart';
 import '../../services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/duration_format.dart';
 import 'pdf_viewer_screen.dart';
 
 String? extractYoutubeId(String url) {
@@ -189,7 +190,12 @@ class _StudentChapterContentScreenState extends ConsumerState<StudentChapterCont
                   ),
                 ),
                 Text(
-                  _selectedContent?['durationMinutes'] != null ? '${_selectedContent!['durationMinutes']} min' : '',
+                  _selectedContent == null
+                      ? ''
+                      : formatExactDuration(
+                          _selectedContent?['durationSeconds'] as int?,
+                          fallbackMinutes: _selectedContent?['durationMinutes'] as int?,
+                        ),
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
                 ),
               ],
@@ -387,23 +393,16 @@ class _ContentTile extends StatelessWidget {
 
   const _ContentTile({required this.item, required this.isSelected, this.ytController, required this.onTap});
 
-  String _formatDuration(int totalMinutes) {
-    if (totalMinutes <= 0) return '0 min';
-    if (totalMinutes < 60) return '$totalMinutes min';
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-    if (minutes == 0) return '$hours hr';
-    return '$hours hr $minutes min';
-  }
-
   @override
   Widget build(BuildContext context) {
     final title = item['title'] as String? ?? 'Content';
     final type = item['contentType'] as String? ?? 'video';
     final isVideo = type.contains('video');
-    final durationMinutes = item['durationMinutes'] as int? ?? 0;
-    final duration = _formatDuration(durationMinutes);
-    
+    final duration = formatExactDuration(
+      item['durationSeconds'] as int?,
+      fallbackMinutes: item['durationMinutes'] as int?,
+    );
+
     String? videoId;
     if (isVideo) {
       final url = item['fileUrl']?.toString();

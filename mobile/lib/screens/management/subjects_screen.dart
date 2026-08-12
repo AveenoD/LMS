@@ -95,6 +95,9 @@ class SubjectsScreen extends ConsumerWidget {
                       child: Icon(Icons.menu_book, color: Colors.blue.shade700),
                     ),
                     title: Text(subject['name'] ?? 'Unknown Subject', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
+                    subtitle: (subject['totalChapters'] as int? ?? 0) > 0
+                        ? Text('${subject['totalChapters']} chapters planned', style: TextStyle(color: Colors.grey.shade600, fontSize: 12))
+                        : null,
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) {
                         if (value == 'edit') {
@@ -155,6 +158,7 @@ class _AddSubjectBottomSheet extends ConsumerStatefulWidget {
 
 class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> {
   final _name = TextEditingController();
+  final _totalChapters = TextEditingController();
   bool _saving = false;
   String? _error;
 
@@ -163,12 +167,15 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
     super.initState();
     if (widget.subject != null) {
       _name.text = widget.subject!['name'] ?? '';
+      final existing = widget.subject!['totalChapters'] as int?;
+      _totalChapters.text = existing != null && existing > 0 ? '$existing' : '';
     }
   }
 
   @override
   void dispose() {
     _name.dispose();
+    _totalChapters.dispose();
     super.dispose();
   }
 
@@ -182,10 +189,20 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
       _error = null;
     });
     try {
+      final totalChapters = int.tryParse(_totalChapters.text.trim());
       if (widget.subject != null) {
-        await updateSubject(ref.read(apiServiceProvider), widget.subject!['id'], name: _name.text.trim());
+        await updateSubject(
+          ref.read(apiServiceProvider),
+          widget.subject!['id'],
+          name: _name.text.trim(),
+          totalChapters: totalChapters,
+        );
       } else {
-        await createSubject(ref.read(apiServiceProvider), name: _name.text.trim());
+        await createSubject(
+          ref.read(apiServiceProvider),
+          name: _name.text.trim(),
+          totalChapters: totalChapters ?? 0,
+        );
       }
       ref.invalidate(subjectsProvider);
       if (mounted) Navigator.pop(context);
@@ -232,6 +249,21 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
               hint: 'e.g. Mathematics',
               controller: _name,
               prefixIcon: Icons.menu_book,
+            ),
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Total Chapters (Optional)',
+              hint: 'e.g. 12',
+              controller: _totalChapters,
+              prefixIcon: Icons.format_list_numbered,
+              keyboardType: TextInputType.number,
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'Planned number of chapters — used to show progress like "8 of 12 chapters done".',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),

@@ -11,7 +11,6 @@ import '../../widgets/teacher/teacher_welcome_header.dart';
 import '../../widgets/teacher/teacher_quick_actions.dart';
 import '../../widgets/teacher/teacher_schedule_list.dart';
 import '../../widgets/teacher/teacher_batch_list.dart';
-import '../../widgets/teacher/teacher_pending_tasks.dart';
 
 class TeacherDashboardScreen extends ConsumerWidget {
   const TeacherDashboardScreen({super.key});
@@ -61,9 +60,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 32),
               
               const TeacherBatchList(),
-              const SizedBox(height: 32),
-              
-              const TeacherPendingTasks(),
               const SizedBox(height: 48), // Bottom padding
             ],
           ),

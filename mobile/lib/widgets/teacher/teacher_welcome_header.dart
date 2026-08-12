@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import 'package:intl/intl.dart';
+import '../../utils/greeting.dart';
 
 class TeacherWelcomeHeader extends StatelessWidget {
   final String teacherName;
@@ -15,6 +16,7 @@ class TeacherWelcomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateFormat('EEEE, dd MMM').format(DateTime.now());
+    final greeting = timeBasedGreeting();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -22,7 +24,7 @@ class TeacherWelcomeHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '👋 Good Morning,\n$teacherName!',
+            '👋 $greeting,\n$teacherName!',
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryDark, height: 1.2),
           ),
           const SizedBox(height: 12),

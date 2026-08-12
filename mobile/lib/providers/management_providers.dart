@@ -223,20 +223,25 @@ final studentDetailsProvider = FutureProvider.family<Map<String, dynamic>, int>(
 Future<Map<String, dynamic>> createBatch(ApiService api, {
   required String name,
   String? grade,
+  List<int> subjectIds = const [],
 }) async {
   final body = <String, dynamic>{
     'name': name,
     if (grade != null && grade.isNotEmpty) 'grade': grade,
+    'subjectIds': subjectIds,
   };
   return await api.post('/admin/batches', body) as Map<String, dynamic>;
 }
 
-Future<Map<String, dynamic>> createSubject(ApiService api, {required String name}) async {
-  return await api.post('/admin/subjects', {'name': name}) as Map<String, dynamic>;
+Future<Map<String, dynamic>> createSubject(ApiService api, {required String name, int totalChapters = 0}) async {
+  return await api.post('/admin/subjects', {'name': name, 'totalChapters': totalChapters}) as Map<String, dynamic>;
 }
 
-Future<void> updateSubject(ApiService api, int id, {required String name}) async {
-  await api.put('/admin/subjects/$id', {'name': name});
+Future<void> updateSubject(ApiService api, int id, {required String name, int? totalChapters}) async {
+  await api.put('/admin/subjects/$id', {
+    'name': name,
+    if (totalChapters != null) 'totalChapters': totalChapters,
+  });
 }
 
 Future<void> deleteSubject(ApiService api, int id) async {

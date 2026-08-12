@@ -50,6 +50,10 @@ export const doubtLink = asyncHandler(async (req: Request, res: Response) => {
   res.json(await svc.doubtLink(tenantId(req), userId(req), Number(req.params.studentId), text));
 });
 
+export const getStudentDetails = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.getStudentDetails(tenantId(req), userId(req), Number(req.params.studentId)))
+);
+
 import * as testSvc from '../services/test.service.js';
 
 export const createTest = asyncHandler(async (req: Request, res: Response) =>

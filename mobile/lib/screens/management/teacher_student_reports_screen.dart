@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/teacher_providers.dart';
+import 'student_report_screen.dart';
 
 class TeacherStudentReportsScreen extends ConsumerStatefulWidget {
   const TeacherStudentReportsScreen({super.key});
@@ -87,9 +88,20 @@ class _TeacherStudentReportsScreenState extends ConsumerState<TeacherStudentRepo
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final s = students[index];
+            final studentId = s['studentId'] as int;
             return InkWell(
               onTap: () {
-                _showStudentPerformance(context, s['name']);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => Consumer(
+                      builder: (context, ref, _) => StudentReportScreen(
+                        student: {'id': studentId, 'fullName': s['name'], 'rollNo': s['rollNo']},
+                        detailsAsync: ref.watch(teacherStudentDetailsProvider(studentId)),
+                      ),
+                    ),
+                  ),
+                );
               },
               borderRadius: BorderRadius.circular(16),
               child: Container(
@@ -136,27 +148,4 @@ class _TeacherStudentReportsScreenState extends ConsumerState<TeacherStudentRepo
     );
   }
 
-  void _showStudentPerformance(BuildContext context, String studentName) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('$studentName\'s Report', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-              const SizedBox(height: 24),
-              const Center(
-                child: Text('Coming Soon: Attendance Pie Chart & Test Score Graph', style: TextStyle(color: Colors.grey)),
-              ),
-              const SizedBox(height: 100), // Placeholder space for charts
-            ],
-          ),
-        );
-      },
-    );
-  }
 }

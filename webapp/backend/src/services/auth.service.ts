@@ -93,3 +93,11 @@ export async function me({ userId }: { userId: number }): Promise<{ user: Public
   const branding = user.tenant_id ? await tenantRepo.getBranding(user.tenant_id) : null;
   return { user: userRepo.toPublicUser(user), branding };
 }
+
+/** Sets the caller's own profile photo — any role, no ownership check
+ *  needed beyond "it's their own userId" (sourced from the JWT). */
+export async function updateAvatar({ userId, avatarUrl }: { userId: number; avatarUrl: string }): Promise<PublicUser> {
+  const user = await userRepo.updateAvatarUrl(userId, avatarUrl);
+  if (!user) throw ApiError.notFound('USER_NOT_FOUND');
+  return user;
+}

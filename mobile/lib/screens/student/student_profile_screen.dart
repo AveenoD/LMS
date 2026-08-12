@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/student_providers.dart';
-import '../auth/login_screen.dart';
+import '../../widgets/profile/profile_header.dart';
+import '../../widgets/profile/profile_info_card.dart';
+import '../../widgets/profile/profile_menu_list.dart';
+import '../../widgets/profile/profile_logout_button.dart';
 
 class StudentProfileScreen extends ConsumerWidget {
   const StudentProfileScreen({super.key});
@@ -23,168 +25,85 @@ class StudentProfileScreen extends ConsumerWidget {
           final batch = profile['batchName'] as String? ?? 'No batch';
           final rollNoStr = profile['rollNo'] != null ? 'Roll No: ${profile['rollNo']}' : 'No Roll No';
           final parentPhone = profile['parentPhone'] as String? ?? 'Not provided';
-          
+
           final attendancePct = profile['attendancePct'] as int? ?? 0;
           final testsGiven = profile['testsGiven'] as int? ?? 0;
           final avgScore = profile['avgScore'] as int?;
 
           return CustomScrollView(
             slivers: [
-              // ── Profile Header ──────────────────────────────────────────────
               SliverToBoxAdapter(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF1F2E27), Color(0xFF2E6656)],
-                    ),
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(32),
-                      bottomRight: Radius.circular(32),
-                    ),
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-                      child: Column(
-                        children: [
-                          // Avatar
-                          Container(
-                            width: 82,
-                            height: 82,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withValues(alpha: 0.15),
-                              border: Border.all(color: const Color(0xFFA87D26), width: 3),
-                            ),
-                            child: const Icon(Icons.person_rounded, color: Colors.white, size: 44),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(studentName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(batch, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12)),
-                          const SizedBox(height: 2),
-                          Text(rollNoStr, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11)),
-                          const SizedBox(height: 20),
-                          // Quick stats row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _QuickStat(label: 'Attendance', value: '$attendancePct%'),
-                              Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.2)),
-                              _QuickStat(label: 'Tests Given', value: '$testsGiven'),
-                              Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.2)),
-                              _QuickStat(label: 'Avg Score', value: avgScore != null ? '$avgScore%' : '--'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-              // ── Info Card ──────────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Personal Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryDark)),
-                        const SizedBox(height: 12),
-                        _InfoRow(icon: Icons.phone_rounded, label: 'Phone', value: phone),
-                        const Divider(height: 20),
-                        _InfoRow(icon: Icons.family_restroom_rounded, label: 'Parent Contact', value: parentPhone),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-          // ── Menu Items ────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                child: Column(
-                  children: [
-                    _MenuItem(
-                      icon: Icons.calendar_month_rounded,
-                      iconBg: AppColors.successLight,
-                      iconColor: AppColors.success,
-                      label: 'My Attendance',
-                      subtitle: 'View monthly calendar report',
-                      onTap: () => _showAttendanceSheet(context),
-                    ),
-                    const Divider(height: 1, indent: 60),
-                    _MenuItem(
-                      icon: Icons.analytics_rounded,
-                      iconBg: AppColors.infoLight,
-                      iconColor: AppColors.info,
-                      label: 'Performance Analytics',
-                      subtitle: 'Subject-wise score breakdown',
-                      onTap: () => _showPerformanceSheet(context),
-                    ),
-                    const Divider(height: 1, indent: 60),
-                    _MenuItem(
-                      icon: Icons.account_balance_wallet_rounded,
-                      iconBg: AppColors.warningLight,
-                      iconColor: Colors.orange,
-                      label: 'Fee Details',
-                      subtitle: 'Paid ₹8,000 • Pending ₹2,000',
-                      onTap: () => _showFeesSheet(context),
-                    ),
+                child: ProfileHeader(
+                  name: studentName,
+                  subtitleLine1: batch,
+                  subtitleLine2: rollNoStr,
+                  stats: [
+                    ProfileStat(label: 'Attendance', value: '$attendancePct%'),
+                    ProfileStat(label: 'Tests Given', value: '$testsGiven'),
+                    ProfileStat(label: 'Avg Score', value: avgScore != null ? '$avgScore%' : '--'),
                   ],
                 ),
               ),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-          // ── Logout ────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-              child: GestureDetector(
-                onTap: () => _confirmLogout(context, ref),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorLight,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
-                      SizedBox(width: 10),
-                      Text('Logout', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 15)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ProfileInfoCard(
+                    rows: [
+                      ProfileInfoRowData(icon: Icons.phone_rounded, label: 'Phone', value: phone),
+                      ProfileInfoRowData(icon: Icons.family_restroom_rounded, label: 'Parent Contact', value: parentPhone),
                     ],
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
-      );
-    }),
-  );
-}
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ProfileMenuList(
+                    items: [
+                      ProfileMenuItemData(
+                        icon: Icons.calendar_month_rounded,
+                        iconBg: AppColors.successLight,
+                        iconColor: AppColors.success,
+                        label: 'My Attendance',
+                        subtitle: 'View monthly calendar report',
+                        onTap: () => _showAttendanceSheet(context),
+                      ),
+                      ProfileMenuItemData(
+                        icon: Icons.analytics_rounded,
+                        iconBg: AppColors.infoLight,
+                        iconColor: AppColors.info,
+                        label: 'Performance Analytics',
+                        subtitle: 'Subject-wise score breakdown',
+                        onTap: () => _showPerformanceSheet(context),
+                      ),
+                      ProfileMenuItemData(
+                        icon: Icons.account_balance_wallet_rounded,
+                        iconBg: AppColors.warningLight,
+                        iconColor: Colors.orange,
+                        label: 'Fee Details',
+                        subtitle: 'Paid ₹8,000 • Pending ₹2,000',
+                        onTap: () => _showFeesSheet(context),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                  child: const ProfileLogoutButton(),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
-  // ── Attendance bottom sheet ─────────────────────────────────────────────
   void _showAttendanceSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -194,7 +113,6 @@ class StudentProfileScreen extends ConsumerWidget {
     );
   }
 
-  // ── Performance bottom sheet ────────────────────────────────────────────
   void _showPerformanceSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -204,7 +122,6 @@ class StudentProfileScreen extends ConsumerWidget {
     );
   }
 
-  // ── Fees bottom sheet ───────────────────────────────────────────────────
   void _showFeesSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -213,110 +130,9 @@ class StudentProfileScreen extends ConsumerWidget {
       builder: (_) => _FeesSheet(),
     );
   }
-
-  void _confirmLogout(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (_) => false,
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ─── Reusable Profile Widgets ─────────────────────────────────────────────────
-
-class _QuickStat extends StatelessWidget {
-  final String label, value;
-  const _QuickStat({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 10)),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  const _InfoRow({required this.icon, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.primary),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.primaryDark)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg, iconColor;
-  final String label;
-  final String? subtitle;
-  final VoidCallback onTap;
-
-  const _MenuItem({required this.icon, required this.iconBg, required this.iconColor, required this.label, this.subtitle, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
-        child: Icon(icon, color: iconColor, size: 20),
-      ),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.primaryDark)),
-      subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 11, color: Colors.grey)) : null,
-      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-      onTap: onTap,
-      ),
-    );
-  }
-}
-
-// ─── Bottom Sheets ────────────────────────────────────────────────────────────
+// ─── Bottom Sheets (role-specific, not shared) ─────────────────────────────
 
 class _AttendanceSheet extends ConsumerWidget {
   // ignore: prefer_const_constructors_in_immutables
@@ -358,7 +174,7 @@ class _AttendanceSheet extends ConsumerWidget {
                       final present = m['present'] as int;
                       final pct = total > 0 ? (present / total * 100).toInt() : 0;
                       final color = pct >= 75 ? AppColors.success : pct >= 50 ? Colors.orange : AppColors.error;
-                      
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
@@ -435,7 +251,7 @@ class _PerformanceSheet extends ConsumerWidget {
                       final max = s['totalMarks'] as int;
                       final pct = max > 0 ? score / max : 0.0;
                       final color = pct >= 0.75 ? AppColors.success : pct >= 0.5 ? Colors.orange : AppColors.error;
-                      
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
@@ -514,7 +330,6 @@ class _FeesSheet extends ConsumerWidget {
                     controller: controller,
                     padding: const EdgeInsets.all(16),
                     children: [
-                      // Summary
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -563,7 +378,7 @@ class _FeesSheet extends ConsumerWidget {
                           final pDateStr = p['paidOn']?.toString() ?? '';
                           final pDate = DateTime.tryParse(pDateStr) ?? DateTime.now();
                           final formattedDate = '${pDate.day} ${_getMonth(pDate.month)} ${pDate.year}';
-                          
+
                           return Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(14),

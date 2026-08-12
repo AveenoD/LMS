@@ -129,6 +129,26 @@ class BatchesScreen extends ConsumerWidget {
                                             const SizedBox(height: 4),
                                             Text('${batch['studentCount'] ?? 0} students enrolled',
                                                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+                                            if ((batch['subjectNames'] as List<dynamic>?)?.isNotEmpty ?? false) ...[
+                                              const SizedBox(height: 6),
+                                              Wrap(
+                                                spacing: 6,
+                                                runSpacing: 4,
+                                                children: (batch['subjectNames'] as List<dynamic>).map((name) {
+                                                  return Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFF2E6656).withValues(alpha: 0.08),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text(
+                                                      name.toString(),
+                                                      style: const TextStyle(color: Color(0xFF2E6656), fontSize: 11, fontWeight: FontWeight.w600),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       ),
@@ -218,6 +238,7 @@ class _AddBatchBottomSheet extends ConsumerStatefulWidget {
 class _AddBatchBottomSheetState extends ConsumerState<_AddBatchBottomSheet> {
   final _name = TextEditingController();
   final _grade = TextEditingController();
+  final Set<int> _selectedSubjectIds = {};
   bool _saving = false;
   String? _error;
 
@@ -238,7 +259,12 @@ class _AddBatchBottomSheetState extends ConsumerState<_AddBatchBottomSheet> {
       _error = null;
     });
     try {
-      await createBatch(ref.read(apiServiceProvider), name: _name.text.trim(), grade: _grade.text.trim());
+      await createBatch(
+        ref.read(apiServiceProvider),
+        name: _name.text.trim(),
+        grade: _grade.text.trim(),
+        subjectIds: _selectedSubjectIds.toList(),
+      );
       ref.invalidate(batchesProvider);
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -291,6 +317,59 @@ class _AddBatchBottomSheetState extends ConsumerState<_AddBatchBottomSheet> {
               hint: 'e.g. Class 11',
               controller: _grade,
               prefixIcon: Icons.grade_outlined,
+            ),
+            const SizedBox(height: 20),
+            const Text('Subjects', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1F2E27))),
+            const SizedBox(height: 4),
+            const Text(
+              'Set once here — every student in this batch gets these automatically.',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            Consumer(
+              builder: (context, ref, _) {
+                final subjectsAsync = ref.watch(subjectsProvider);
+                return subjectsAsync.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, _) => Text('Error: $e', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                  data: (subjects) {
+                    if (subjects.isEmpty) {
+                      return const Text('No subjects yet — add one from the Subjects screen first.', style: TextStyle(color: Colors.grey, fontSize: 12));
+                    }
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: subjects.map<Widget>((s) {
+                        final id = s['id'] as int;
+                        final selected = _selectedSubjectIds.contains(id);
+                        return FilterChip(
+                          label: Text(s['name'] ?? ''),
+                          selected: selected,
+                          onSelected: (val) => setState(() {
+                            if (val) {
+                              _selectedSubjectIds.add(id);
+                            } else {
+                              _selectedSubjectIds.remove(id);
+                            }
+                          }),
+                          selectedColor: const Color(0xFF2E6656),
+                          backgroundColor: Colors.white,
+                          checkmarkColor: Colors.white,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.white : const Color(0xFF1F2E27),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: selected ? const Color(0xFF2E6656) : Colors.grey.shade300),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                );
+              },
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),

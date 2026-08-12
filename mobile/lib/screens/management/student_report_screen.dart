@@ -6,13 +6,17 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import '../../theme/app_colors.dart';
-import '../../providers/management_providers.dart' as mgmt;
 import '../../providers/auth_provider.dart';
 
 class StudentReportScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> student;
+  /// Caller-supplied so this screen stays reusable across roles — admin
+  /// watches `mgmt.studentDetailsProvider`, teacher watches
+  /// `teacherStudentDetailsProvider` (same report shape, different
+  /// ownership-scoped backend route). This screen just renders it.
+  final AsyncValue<Map<String, dynamic>> detailsAsync;
 
-  const StudentReportScreen({Key? key, required this.student}) : super(key: key);
+  const StudentReportScreen({super.key, required this.student, required this.detailsAsync});
 
   @override
   ConsumerState<StudentReportScreen> createState() => _StudentReportScreenState();
@@ -106,9 +110,8 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final studentId = widget.student['id'] as int;
-    final detailsAsync = ref.watch(mgmt.studentDetailsProvider(studentId));
-    
+    final detailsAsync = widget.detailsAsync;
+
     final fullName = widget.student['fullName']?.toString() ?? 'Unknown Student';
     final rollNo = widget.student['rollNo']?.toString() ?? 'N/A';
     final grade = widget.student['grade']?.toString() ?? 'N/A';

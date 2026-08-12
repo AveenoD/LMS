@@ -67,6 +67,10 @@ router.get(
   ctrl.doubtLink
 );
 
+// Same report the coaching_admin sees for this student — ownership
+// (student must be in one of this teacher's batches) is checked in the service.
+router.get('/students/:studentId/details', validate(studentIdParamSchema, 'params'), ctrl.getStudentDetails);
+
 // --- Tests & Quizzes ---
 router.get('/tests', ctrl.listTests);
 router.post('/tests', validate(createTestSchema), ctrl.createTest);

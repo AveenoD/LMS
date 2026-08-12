@@ -1,7 +1,57 @@
 import { query, withTransaction } from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
 import { buildWaUrl, absentMessage } from './whatsapp.service.js';
+import * as adminService from './admin.service.js';
 import * as https from 'https';
+
+/**
+ * Fetches a URL's HTML, following up to `maxRedirects` 3xx redirects —
+ * `https.get` doesn't follow redirects on its own, and youtu.be short
+ * links (the default YouTube "Share" URL) always 303-redirect to
+ * youtube.com/watch, so without this every short-link upload silently
+ * got duration_minutes = 0. Never rejects; resolves '' on any failure
+ * (network error, timeout, non-200 final response) so callers don't
+ * need their own try/catch.
+ */
+function fetchHtml(url: string, maxRedirects = 5, timeoutMs = 5000): Promise<string> {
+  return new Promise((resolve) => {
+    const attempt = (currentUrl: string, redirectsLeft: number) => {
+      let settled = false;
+      const req = https.get(currentUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+        const status = res.statusCode ?? 0;
+        if (status >= 300 && status < 400 && res.headers.location && redirectsLeft > 0) {
+          settled = true;
+          res.resume(); // drain this response so the socket can close cleanly
+          attempt(new URL(res.headers.location, currentUrl).toString(), redirectsLeft - 1);
+          return;
+        }
+        if (status !== 200) {
+          settled = true;
+          res.resume();
+          resolve('');
+          return;
+        }
+        let data = '';
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          settled = true;
+          resolve(data);
+        });
+      });
+      req.on('error', () => {
+        if (!settled) resolve('');
+      });
+      req.setTimeout(timeoutMs, () => {
+        if (!settled) {
+          settled = true;
+          req.destroy();
+          resolve('');
+        }
+      });
+    };
+    attempt(url, maxRedirects);
+  });
+}
 
 /** Today's classes for this teacher (by current day_of_week). */
 export interface ScheduleClass {
@@ -216,6 +266,8 @@ export interface ContentItem {
   chapterName: string;
   subjectId: number;
   batchId: number | null;
+  durationMinutes: number;
+  durationSeconds: number;
 }
 
 export async function listContent(tenantId: number, teacherId: number, chapterId?: number): Promise<ContentItem[]> {
@@ -223,7 +275,7 @@ export async function listContent(tenantId: number, teacherId: number, chapterId
   let q = `
     SELECT c.id, c.title, c.file_url AS "fileUrl", c.content_type AS "contentType",
            c.chapter_id AS "chapterId", ch.name AS "chapterName", ch.subject_id AS "subjectId",
-           c.batch_id AS "batchId"
+           c.batch_id AS "batchId", c.duration_minutes AS "durationMinutes", c.duration_seconds AS "durationSeconds"
       FROM content c
       JOIN chapters ch ON ch.id = c.chapter_id
      WHERE c.tenant_id=$1 AND c.created_by=$2
@@ -258,41 +310,31 @@ export async function createContent(
   const ch = await query(`SELECT 1 FROM chapters WHERE id=$1 AND tenant_id=$2`, [chapterId, tenantId]);
   if (!ch.rowCount) throw ApiError.badRequest('INVALID_CHAPTER');
 
-  let durationMinutes = 0;
-  if (contentType === 'video' && fileUrl) {
-    try {
-      durationMinutes = await new Promise<number>((resolve) => {
-        if (!fileUrl.includes('youtube.com') && !fileUrl.includes('youtu.be')) return resolve(0);
-        https.get(fileUrl, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const match = data.match(/<meta itemprop="duration" content="([^"]+)">/);
-            if (match && match[1]) {
-              let minutes = 0;
-              const h = match[1].match(/(\d+)H/);
-              const m = match[1].match(/(\d+)M/);
-              const s = match[1].match(/(\d+)S/);
-              if (h) minutes += parseInt(h[1]) * 60;
-              if (m) minutes += parseInt(m[1]);
-              if (s && parseInt(s[1]) > 30) minutes += 1;
-              resolve(minutes);
-            } else {
-              resolve(0);
-            }
-          });
-        }).on('error', () => resolve(0));
-      });
-    } catch (e) {
-      durationMinutes = 0;
+  // duration_seconds is the exact, source-of-truth value (used for mm:ss
+  // display); duration_minutes is a floor()'d fallback for older/simpler
+  // "about how long" text — never rounded up, so it never overstates.
+  let durationSeconds = 0;
+  if (contentType === 'video' && fileUrl && (fileUrl.includes('youtube.com') || fileUrl.includes('youtu.be'))) {
+    const html = await fetchHtml(fileUrl);
+    const match = html.match(/<meta itemprop="duration" content="([^"]+)">/);
+    if (match && match[1]) {
+      const h = match[1].match(/(\d+)H/);
+      const m = match[1].match(/(\d+)M/);
+      const s = match[1].match(/(\d+)S/);
+      const hours = h ? parseInt(h[1]) : 0;
+      const mins = m ? parseInt(m[1]) : 0;
+      const secs = s ? parseInt(s[1]) : 0;
+      durationSeconds = hours * 3600 + mins * 60 + secs;
     }
   }
+  const durationMinutes = Math.floor(durationSeconds / 60);
 
   const { rows } = await query(
-    `INSERT INTO content (tenant_id, batch_id, chapter_id, content_type, title, file_url, created_by, duration_minutes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     RETURNING id, title, file_url AS "fileUrl", content_type AS "contentType", chapter_id AS "chapterId", batch_id AS "batchId", duration_minutes AS "durationMinutes"`,
-    [tenantId, batchId || null, chapterId, contentType, title, fileUrl, teacherId, durationMinutes]
+    `INSERT INTO content (tenant_id, batch_id, chapter_id, content_type, title, file_url, created_by, duration_minutes, duration_seconds)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     RETURNING id, title, file_url AS "fileUrl", content_type AS "contentType", chapter_id AS "chapterId", batch_id AS "batchId",
+               duration_minutes AS "durationMinutes", duration_seconds AS "durationSeconds"`,
+    [tenantId, batchId || null, chapterId, contentType, title, fileUrl, teacherId, durationMinutes, durationSeconds]
   );
   return rows[0];
 }
@@ -337,4 +379,22 @@ export async function doubtLink(
   if (!rows[0]) throw ApiError.notFound('STUDENT_NOT_FOUND');
   const msg = text || `Hello ${rows[0].name}, regarding your doubt - ${rows[0].institute}`;
   return { waUrl: buildWaUrl(rows[0].phone, msg) };
+}
+
+/**
+ * Same academics/attendance/fees report the coaching_admin sees
+ * (admin.service.getStudentDetails) — reused as-is rather than
+ * duplicated, scoped by an ownership check: a teacher can only pull a
+ * report for a student in one of their own timetabled batches.
+ */
+export async function getStudentDetails(tenantId: number, teacherId: number, studentId: number) {
+  const owns = await query(
+    `SELECT 1 FROM batch_enrollments be
+       JOIN timetable t ON t.batch_id = be.batch_id AND t.tenant_id = be.tenant_id
+      WHERE be.student_id = $1 AND be.tenant_id = $2 AND t.teacher_id = $3
+      LIMIT 1`,
+    [studentId, tenantId, teacherId]
+  );
+  if (!owns.rowCount) throw ApiError.forbidden('NOT_YOUR_STUDENT', 'This student is not in any of your batches');
+  return adminService.getStudentDetails(tenantId, studentId);
 }

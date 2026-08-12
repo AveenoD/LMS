@@ -123,13 +123,27 @@ class TeacherManageTestsScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateTestModal(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+  void _showCreateTestModal(BuildContext context, WidgetRef ref) async {
+    // The modal pops with the created test's data (see _CreateTestModal._submit)
+    // so we can jump straight into its question editor — no extra tap needed.
+    final created = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => _CreateTestModal(onCreated: () => ref.invalidate(testsProvider)),
     );
+    if (created != null && context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => QuizEditorScreen(
+            testId: created['id'] as int,
+            testTitle: created['title'] as String? ?? 'Quiz',
+            autoOpenAddQuestion: true,
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -176,7 +190,7 @@ class _CreateTestModalState extends ConsumerState<_CreateTestModal> {
 
     try {
       final api = ref.read(apiServiceProvider);
-      await api.post('/teacher/tests', {
+      final created = await api.post('/teacher/tests', {
         'title': _titleCtrl.text.trim(),
         if (_durationCtrl.text.isNotEmpty) 'durationMinutes': int.tryParse(_durationCtrl.text),
         if (_maxMarksCtrl.text.isNotEmpty) 'maxMarks': int.tryParse(_maxMarksCtrl.text),
@@ -186,7 +200,7 @@ class _CreateTestModalState extends ConsumerState<_CreateTestModal> {
         'isOnline': _isOnline,
       });
       widget.onCreated();
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context, created as Map<String, dynamic>);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));

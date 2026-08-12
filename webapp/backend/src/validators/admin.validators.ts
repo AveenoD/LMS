@@ -30,12 +30,21 @@ export const createBatchSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     grade: z.string().trim().max(30).optional(),
+    // Subjects this batch covers — set once here so every student enrolled
+    // in the batch (now or later) automatically has these subjects.
+    subjectIds: z.array(z.coerce.number().int().positive()).optional().default([]),
   })
   .strict();
 
 export const createSubjectSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
+    // Planned total, not a live count of chapters actually created yet.
+    // No zod-level default: this schema is reused for PUT /subjects/:id too,
+    // and a default here would silently zero out totalChapters on any
+    // update that doesn't touch it. createSubject()/updateSubject() each
+    // apply their own default (0 on create, "leave unchanged" on update).
+    totalChapters: z.coerce.number().int().nonnegative().optional(),
   })
   .strict();
 

@@ -15,9 +15,11 @@ class AuthState {
   final String? tenantSlug;
   final String? fullName;
   final String? email;
+  final String? phone;
   final String? instituteName;
   final String? primaryColor;
   final String? logoUrl;
+  final String? avatarUrl;
 
   AuthState({
     this.isLoading = false,
@@ -27,9 +29,11 @@ class AuthState {
     this.tenantSlug,
     this.fullName,
     this.email,
+    this.phone,
     this.instituteName,
     this.primaryColor,
     this.logoUrl,
+    this.avatarUrl,
   });
 
   AuthState copyWith({
@@ -40,9 +44,11 @@ class AuthState {
     String? tenantSlug,
     String? fullName,
     String? email,
+    String? phone,
     String? instituteName,
     String? primaryColor,
     String? logoUrl,
+    String? avatarUrl,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
@@ -52,9 +58,11 @@ class AuthState {
       tenantSlug: tenantSlug ?? this.tenantSlug,
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
+      phone: phone ?? this.phone,
       instituteName: instituteName ?? this.instituteName,
       primaryColor: primaryColor ?? this.primaryColor,
       logoUrl: logoUrl ?? this.logoUrl,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 }
@@ -80,9 +88,11 @@ class AuthNotifier extends Notifier<AuthState> {
       tenantSlug: prefs.getString('tenant_slug'),
       fullName: prefs.getString('full_name'),
       email: prefs.getString('email'),
+      phone: prefs.getString('phone'),
       instituteName: prefs.getString('institute_name'),
       primaryColor: prefs.getString('primary_color'),
       logoUrl: prefs.getString('logo_url'),
+      avatarUrl: prefs.getString('avatar_url'),
     );
   }
 
@@ -135,13 +145,19 @@ class AuthNotifier extends Notifier<AuthState> {
     String? userRole;
     String? fullName;
     String? email;
+    String? phone;
+    String? avatarUrl;
     if (user is Map) {
       userRole = user['role']?.toString();
       fullName = user['fullName']?.toString();
       email = user['email']?.toString();
+      phone = user['phone']?.toString();
+      avatarUrl = user['avatarUrl']?.toString();
       if (userRole != null) await prefs.setString('user_role', userRole);
       if (fullName != null) await prefs.setString('full_name', fullName);
       if (email != null) await prefs.setString('email', email);
+      if (phone != null) await prefs.setString('phone', phone);
+      if (avatarUrl != null) await prefs.setString('avatar_url', avatarUrl);
     }
 
     String? tenantSlug;
@@ -163,6 +179,8 @@ class AuthNotifier extends Notifier<AuthState> {
       userRole: userRole,
       fullName: fullName,
       email: email,
+      phone: phone,
+      avatarUrl: avatarUrl,
       tenantSlug: tenantSlug,
       instituteName: instituteName,
       primaryColor: primaryColor,
@@ -184,6 +202,17 @@ class AuthNotifier extends Notifier<AuthState> {
     );
   }
 
+  /// Uploads happen client-side (Cloudinary) first; this just tells the
+  /// backend the resulting URL and updates local state so every screen
+  /// watching [authProvider] reflects the new photo immediately.
+  Future<void> updateAvatarUrl(String avatarUrl) async {
+    final result = await _api.patch('/auth/avatar', {'avatarUrl': avatarUrl});
+    final saved = (result['user'] as Map?)?['avatarUrl']?.toString() ?? avatarUrl;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('avatar_url', saved);
+    state = state.copyWith(avatarUrl: saved);
+  }
+
   Future<void> logout() async {
     // Clear SQLite cache so cached data from this account is
     // not visible if a different account logs in next.
@@ -194,8 +223,11 @@ class AuthNotifier extends Notifier<AuthState> {
     await prefs.remove('user_role');
     await prefs.remove('tenant_slug');
     await prefs.remove('full_name');
+    await prefs.remove('email');
+    await prefs.remove('phone');
     await prefs.remove('institute_name');
     await prefs.remove('primary_color');
+    await prefs.remove('avatar_url');
     await prefs.remove('logo_url');
     state = AuthState();
   }

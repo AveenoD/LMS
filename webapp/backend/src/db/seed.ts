@@ -180,8 +180,8 @@ async function seed(): Promise<void> {
         )
       ).rows[0].id;
       await client.query(
-        `INSERT INTO content (tenant_id, batch_id, chapter_id, content_type, title, file_url, created_by)
-         VALUES ($1,$2,$3,'video','Kinematics - Lecture 1','https://youtu.be/dQw4w9WgXcQ',$4)`,
+        `INSERT INTO content (tenant_id, batch_id, chapter_id, content_type, title, file_url, created_by, duration_minutes, duration_seconds)
+         VALUES ($1,$2,$3,'video','Kinematics - Lecture 1','https://youtu.be/dQw4w9WgXcQ',$4,3,214)`,
         [apex, apexBatch, apexKinematics, apexTeacher]
       );
 

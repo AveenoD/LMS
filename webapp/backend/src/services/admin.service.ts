@@ -529,12 +529,18 @@ export interface BatchItem {
   name: string;
   grade: string | null;
   studentCount: number;
+  subjectIds: number[];
+  subjectNames: string[];
 }
 
 export async function listBatches(tenantId: number): Promise<BatchItem[]> {
   const { rows } = await query<BatchItem>(
-    `SELECT b.id, b.name, b.grade,
-            (SELECT count(*)::int FROM batch_enrollments be WHERE be.batch_id=b.id) AS "studentCount"
+    `SELECT b.id, b.name, b.grade, b.subject_ids AS "subjectIds",
+            (SELECT count(*)::int FROM batch_enrollments be WHERE be.batch_id=b.id) AS "studentCount",
+            COALESCE(
+              (SELECT array_agg(s.name ORDER BY s.name) FROM subjects s WHERE s.id = ANY(b.subject_ids)),
+              ARRAY[]::text[]
+            ) AS "subjectNames"
        FROM batches b WHERE b.tenant_id=$1 ORDER BY b.created_at DESC`,
     [tenantId]
   );
@@ -543,20 +549,35 @@ export async function listBatches(tenantId: number): Promise<BatchItem[]> {
 
 export async function createBatch(
   tenantId: number,
-  { name, grade }: { name: string; grade?: string }
-): Promise<{ id: number; name: string; grade: string | null }> {
-  const { rows } = await query<{ id: number; name: string; grade: string | null }>(
-    `INSERT INTO batches (tenant_id, name, grade) VALUES ($1,$2,$3)
-     RETURNING id, name, grade`,
-    [tenantId, name, grade || null]
+  { name, grade, subjectIds }: { name: string; grade?: string; subjectIds?: number[] }
+): Promise<BatchItem> {
+  const ids = subjectIds ?? [];
+  if (ids.length) {
+    const owned = await query<{ count: number }>(
+      `SELECT count(*)::int AS count FROM subjects WHERE tenant_id=$1 AND id = ANY($2::int[])`,
+      [tenantId, ids]
+    );
+    if (owned.rows[0].count !== ids.length) throw ApiError.badRequest('INVALID_SUBJECT');
+  }
+
+  const { rows } = await query<{ id: number; name: string; grade: string | null; subjectIds: number[] }>(
+    `INSERT INTO batches (tenant_id, name, grade, subject_ids) VALUES ($1,$2,$3,$4::int[])
+     RETURNING id, name, grade, subject_ids AS "subjectIds"`,
+    [tenantId, name, grade || null, ids]
   );
-  return rows[0];
+  return { ...rows[0], studentCount: 0, subjectNames: [] };
 }
 
 /* ─────────────── Subjects ─────────────── */
-export async function listSubjects(tenantId: number): Promise<{ id: number; name: string }[]> {
-  const { rows } = await query<{ id: number; name: string }>(
-    `SELECT id, name FROM subjects WHERE tenant_id=$1 ORDER BY name`,
+export interface SubjectItem {
+  id: number;
+  name: string;
+  totalChapters: number;
+}
+
+export async function listSubjects(tenantId: number): Promise<SubjectItem[]> {
+  const { rows } = await query<SubjectItem>(
+    `SELECT id, name, total_chapters AS "totalChapters" FROM subjects WHERE tenant_id=$1 ORDER BY name`,
     [tenantId]
   );
   return rows;
@@ -564,11 +585,12 @@ export async function listSubjects(tenantId: number): Promise<{ id: number; name
 
 export async function createSubject(
   tenantId: number,
-  { name }: { name: string }
-): Promise<{ id: number; name: string }> {
-  const { rows } = await query<{ id: number; name: string }>(
-    `INSERT INTO subjects (tenant_id, name) VALUES ($1,$2) RETURNING id, name`,
-    [tenantId, name]
+  { name, totalChapters }: { name: string; totalChapters?: number }
+): Promise<SubjectItem> {
+  const { rows } = await query<SubjectItem>(
+    `INSERT INTO subjects (tenant_id, name, total_chapters) VALUES ($1,$2,$3)
+     RETURNING id, name, total_chapters AS "totalChapters"`,
+    [tenantId, name, totalChapters ?? 0]
   );
   return rows[0];
 }
@@ -576,11 +598,13 @@ export async function createSubject(
 export async function updateSubject(
   tenantId: number,
   subjectId: number,
-  { name }: { name: string }
-): Promise<{ id: number; name: string }> {
-  const { rows } = await query<{ id: number; name: string }>(
-    `UPDATE subjects SET name = $1 WHERE id = $2 AND tenant_id = $3 RETURNING id, name`,
-    [name, subjectId, tenantId]
+  { name, totalChapters }: { name: string; totalChapters?: number }
+): Promise<SubjectItem> {
+  const { rows } = await query<SubjectItem>(
+    `UPDATE subjects SET name = $1, total_chapters = COALESCE($2, total_chapters)
+      WHERE id = $3 AND tenant_id = $4
+      RETURNING id, name, total_chapters AS "totalChapters"`,
+    [name, totalChapters ?? null, subjectId, tenantId]
   );
   if (rows.length === 0) throw new Error('Subject not found or unauthorized');
   return rows[0];
