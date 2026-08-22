@@ -7,6 +7,7 @@ export interface CreateLeadInput {
   ownerName: string;
   instituteName: string;
   phone: string;
+  email?: string;
   city?: string;
   studentCount?: number;
   message?: string;
@@ -17,6 +18,7 @@ export interface LeadListItem {
   ownerName: string;
   instituteName: string;
   phone: string;
+  email: string | null;
   city: string | null;
   studentCount: number | null;
   message: string | null;
@@ -32,13 +34,14 @@ export interface LeadListItem {
  */
 export async function createLead(input: CreateLeadInput): Promise<LeadRow> {
   const { rows } = await query<LeadRow>(
-    `INSERT INTO leads (owner_name, institute_name, phone, city, student_count, message, source)
-     VALUES ($1,$2,$3,$4,$5,$6,'marketing_site')
+    `INSERT INTO leads (owner_name, institute_name, phone, email, city, student_count, message, source)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'marketing_site')
      RETURNING *`,
     [
       input.ownerName,
       input.instituteName,
       input.phone,
+      input.email || null,
       input.city || null,
       input.studentCount ?? null,
       input.message || null,
@@ -67,7 +70,7 @@ export async function listLeads(
   }
   params.push(limit);
   const { rows } = await query<LeadListItem>(
-    `SELECT id, owner_name AS "ownerName", institute_name AS "instituteName", phone, city,
+    `SELECT id, owner_name AS "ownerName", institute_name AS "instituteName", phone, email, city,
             student_count AS "studentCount", message, status, is_read AS "isRead",
             notified, created_at AS "createdAt"
        FROM leads ${where}

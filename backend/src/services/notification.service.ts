@@ -33,6 +33,7 @@ function formatLead(lead: LeadRow): string {
     `Owner       : ${lead.owner_name}`,
     `Institute   : ${lead.institute_name}`,
     `Phone       : ${lead.phone}`,
+    `Email       : ${lead.email || '-'}`,
     `City        : ${lead.city || '-'}`,
     `Students    : ${lead.student_count ?? '-'}`,
     lead.message ? `Message     : ${lead.message}` : null,

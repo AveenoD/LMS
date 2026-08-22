@@ -18,12 +18,12 @@ import {
   Video,
   FileText,
   Settings,
-  Lock,
   Phone,
   MessageCircle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import TrustBadge from "@/components/ui/TrustBadge";
+import DemoBookingForm from "@/components/sections/DemoBookingForm";
 
 export const metadata: Metadata = {
   title: "Book a Demo - EdTech OS",
@@ -233,102 +233,7 @@ export default function DemoPage() {
                   Fill in your details and our expert will connect with you.
                 </p>
 
-                <form className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-body font-semibold text-ink-green">
-                        Full Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter your full name"
-                        className="w-full px-4 py-3 rounded-xl border border-ink-green/10 bg-paper/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brass-gold/50 text-sm font-body transition-all"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-body font-semibold text-ink-green">
-                        Email Address <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="Enter your email address"
-                        className="w-full px-4 py-3 rounded-xl border border-ink-green/10 bg-paper/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brass-gold/50 text-sm font-body transition-all"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-body font-semibold text-ink-green">
-                        Phone Number <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="Enter your phone number"
-                        className="w-full px-4 py-3 rounded-xl border border-ink-green/10 bg-paper/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brass-gold/50 text-sm font-body transition-all"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-body font-semibold text-ink-green">
-                        City <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter your city"
-                        className="w-full px-4 py-3 rounded-xl border border-ink-green/10 bg-paper/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brass-gold/50 text-sm font-body transition-all"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-body font-semibold text-ink-green">
-                        Institute Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter your institute name"
-                        className="w-full px-4 py-3 rounded-xl border border-ink-green/10 bg-paper/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brass-gold/50 text-sm font-body transition-all"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-body font-semibold text-ink-green">
-                        Preferred Date & Time
-                      </label>
-                      <input
-                        type="datetime-local"
-                        className="w-full px-4 py-3 rounded-xl border border-ink-green/10 bg-paper/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brass-gold/50 text-sm font-body transition-all text-ink-green/70"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-body font-semibold text-ink-green">
-                      Tell us about your institute (optional)
-                    </label>
-                    <textarea
-                      placeholder="Type your message here..."
-                      rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-ink-green/10 bg-paper/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brass-gold/50 text-sm font-body transition-all resize-none"
-                    />
-                  </div>
-
-                  <div className="pt-4">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      className="w-full justify-center"
-                      withArrow
-                    >
-                      Book My Free Demo
-                    </Button>
-                    <div className="mt-4 flex items-center justify-center gap-2 text-ink-green/50">
-                      <Lock className="w-3.5 h-3.5" />
-                      <span className="text-xs font-body">
-                        Your information is safe with us. We never share your data.
-                      </span>
-                    </div>
-                  </div>
-                </form>
+                <DemoBookingForm />
               </div>
             </div>
           </div>

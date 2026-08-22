@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Clock, CheckCircle } from "lucide-react";
+import BookDemoForm from "@/components/sections/BookDemoForm";
 
 export const metadata: Metadata = {
   title: "Book a Free Demo — EdTech OS",
@@ -52,69 +53,7 @@ export default function BookDemoPage() {
             <h2 className="text-xl font-display font-bold text-ink-green mb-6">
               Book Your Free Demo
             </h2>
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-body font-medium text-ink-green mb-1.5">
-                  Institute Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Apex Academy"
-                  className="w-full px-4 py-2.5 rounded-lg border border-paper bg-paper/50 text-sm font-body text-ink-green placeholder:text-ink-green/30 focus:outline-none focus:border-chalk-teal focus:ring-1 focus:ring-chalk-teal/20 transition-colors"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-body font-medium text-ink-green mb-1.5">
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    className="w-full px-4 py-2.5 rounded-lg border border-paper bg-paper/50 text-sm font-body text-ink-green placeholder:text-ink-green/30 focus:outline-none focus:border-chalk-teal focus:ring-1 focus:ring-chalk-teal/20 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-body font-medium text-ink-green mb-1.5">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="+91 98765 43210"
-                    className="w-full px-4 py-2.5 rounded-lg border border-paper bg-paper/50 text-sm font-body text-ink-green placeholder:text-ink-green/30 focus:outline-none focus:border-chalk-teal focus:ring-1 focus:ring-chalk-teal/20 transition-colors"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-body font-medium text-ink-green mb-1.5">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  placeholder="john@example.com"
-                  className="w-full px-4 py-2.5 rounded-lg border border-paper bg-paper/50 text-sm font-body text-ink-green placeholder:text-ink-green/30 focus:outline-none focus:border-chalk-teal focus:ring-1 focus:ring-chalk-teal/20 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-body font-medium text-ink-green mb-1.5">
-                  Number of Students
-                </label>
-                <select className="w-full px-4 py-2.5 rounded-lg border border-paper bg-paper/50 text-sm font-body text-ink-green focus:outline-none focus:border-chalk-teal focus:ring-1 focus:ring-chalk-teal/20 transition-colors">
-                  <option>Select range</option>
-                  <option>1 - 50</option>
-                  <option>51 - 100</option>
-                  <option>101 - 500</option>
-                  <option>500+</option>
-                </select>
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-brass-gold text-white px-6 py-3 rounded-lg font-body font-semibold hover:bg-brass-gold/90 transition-colors flex items-center justify-center gap-2"
-              >
-                Book a Free Demo
-                <span>→</span>
-              </button>
-            </form>
+            <BookDemoForm />
           </div>
         </div>
       </div>

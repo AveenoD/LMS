@@ -54,6 +54,7 @@ export interface LeadRow {
   owner_name: string;
   institute_name: string;
   phone: string;
+  email: string | null;
   city: string | null;
   student_count: number | null;
   message: string | null;
