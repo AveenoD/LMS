@@ -60,6 +60,29 @@ final teacherChaptersProvider = FutureProvider.family<List<dynamic>, int?>((ref,
   return await api.get('/teacher/chapters$query');
 });
 
+/// Creates a time-limited QR attendance session for a batch. Returns
+/// `{id, token, batchId, date, expiresAt}`.
+Future<Map<String, dynamic>> createQrAttendanceSession(
+  ApiService api, {
+  required int batchId,
+  int? timetableId,
+  required int validForMinutes,
+}) async {
+  final body = <String, dynamic>{
+    'batchId': batchId,
+    if (timetableId != null) 'timetableId': timetableId,
+    'validForMinutes': validForMinutes,
+  };
+  return await api.post('/teacher/attendance/qr-session', body) as Map<String, dynamic>;
+}
+
+/// Live status for one QR session — re-fetch by invalidating this
+/// provider on a timer while the session screen is open.
+final qrSessionStatusProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, sessionId) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/attendance/qr-session/$sessionId') as Map<String, dynamic>;
+});
+
 /// Same report shape as admin's `studentDetailsProvider` — same backend
 /// data (admin.service.getStudentDetails), just via the teacher-scoped
 /// route that checks the student is in one of this teacher's batches.

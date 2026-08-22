@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../utils/greeting.dart';
 import 'student_chapter_content_screen.dart';
 import 'student_notifications_screen.dart';
+import 'student_scan_attendance_screen.dart';
 
 class StudentHomeScreen extends ConsumerWidget {
   const StudentHomeScreen({super.key});
@@ -61,22 +62,44 @@ class StudentHomeScreen extends ConsumerWidget {
                               letterSpacing: 0.5,
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const StudentNotificationsScreen()),
-                              );
-                            },
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(12),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const StudentScanAttendanceScreen()),
+                                  );
+                                },
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  margin: const EdgeInsets.only(right: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 20),
+                                ),
                               ),
-                              child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
-                            ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const StudentNotificationsScreen()),
+                                  );
+                                },
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

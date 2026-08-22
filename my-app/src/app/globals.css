@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== CSS CUSTOM PROPERTIES ===== */
+:root {
+  --ink-green: #1F2E27;
+  --paper: #F4F6F3;
+  --brass-gold: #A87D26;
+  --chalk-teal: #2E6656;
+  --red-ink: #A93327;
+  --card-surface: #FFFFFF;
+}
+
+/* ===== BASE STYLES ===== */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper text-ink-green font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display text-ink-green;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-paper;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-chalk-teal rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-green;
+  }
+}
+
+/* ===== COMPONENT STYLES ===== */
+@layer components {
+  .container-main {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-16 md:py-24;
+  }
+
+  .badge-tag {
+    @apply inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-body font-medium tracking-wider uppercase border;
+  }
+
+  .badge-gold {
+    @apply badge-tag border-brass-gold text-brass-gold bg-brass-gold/5;
+  }
+
+  .badge-teal {
+    @apply badge-tag border-chalk-teal text-chalk-teal bg-chalk-teal/5;
+  }
+}
+
+/* ===== UTILITY STYLES ===== */
+@layer utilities {
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #A87D26 0%, #D4A94A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

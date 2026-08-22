@@ -4,7 +4,11 @@ import 'package:intl/intl.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/teacher_providers.dart';
 import '../../services/api_service.dart';
-import '../../widgets/custom_button.dart';
+import '../../widgets/attendance/attendance_status_button.dart';
+import '../../widgets/attendance/attendance_summary_bar.dart';
+import '../../widgets/attendance/attendance_done_fab.dart';
+import '../../widgets/attendance/attendance_confirm_sheet.dart';
+import 'teacher_qr_attendance_screen.dart';
 
 class TeacherAttendanceScreen extends ConsumerStatefulWidget {
   final int batchId;
@@ -25,61 +29,86 @@ class TeacherAttendanceScreen extends ConsumerStatefulWidget {
 class _TeacherAttendanceScreenState extends ConsumerState<TeacherAttendanceScreen> {
   // Map of studentId -> 'present' | 'absent' | 'late'
   final Map<int, String> _attendanceState = {};
-  bool _isSubmitting = false;
 
   void _markAll(String status, List<dynamic> students) {
     setState(() {
       for (final s in students) {
-        final sidRaw = s['studentId'];
-        final int sid = sidRaw is int ? sidRaw : int.tryParse(sidRaw?.toString() ?? '0') ?? 0;
+        final sid = _studentId(s);
         _attendanceState[sid] = status;
       }
     });
   }
 
-  Future<void> _submitAttendance(List<dynamic> students) async {
+  int _studentId(dynamic s) {
+    final raw = s['studentId'];
+    return raw is int ? raw : int.tryParse(raw?.toString() ?? '0') ?? 0;
+  }
+
+  String? _statusFor(dynamic s) {
+    final sid = _studentId(s);
+    return _attendanceState.containsKey(sid) ? _attendanceState[sid] : s['status'] as String?;
+  }
+
+  Future<void> _submit(List<dynamic> students) async {
+    // Anyone left unmarked is treated as Present here — the confirm sheet
+    // already told the teacher exactly who, by name, before this runs.
     final records = students.map((s) {
-      final sidRaw = s['studentId'];
-      final int sid = sidRaw is int ? sidRaw : int.tryParse(sidRaw?.toString() ?? '0') ?? 0;
-      final status = _attendanceState.containsKey(sid) ? _attendanceState[sid] : s['status'];
-      return {
-        'studentId': sid,
-        'status': status,
-      };
+      final sid = _studentId(s);
+      final status = _statusFor(s) ?? 'present';
+      return {'studentId': sid, 'status': status};
     }).toList();
 
-    // Check if all students have been marked
-    if (records.any((r) => r['status'] == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please mark attendance for all students before submitting.')),
-      );
-      return;
+    final api = ref.read(apiServiceProvider);
+    await api.post('/teacher/attendance', {
+      'batchId': widget.batchId,
+      if (widget.timetableId != null) 'timetableId': widget.timetableId,
+      'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      'records': records,
+    });
+  }
+
+  Future<void> _openConfirmSheet(List<dynamic> students) async {
+    final todayLabel = DateFormat('dd MMM yyyy').format(DateTime.now());
+    int present = 0, absent = 0, late = 0;
+    final unmarkedNames = <String>[];
+
+    for (final s in students) {
+      final status = _statusFor(s);
+      if (status == 'present') {
+        present++;
+      } else if (status == 'absent') {
+        absent++;
+      } else if (status == 'late') {
+        late++;
+      } else {
+        unmarkedNames.add((s['name'] as String? ?? 'Student').split(' ').first);
+      }
     }
 
-    setState(() => _isSubmitting = true);
+    final submitted = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AttendanceConfirmSheet(
+        dateLabel: todayLabel,
+        batchName: widget.batchName,
+        presentCount: present,
+        absentCount: absent,
+        lateCount: late,
+        unmarkedNames: unmarkedNames,
+        onConfirm: () => _submit(students),
+      ),
+    );
 
-    try {
-      final payload = <String, dynamic>{
-        'batchId': widget.batchId,
-        if (widget.timetableId != null) 'timetableId': widget.timetableId,
-        'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        'records': records,
-      };
-
-      final api = ref.read(apiServiceProvider);
-      await api.post('/teacher/attendance', payload);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendance submitted successfully!'), backgroundColor: AppColors.success),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit: $e'), backgroundColor: AppColors.error),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+    if (submitted == true && mounted) {
+      // Fixes the stale-list bug: without this, re-opening the same
+      // batch/date would still show pre-submit data until app restart.
+      ref.invalidate(attendanceBatchStudentsProvider((
+        batchId: widget.batchId,
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      )));
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (mounted) Navigator.pop(context);
     }
   }
 
@@ -98,6 +127,22 @@ class _TeacherAttendanceScreenState extends ConsumerState<TeacherAttendanceScree
         title: Text('Attendance: ${widget.batchName}', style: const TextStyle(color: Colors.white, fontSize: 16)),
         backgroundColor: AppColors.primaryDark,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            tooltip: 'QR Attendance',
+            icon: const Icon(Icons.qr_code_rounded, color: Colors.white),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TeacherQrAttendanceScreen(
+                  batchId: widget.batchId,
+                  batchName: widget.batchName,
+                  timetableId: widget.timetableId,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: studentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -107,112 +152,91 @@ class _TeacherAttendanceScreenState extends ConsumerState<TeacherAttendanceScree
             return const Center(child: Text('No students found in this batch.'));
           }
 
-          return Column(
+          int present = 0, absent = 0, late = 0, marked = 0;
+          for (final s in students) {
+            final status = _statusFor(s);
+            if (status != null) marked++;
+            if (status == 'present') present++;
+            if (status == 'absent') absent++;
+            if (status == 'late') late++;
+          }
+          final hasAnyMarked = marked > 0;
+
+          return Stack(
             children: [
-              // Header Controls
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: Colors.white,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(todayStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Row(
+              Column(
+                children: [
+                  // Header controls
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    color: Colors.white,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextButton(
-                          onPressed: () => _markAll('present', students),
-                          child: const Text('Mark All Present', style: TextStyle(color: AppColors.success)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(todayStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            TextButton(
+                              onPressed: () => _markAll('present', students),
+                              child: const Text('Mark All Present', style: TextStyle(color: AppColors.success)),
+                            ),
+                          ],
                         ),
+                        if (hasAnyMarked) ...[
+                          const SizedBox(height: 6),
+                          AttendanceSummaryBar(present: present, absent: absent, late: late),
+                        ],
                       ],
                     ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              
-              // Students List
-              Expanded(
-                child: ListView.separated(
-                  itemCount: students.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final student = students[index];
-                    final sidRaw = student['studentId'];
-                    final int sid = sidRaw is int ? sidRaw : int.tryParse(sidRaw?.toString() ?? '0') ?? 0;
-                    final name = student['name'];
-                    final status = _attendanceState.containsKey(sid) ? _attendanceState[sid] : student['status'];
+                  ),
+                  const Divider(height: 1),
 
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text('ID: $sid'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildStatusBtn(sid, 'P', 'present', AppColors.success, status),
-                          const SizedBox(width: 8),
-                          _buildStatusBtn(sid, 'A', 'absent', AppColors.error, status),
-                          const SizedBox(width: 8),
-                          _buildStatusBtn(sid, 'L', 'late', AppColors.warning, status),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
+                  // Students list
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: students.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final student = students[index];
+                        final sid = _studentId(student);
+                        final name = student['name'];
+                        final status = _statusFor(student);
 
-              // Submit Button
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4))],
-                ),
-                child: SafeArea(
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: _isSubmitting 
-                        ? const Center(child: CircularProgressIndicator())
-                        : CustomButton(
-                            text: 'Submit Attendance',
-                            onPressed: () => _submitAttendance(students),
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text('ID: $sid'),
+                          trailing: AttendanceStatusButtonRow(
+                            status: status,
+                            onChanged: (val) => setState(() => _attendanceState[sid] = val),
                           ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              // Floating Done button — appears once at least one student is marked
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 20,
+                child: SafeArea(
+                  top: false,
+                  child: AttendanceDoneFab(
+                    markedCount: marked,
+                    totalCount: students.length,
+                    visible: hasAnyMarked,
+                    onTap: () => _openConfirmSheet(students),
                   ),
                 ),
               ),
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildStatusBtn(int studentId, String label, String value, Color color, String? currentStatus) {
-    final isSelected = currentStatus == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _attendanceState[studentId] = value;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? color : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade300),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : Colors.grey.shade600,
-          ),
-        ),
       ),
     );
   }

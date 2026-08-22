@@ -65,6 +65,13 @@ final studentAttendanceProvider = FutureProvider<List<dynamic>>((ref) async {
   return await api.get('/student/attendance/monthly') as List<dynamic>;
 });
 
+/// Scans a teacher's QR attendance code. Returns
+/// `{alreadyMarked, status, batchId, date}` — throws [ApiException] (via
+/// [ApiService]) with a clear message for an expired/invalid code.
+Future<Map<String, dynamic>> scanAttendanceQr(ApiService api, String token) async {
+  return await api.post('/student/attendance/qr-scan', {'token': token}) as Map<String, dynamic>;
+}
+
 final studentPerformanceProvider = FutureProvider<List<dynamic>>((ref) async {
   final api = ref.read(apiServiceProvider);
   return await api.get('/student/performance') as List<dynamic>;
