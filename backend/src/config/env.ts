@@ -64,6 +64,13 @@ export interface RazorpayConfig {
   readonly enabled: boolean;
 }
 
+export interface FirebaseConfig {
+  projectId: string;
+  clientEmail: string;
+  privateKey: string;
+  readonly enabled: boolean;
+}
+
 export interface AppEnv {
   nodeEnv: string;
   isProd: boolean;
@@ -82,6 +89,7 @@ export interface AppEnv {
     defaultAmount: number;
   };
   razorpay: RazorpayConfig;
+  firebase: FirebaseConfig;
   notify: {
     email: EmailConfig;
     telegram: TelegramConfig;
@@ -134,6 +142,17 @@ export const env: AppEnv = {
     secret: optional('RAZORPAY_SECRET', ''),
     get enabled(): boolean {
       return Boolean(this.keyId && this.secret && !this.keyId.includes('xxxx'));
+    },
+  },
+
+  firebase: {
+    projectId: optional('FIREBASE_PROJECT_ID', ''),
+    clientEmail: optional('FIREBASE_CLIENT_EMAIL', ''),
+    // Service-account keys are shipped as JSON with literal "\n" escapes;
+    // .env can't hold real newlines in one value, so unescape them here.
+    privateKey: optional('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
+    get enabled(): boolean {
+      return Boolean(this.projectId && this.clientEmail && this.privateKey);
     },
   },
 

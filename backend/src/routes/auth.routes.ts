@@ -3,7 +3,13 @@ import * as ctrl from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { validate } from '../middleware/validate.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
-import { loginSchema, refreshSchema, updateAvatarSchema } from '../validators/auth.validators.js';
+import {
+  loginSchema,
+  refreshSchema,
+  updateAvatarSchema,
+  registerDeviceTokenSchema,
+  unregisterDeviceTokenSchema,
+} from '../validators/auth.validators.js';
 import { generateSignature } from '../services/cloudinary.service.js';
 
 const router = Router();
@@ -19,5 +25,9 @@ router.patch('/avatar', authMiddleware, validate(updateAvatarSchema), ctrl.updat
 router.get('/upload-signature', authMiddleware, (req, res) => {
   res.json(generateSignature('edtech_os/avatars'));
 });
+
+// Push notification device tokens — any authenticated role registers its own.
+router.post('/device-token', authMiddleware, validate(registerDeviceTokenSchema), ctrl.registerDeviceToken);
+router.delete('/device-token', authMiddleware, validate(unregisterDeviceTokenSchema), ctrl.unregisterDeviceToken);
 
 export default router;

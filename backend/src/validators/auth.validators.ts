@@ -21,6 +21,20 @@ export const updateAvatarSchema = z
   })
   .strict();
 
+export const registerDeviceTokenSchema = z
+  .object({
+    token: z.string().min(10),
+    platform: z.enum(['android', 'ios']),
+  })
+  .strict();
+
+export const unregisterDeviceTokenSchema = z
+  .object({
+    token: z.string().min(10),
+  })
+  .strict();
+
 export type LoginBody = z.infer<typeof loginSchema>;
 export type RefreshBody = z.infer<typeof refreshSchema>;
 export type UpdateAvatarBody = z.infer<typeof updateAvatarSchema>;
+export type RegisterDeviceTokenBody = z.infer<typeof registerDeviceTokenSchema>;

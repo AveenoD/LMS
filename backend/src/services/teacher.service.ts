@@ -2,8 +2,10 @@ import { query, withTransaction } from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
 import { buildWaUrl, absentMessage } from './whatsapp.service.js';
 import * as adminService from './admin.service.js';
+import * as notificationCenter from './notificationCenter.service.js';
 import * as https from 'https';
 import { randomBytes } from 'crypto';
+import logger from '../utils/logger.js';
 
 /**
  * Fetches a URL's HTML, following up to `maxRedirects` 3xx redirects —
@@ -238,7 +240,10 @@ export async function createQrAttendanceSession(
   teacherId: number,
   { batchId, timetableId, validForMinutes }: QrSessionInput
 ): Promise<QrSession> {
-  const b = await query(`SELECT 1 FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
+  const b = await query<{ name: string }>(`SELECT name FROM batches WHERE id=$1 AND tenant_id=$2`, [
+    batchId,
+    tenantId,
+  ]);
   if (!b.rowCount) throw ApiError.badRequest('INVALID_BATCH');
 
   // 24 random bytes -> 48 hex chars: unguessable, short enough for a
@@ -251,7 +256,23 @@ export async function createQrAttendanceSession(
      RETURNING id, token, batch_id AS "batchId", date, expires_at AS "expiresAt"`,
     [tenantId, batchId, timetableId || null, teacherId, token, validForMinutes]
   );
-  return rows[0];
+  const session = rows[0];
+
+  notificationCenter
+    .batchStudentUserIds(tenantId, batchId)
+    .then((userIds) =>
+      notificationCenter.sendNotification({
+        userIds,
+        tenantId,
+        title: 'Attendance open',
+        body: `Scan the QR code now for ${b.rows[0].name} — closes in ${validForMinutes} min.`,
+        type: 'attendance_open',
+        entityId: session.id,
+      })
+    )
+    .catch((err) => logger.error('Attendance-open notify failed', { error: err instanceof Error ? err.message : String(err) }));
+
+  return session;
 }
 
 export interface QrSessionStatus {
@@ -423,7 +444,25 @@ export async function createContent(
                duration_minutes AS "durationMinutes", duration_seconds AS "durationSeconds"`,
     [tenantId, batchId || null, chapterId, contentType, title, fileUrl, teacherId, durationMinutes, durationSeconds]
   );
-  return rows[0];
+  const content = rows[0];
+
+  if (batchId) {
+    notificationCenter
+      .batchStudentUserIds(tenantId, batchId)
+      .then((userIds) =>
+        notificationCenter.sendNotification({
+          userIds,
+          tenantId,
+          title: 'New content uploaded',
+          body: title,
+          type: 'content_uploaded',
+          entityId: content.id,
+        })
+      )
+      .catch((err) => logger.error('Content-uploaded notify failed', { error: err instanceof Error ? err.message : String(err) }));
+  }
+
+  return content;
 }
 
 /* Live classes */

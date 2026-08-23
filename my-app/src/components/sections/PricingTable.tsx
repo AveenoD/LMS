@@ -39,15 +39,15 @@ export default function PricingTable() {
           {PRICING_PLANS.map((plan, i) => (
             <motion.div
               key={plan.name}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.45, delay: i * 0.08, ease: "easeOut" }}
               className={cn(
-                "relative rounded-2xl p-6 lg:p-8 border-2 transition-all duration-300",
+                "relative rounded-2xl p-6 lg:p-8 border-2",
                 plan.popular
                   ? "border-ink-green bg-ink-green text-white shadow-2xl scale-[1.03] z-10"
-                  : "border-paper bg-card-surface hover:border-chalk-teal/30 shadow-card"
+                  : "border-paper bg-card-surface hover:border-chalk-teal/30 shadow-card transition-[box-shadow,border-color] duration-300"
               )}
             >
               {/* Popular Badge */}

@@ -36,11 +36,11 @@ export default function HowItWorksSection() {
             return (
               <motion.div
                 key={step.step}
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, delay: i * 0.12 }}
-                className="relative bg-card-surface rounded-2xl p-6 shadow-card border border-transparent hover:border-chalk-teal/20 transition-all duration-300 group"
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.45, delay: i * 0.07, ease: "easeOut" }}
+                className="relative bg-card-surface rounded-2xl p-6 shadow-card border border-transparent hover:border-chalk-teal/20 transition-[box-shadow,border-color] duration-300 group"
               >
                 {/* Step Number */}
                 <div className="w-10 h-10 rounded-xl bg-ink-green text-white flex items-center justify-center font-display font-bold text-lg mb-6">

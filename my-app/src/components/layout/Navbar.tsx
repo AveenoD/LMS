@@ -96,7 +96,7 @@ export default function Navbar() {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-3">
-            <Button variant="primary" size="sm" href="/book-demo" withArrow>
+              <Button variant="primary" size="sm" href="/demo" withArrow>
               Book a Free Demo
             </Button>
           </div>
@@ -189,7 +189,7 @@ export default function Navbar() {
                 <Button
                   variant="primary"
                   size="md"
-                  href="/book-demo"
+                  href="/demo"
                   withArrow
                   className="w-full"
                 >

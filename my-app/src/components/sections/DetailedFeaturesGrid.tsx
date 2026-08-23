@@ -35,11 +35,11 @@ export default function DetailedFeaturesGrid() {
           {DETAILED_FEATURES.map((feature, i) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: i * 0.06 }}
-              className="group bg-card-surface rounded-2xl p-4 md:p-5 shadow-card hover:shadow-card-hover border border-transparent hover:border-chalk-teal/20 transition-all duration-300 flex flex-col"
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.45, delay: i * 0.05, ease: "easeOut" }}
+              className="group bg-card-surface rounded-2xl p-4 md:p-5 shadow-card hover:shadow-card-hover border border-transparent hover:border-chalk-teal/20 transition-[box-shadow,border-color] duration-300 flex flex-col"
             >
               {/* Icon */}
               <div className="flex items-center gap-3 mb-3">

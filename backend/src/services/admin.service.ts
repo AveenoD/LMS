@@ -5,6 +5,11 @@ import { generateReceiptNo } from '../utils/receipt.js';
 import { writeAudit } from '../utils/audit.js';
 import { buildWaUrl, feeReminderMessage } from './whatsapp.service.js';
 import { getTenantDashboard } from './superadmin.service.js';
+import * as notificationCenter from './notificationCenter.service.js';
+import logger from '../utils/logger.js';
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 /* ─────────────── Dashboard ─────────────── */
 export async function dashboard(tenantId: number, month?: number, year?: number) {
   const dash = await getTenantDashboard(tenantId, month, year);
@@ -688,7 +693,21 @@ export async function createTimetableEntry(tenantId: number, input: CreateTimeta
                start_time AS "startTime", end_time AS "endTime"`,
     [tenantId, batchId, subjectId || null, teacherId, dayOfWeek, startTime, endTime]
   );
-  return rows[0];
+  const entry = rows[0];
+
+  const { rows: batchRow } = await query<{ name: string }>(`SELECT name FROM batches WHERE id = $1`, [batchId]);
+  notificationCenter
+    .sendNotification({
+      userIds: [teacherId],
+      tenantId,
+      title: 'New class assigned',
+      body: `You've been assigned ${batchRow[0]?.name ?? 'a batch'} — ${DAY_NAMES[dayOfWeek] ?? ''} ${startTime}–${endTime}.`,
+      type: 'timetable_update',
+      entityId: entry.id,
+    })
+    .catch((err) => logger.error('Timetable-update notify failed', { error: err instanceof Error ? err.message : String(err) }));
+
+  return entry;
 }
 
 /* ─────────────── Fees ─────────────── */
@@ -849,7 +868,10 @@ export async function recordPayment(
   actorUserId: number,
   { studentId, feeStructureId, amountPaid, method }: RecordPaymentInput
 ) {
-  const s = await query(`SELECT 1 FROM students WHERE id=$1 AND tenant_id=$2`, [studentId, tenantId]);
+  const s = await query<{ user_id: number }>(`SELECT user_id FROM students WHERE id=$1 AND tenant_id=$2`, [
+    studentId,
+    tenantId,
+  ]);
   if (!s.rowCount) throw ApiError.badRequest('INVALID_STUDENT');
 
   // receipt_no is UNIQUE; the generator includes a short random suffix, so on
@@ -872,6 +894,18 @@ export async function recordPayment(
         entityId: rows[0].id,
         meta: { studentId, amountPaid, method: method || 'cash', receiptNo },
       });
+
+      notificationCenter
+        .sendNotification({
+          userIds: [s.rows[0].user_id],
+          tenantId,
+          title: 'Payment received',
+          body: `₹${amountPaid} received (receipt ${receiptNo}). Thank you!`,
+          type: 'fee_paid',
+          entityId: rows[0].id,
+        })
+        .catch((err) => logger.error('Fee-paid notify failed', { error: err instanceof Error ? err.message : String(err) }));
+
       return { payment: rows[0], receiptNo };
     } catch (err) {
       const code = (err as { code?: string }).code;

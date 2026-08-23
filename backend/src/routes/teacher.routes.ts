@@ -5,6 +5,7 @@ import { roleGuard } from '../middleware/roleGuard.js';
 import { featureGuard } from '../middleware/featureGuard.js';
 import { validate } from '../middleware/validate.js';
 import {
+  idParamSchema,
   markAttendanceSchema,
   createQrSessionSchema,
   qrSessionIdParamSchema,
@@ -23,6 +24,10 @@ import {
 
 const router = Router();
 router.use(authMiddleware, roleGuard('teacher'));
+
+router.get('/notifications', ctrl.listNotifications);
+router.get('/notifications/unread-count', ctrl.unreadNotificationCount);
+router.patch('/notifications/:id/read', validate(idParamSchema, 'params'), ctrl.markNotificationRead);
 
 router.get('/schedule/today', ctrl.todaySchedule);
 router.get('/batches', ctrl.myBatches);

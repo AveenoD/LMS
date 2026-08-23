@@ -30,10 +30,6 @@ export const NAV_LINKS: NavLink[] = [
   { label: "How It Works", href: "/how-it-works" },
   { label: "Pricing", href: "/pricing" },
   { label: "Demo", href: "/demo" },
-  {
-    label: "Resources",
-    href: "/resources",
-  },
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
@@ -386,7 +382,7 @@ export const FOOTER_LINKS = {
     { label: "Features", href: "/features" },
     { label: "How It Works", href: "/how-it-works" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Demo", href: "/book-demo" },
+    { label: "Demo", href: "/demo" },
   ],
   solutions: [
     { label: "For Coaching Institutes", href: "#" },

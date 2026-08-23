@@ -1,5 +1,7 @@
 import { query, withTransaction } from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
+import * as notificationCenter from './notificationCenter.service.js';
+import logger from '../utils/logger.js';
 import type { PoolClient } from 'pg';
 
 export interface CreateTestInput {
@@ -41,7 +43,25 @@ export async function createTest(tenantId: number, data: CreateTestInput) {
       data.isOnline,
     ]
   );
-  return rows[0];
+  const test = rows[0];
+
+  if (data.batchId && data.testDate) {
+    notificationCenter
+      .batchStudentUserIds(tenantId, data.batchId)
+      .then((userIds) =>
+        notificationCenter.sendNotification({
+          userIds,
+          tenantId,
+          title: 'New test scheduled',
+          body: `${data.title} — scheduled for ${new Date(data.testDate!).toLocaleString('en-IN')}.`,
+          type: 'test_scheduled',
+          entityId: test.id,
+        })
+      )
+      .catch((err) => logger.error('Test-scheduled notify failed', { error: err instanceof Error ? err.message : String(err) }));
+  }
+
+  return test;
 }
 
 export async function listTests(tenantId: number) {

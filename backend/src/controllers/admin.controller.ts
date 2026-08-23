@@ -119,11 +119,11 @@ export const markNotificationRead = asyncHandler(async (req: Request, res: Respo
   await notificationCenter.markNotificationRead(Number(req.params.id), userId(req));
   res.json({ success: true });
 });
-/** Broadcast a notification to students — whole institute, or filtered by batch. */
-export const broadcastToStudents = asyncHandler(async (req: Request, res: Response) => {
-  const { title, body, batchId } = req.body;
+/** Broadcast a notification to students or teachers — whole institute, or filtered by batch. */
+export const broadcastNotification = asyncHandler(async (req: Request, res: Response) => {
+  const { title, body, targetRole, batchId } = req.body;
   const result = await notificationCenter.broadcastNotification(
-    { title, body, targetRole: 'student', tenantId: tenantId(req), batchId },
+    { title, body, targetRole, tenantId: tenantId(req), batchId },
     userId(req)
   );
   res.status(201).json(result);

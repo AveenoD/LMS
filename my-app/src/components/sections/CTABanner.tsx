@@ -46,7 +46,7 @@ export default function CTABanner({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button variant="primary" size="md" href="/book-demo" withArrow>
+              <Button variant="primary" size="md" href="/demo" withArrow>
                 Book a Free Demo
               </Button>
               <Button

@@ -26,12 +26,12 @@ export default function FeatureCard({
 }: FeatureCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.5, delay: index * 0.08 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.45, delay: index * 0.05, ease: "easeOut" }}
       className={cn(
-        "group bg-card-surface rounded-2xl p-6 shadow-card hover:shadow-card-hover transition-all duration-300 border border-transparent hover:border-chalk-teal/20 flex flex-col h-full",
+        "group bg-card-surface rounded-2xl p-6 shadow-card hover:shadow-card-hover transition-[box-shadow,border-color] duration-300 border border-transparent hover:border-chalk-teal/20 flex flex-col h-full",
         className
       )}
     >

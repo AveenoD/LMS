@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
-import '../screens/auth/login_screen.dart';
+import '../theme/app_colors.dart';
+import 'profile/profile_header.dart';
+import 'profile/profile_menu_list.dart';
+import 'profile/profile_logout_button.dart';
 
 /// One row in a [MoreMenuScreen]. Either pushes [destination] or runs
 /// [onTap] — exactly one of the two must be given.
@@ -26,64 +29,58 @@ class MoreMenuScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final fullName = authState.fullName ?? 'User';
+    final subtitle1 = authState.instituteName ?? authState.userRole ?? '';
+
+    // A curated list of colors to cycle through for menu icons,
+    // bringing the visual style in line with the student/teacher profiles.
+    final colors = [
+      AppColors.primary,
+      Colors.orange,
+      Colors.purple,
+      AppColors.success,
+      AppColors.info,
+    ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('More'),
-      ),
-      body: ListView(
-        children: [
-          Container(
-            width: double.infinity,
-            color: const Color(0xFF1F2E27),
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 36,
-                  child: Icon(Icons.account_circle, size: 50, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  authState.fullName ?? 'User',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  authState.instituteName ?? authState.userRole ?? '',
-                  style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: ProfileHeader(
+              name: fullName,
+              subtitleLine1: subtitle1,
             ),
           ),
-          for (final item in items)
-            ListTile(
-              leading: Icon(item.icon, color: Colors.black87),
-              title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.w500)),
-              onTap: item.onTap ??
-                  () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => item.destination!),
-                      ),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ProfileMenuList(
+                items: List.generate(items.length, (index) {
+                  final item = items[index];
+                  final color = colors[index % colors.length];
+                  return ProfileMenuItemData(
+                    icon: item.icon,
+                    iconBg: color.withValues(alpha: 0.1),
+                    iconColor: color,
+                    label: item.label,
+                    onTap: item.onTap ??
+                        () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => item.destination!),
+                            ),
+                  );
+                }),
+              ),
             ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Logout', style: TextStyle(color: Colors.red)),
-            onTap: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
-            },
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 40),
+              child: ProfileLogoutButton(),
+            ),
           ),
         ],
       ),

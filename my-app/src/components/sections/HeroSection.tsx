@@ -46,7 +46,7 @@ export default function HeroSection() {
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-4">
-              <Button variant="primary" size="lg" href="/book-demo" withArrow>
+              <Button variant="primary" size="lg" href="/demo" withArrow>
                 Book a Free Demo
               </Button>
               <Button variant="secondary" size="lg">

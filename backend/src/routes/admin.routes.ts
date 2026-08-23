@@ -16,7 +16,7 @@ import {
   updateBrandingSchema,
   idParamSchema,
   studentIdParamSchema,
-  broadcastToStudentsSchema,
+  broadcastNotificationSchema,
 } from '../validators/admin.validators.js';
 
 const router = Router();
@@ -90,8 +90,8 @@ router.put(
 router.post(
   '/notifications/broadcast',
   subscriptionGuard,
-  validate(broadcastToStudentsSchema),
-  ctrl.broadcastToStudents
+  validate(broadcastNotificationSchema),
+  ctrl.broadcastNotification
 );
 
 export default router;

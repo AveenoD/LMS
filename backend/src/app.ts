@@ -14,6 +14,9 @@ import { globalLimiter } from './middleware/rateLimiter.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { scheduleBillingJob } from './jobs/billing.job.js';
+import { scheduleTestReminderJob } from './jobs/testReminder.job.js';
+import { scheduleFeeReminderJob } from './jobs/feeReminder.job.js';
+import { scheduleLiveClassReminderJob } from './jobs/liveClassReminder.job.js';
 
 // Load OpenAPI spec (works from both tsx dev mode and compiled dist/)
 const openApiSpec = YAML.parse(
@@ -103,6 +106,9 @@ app.use(errorHandler);
 const server = app.listen(env.port, '0.0.0.0', () => {
   logger.info(`EdTech OS API listening on :${env.port}`, { env: env.nodeEnv });
   scheduleBillingJob();
+  scheduleTestReminderJob();
+  scheduleFeeReminderJob();
+  scheduleLiveClassReminderJob();
 });
 
 // Graceful shutdown

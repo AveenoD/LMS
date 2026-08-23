@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { query } from '../config/db.js';
 import env from '../config/env.js';
 import logger from '../utils/logger.js';
+import * as notificationCenter from '../services/notificationCenter.service.js';
 
 /** How many days out a trial must be from expiring before we start flagging it. */
 const TRIAL_EXPIRY_WARNING_DAYS = 3;
@@ -48,12 +49,17 @@ export async function runBillingSweep(): Promise<{
     const title = 'Trial ending soon';
     const body = `${row.name}'s free trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Subscribe to avoid losing write access.`;
 
-    await query(
-      `INSERT INTO notifications (tenant_id, user_id, title, body)
-       SELECT $1, u.id, $2, $3
-         FROM users u WHERE u.tenant_id = $1 AND u.role = 'coaching_admin'`,
-      [row.tenant_id, title, body]
+    const { rows: admins } = await query<{ id: number }>(
+      `SELECT id FROM users WHERE tenant_id = $1 AND role = 'coaching_admin' AND is_active = true`,
+      [row.tenant_id]
     );
+    await notificationCenter.sendNotification({
+      userIds: admins.map((a) => a.id),
+      tenantId: row.tenant_id,
+      title,
+      body,
+      type: 'system',
+    });
     await query(
       `INSERT INTO audit_log (tenant_id, action, entity, entity_id, meta)
        VALUES ($1, 'trial_expiry_flagged', 'subscription', NULL, $2::jsonb)`,

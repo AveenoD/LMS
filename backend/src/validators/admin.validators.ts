@@ -88,11 +88,13 @@ export const idParamSchema = z.object({ id: z.coerce.number().int().positive() }
 export const studentIdParamSchema = z.object({ studentId: z.coerce.number().int().positive() }).strict();
 export const batchIdParamSchema = z.object({ batchId: z.coerce.number().int().positive() }).strict();
 
-export const broadcastToStudentsSchema = z
+export const broadcastNotificationSchema = z
   .object({
     title: z.string().trim().min(2).max(150),
     body: z.string().trim().max(2000).optional(),
-    // Omit to broadcast to every student in the institute; set to target one batch.
+    // Who receives it — defaults to students for backward compatibility.
+    targetRole: z.enum(['student', 'teacher']).default('student'),
+    // Omit to broadcast to everyone (of targetRole) in the institute; set to target one batch.
     batchId: z.coerce.number().int().positive().optional(),
   })
   .strict();

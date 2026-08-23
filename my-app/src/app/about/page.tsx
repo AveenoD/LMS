@@ -384,7 +384,7 @@ export default function AboutPage() {
               <Button
                 variant="primary"
                 size="lg"
-                href="/book-demo"
+                href="/demo"
                 className="w-full sm:w-auto justify-center"
               >
                 Book a Free Demo <ArrowRight className="w-4 h-4 ml-2" />
