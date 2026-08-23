@@ -243,13 +243,13 @@ export default function DemoPage() {
       {/* Bottom CTA Banner */}
       <section className="pb-20 bg-paper">
         <div className="container-main">
-          <div className="bg-ink-green rounded-3xl p-8 sm:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-card">
+          <div className="bg-gradient-to-br from-ink-green via-ink-green to-chalk-teal rounded-3xl p-8 sm:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl border border-white/10">
             {/* Pattern overlay */}
-            <div className="absolute inset-0 bg-white/[0.02] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none" />
+            <div className="absolute inset-0 bg-white/[0.03] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none" />
 
             <div className="flex items-center gap-6 z-10 w-full md:w-auto">
               {/* Avatar Illustration */}
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden flex-shrink-0 bg-chalk-teal border-4 border-white/10 hidden sm:block relative">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden flex-shrink-0 bg-chalk-teal border-4 border-white/20 hidden sm:block relative shadow-xl">
                 <Image
                   src="/support_avatar.png"
                   alt="EdTech OS Support Expert"
@@ -261,7 +261,7 @@ export default function DemoPage() {
                 <h2 className="text-2xl sm:text-3xl font-display font-bold text-white mb-2">
                   Still have questions?
                 </h2>
-                <p className="text-sm sm:text-base text-white/70 font-body max-w-sm">
+                <p className="text-sm sm:text-base text-white/80 font-body max-w-sm leading-relaxed">
                   Talk to our LMS experts and find the perfect solution for your
                   institute.
                 </p>
@@ -271,22 +271,22 @@ export default function DemoPage() {
             <div className="flex flex-col sm:flex-row items-center gap-4 z-10 w-full md:w-auto">
               <a
                 href="tel:+919876543210"
-                className="flex items-center gap-3 px-6 py-4 border border-white/20 rounded-2xl text-white hover:bg-white/10 transition-colors w-full sm:w-auto justify-center"
+                className="group flex items-center gap-3 px-6 py-4 bg-brass-gold rounded-2xl text-white hover:bg-[#b88c30] transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(168,125,38,0.5)] hover:-translate-y-1 w-full sm:w-auto justify-center"
               >
-                <div className="p-2 bg-white/10 rounded-lg">
+                <div className="p-2 bg-white/20 rounded-lg group-hover:scale-110 transition-transform">
                   <Phone className="w-5 h-5" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-xs text-white/70 font-body">Talk to Expert</span>
+                <div className="flex flex-col text-left">
+                  <span className="text-[11px] text-white/80 font-body uppercase tracking-wider">Talk to Expert</span>
                   <span className="text-sm font-semibold font-body">+91 98765 43210</span>
                 </div>
               </a>
               <a
                 href="https://wa.me/919876543210"
-                className="flex items-center gap-3 px-6 py-4 border border-white/20 rounded-2xl text-white hover:bg-white/10 transition-colors w-full sm:w-auto justify-center"
+                className="group flex items-center gap-3 px-6 py-4 bg-white/10 border border-white/20 rounded-2xl text-white hover:bg-white/20 transition-all duration-300 backdrop-blur-sm shadow-lg hover:-translate-y-1 w-full sm:w-auto justify-center"
               >
-                <div className="p-2 bg-white/10 rounded-lg">
-                  <MessageCircle className="w-5 h-5" />
+                <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
+                  <MessageCircle className="w-5 h-5 text-[#25D366]" />
                 </div>
                 <span className="text-sm font-semibold font-body">Chat on WhatsApp</span>
               </a>

@@ -34,32 +34,34 @@ export default function ComparisonTable() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          {/* Table Header */}
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <div className="text-lg font-display font-bold text-ink-green">
-              Compare Plans
-            </div>
-            <div className="text-center">
-              <p className="text-base font-display font-semibold text-ink-green">
-                Basic
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="inline-block">
-                <span className="block text-[10px] bg-brass-gold text-white px-2 py-0.5 rounded-full font-body font-semibold uppercase tracking-wider mb-1">
-                  Most Popular
-                </span>
-                <p className="text-base font-display font-semibold text-ink-green">
-                  Pro
-                </p>
+          <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="min-w-[700px]">
+              {/* Table Header */}
+              <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="text-lg font-display font-bold text-ink-green">
+                  Compare Plans
+                </div>
+                <div className="text-center">
+                  <p className="text-base font-display font-semibold text-ink-green">
+                    Basic
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="inline-block">
+                    <span className="block text-[10px] bg-brass-gold text-white px-2 py-0.5 rounded-full font-body font-semibold uppercase tracking-wider mb-1">
+                      Most Popular
+                    </span>
+                    <p className="text-base font-display font-semibold text-ink-green">
+                      Pro
+                    </p>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-base font-display font-semibold text-ink-green">
+                    Enterprise
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="text-center">
-              <p className="text-base font-display font-semibold text-ink-green">
-                Enterprise
-              </p>
-            </div>
-          </div>
 
           {/* Table Rows */}
           <div className="bg-card-surface rounded-2xl shadow-card overflow-hidden">
@@ -88,6 +90,8 @@ export default function ComparisonTable() {
                 </div>
               </div>
             ))}
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>

@@ -46,7 +46,7 @@ class ApiService {
       _request('PUT', endpoint, data);
   Future<dynamic> patch(String endpoint, Map<String, dynamic> data) =>
       _request('PATCH', endpoint, data);
-  Future<dynamic> delete(String endpoint) => _request('DELETE', endpoint);
+  Future<dynamic> delete(String endpoint, [Map<String, dynamic>? body]) => _request('DELETE', endpoint, body);
 
   /// Cache-first GET. Attempts a live network call and stores the result
   /// in SQLite. If the call fails (offline / server error), falls back to
@@ -95,7 +95,7 @@ class ApiService {
         response = await _client.patch(uri, headers: headers, body: body);
         break;
       case 'DELETE':
-        response = await _client.delete(uri, headers: headers);
+        response = await _client.delete(uri, headers: headers, body: body);
         break;
       default:
         throw ApiException('Unsupported method $method', 0);

@@ -64,15 +64,15 @@ export default function DemoBookingForm() {
   }
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
         <div className="space-y-2">
           <label className="text-xs font-body font-semibold text-ink-green">
             Full Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            placeholder="Enter your full name"
+            placeholder="e.g. Rahul Sharma"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
@@ -87,7 +87,7 @@ export default function DemoBookingForm() {
           </label>
           <input
             type="email"
-            placeholder="Enter your email address"
+            placeholder="e.g. rahul@institute.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -100,7 +100,7 @@ export default function DemoBookingForm() {
           </label>
           <input
             type="tel"
-            placeholder="Enter your phone number"
+            placeholder="e.g. 9876543210"
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
             required
@@ -115,7 +115,7 @@ export default function DemoBookingForm() {
           </label>
           <input
             type="text"
-            placeholder="Enter your city"
+            placeholder="e.g. Mumbai, Maharashtra"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             required
@@ -129,7 +129,7 @@ export default function DemoBookingForm() {
           </label>
           <input
             type="text"
-            placeholder="Enter your institute name"
+            placeholder="e.g. Sharma Coaching Classes"
             value={instituteName}
             onChange={(e) => setInstituteName(e.target.value)}
             required
@@ -156,7 +156,7 @@ export default function DemoBookingForm() {
           Tell us about your institute (optional)
         </label>
         <textarea
-          placeholder="Type your message here..."
+          placeholder="e.g. We have 200+ students and are currently facing challenges with fee collection and attendance tracking. Looking for a solution to automate these tasks."
           rows={3}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -169,7 +169,7 @@ export default function DemoBookingForm() {
         <p className="text-sm font-body text-red-500">{errorMessage}</p>
       )}
 
-      <div className="pt-4">
+      <div className="pt-2">
         <Button
           type="submit"
           variant="primary"

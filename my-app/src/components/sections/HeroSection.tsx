@@ -11,7 +11,7 @@ import { TRUST_BADGES } from "@/utils/constants";
 export default function HeroSection() {
   return (
     <section className="relative bg-white flex flex-col min-h-[calc(100vh-120px)] justify-between">
-      <div className="container-main flex-grow pt-6 pb-0 md:pt-8 md:pb-0">
+      <div className="container-main flex-grow pt-4 pb-0 md:pt-6 md:pb-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <motion.div
@@ -28,7 +28,7 @@ export default function HeroSection() {
             </div>
 
             {/* Heading */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold text-ink-green leading-[1.1] mb-6">
+            <h1 className="text-4xl sm:text-5xl font-display font-bold text-ink-green leading-[1.15] mb-5">
               One Platform.
               <br />
               Every Operation.
@@ -70,13 +70,13 @@ export default function HeroSection() {
             />
 
             {/* Dashboard Image */}
-            <div className="relative z-10 w-full flex items-center justify-center lg:scale-[1.3] lg:-translate-x-2">
+            <div className="relative z-10 w-full flex items-center justify-center max-w-[500px] lg:max-w-none mx-auto lg:scale-[1.05] lg:-translate-x-1">
               <Image
                 src="/Home.png"
                 alt="EdTech OS Dashboard Preview"
                 width={1200}
                 height={800}
-                className="w-full h-auto object-contain"
+                className="w-full h-auto object-contain drop-shadow-2xl rounded-lg"
                 priority
               />
             </div>

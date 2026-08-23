@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../services/cache_service.dart';
+import '../services/push_notification_service.dart';
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
@@ -113,6 +114,9 @@ class AuthNotifier extends Notifier<AuthState> {
 
       await _applyUserAndBranding(response['user'], response['branding']);
 
+      // Sync FCM token with backend
+      await PushNotificationService().sendTokenToBackend();
+
       state = state.copyWith(isLoading: false, isAuthenticated: true);
       return true;
     } catch (e) {
@@ -131,6 +135,10 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final me = await _api.get('/auth/me');
       await _applyUserAndBranding(me['user'], me['branding']);
+      
+      // Sync FCM token with backend in case it changed while app was killed
+      PushNotificationService().sendTokenToBackend();
+
       state = state.copyWith(isAuthenticated: true);
       return true;
     } catch (_) {
@@ -214,6 +222,9 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    // Unregister device token from backend before clearing the auth token
+    await PushNotificationService().removeTokenFromBackend();
+
     // Clear SQLite cache so cached data from this account is
     // not visible if a different account logs in next.
     await CacheService.instance.clearAll();
