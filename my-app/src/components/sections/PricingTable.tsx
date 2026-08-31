@@ -53,11 +53,9 @@ export default function PricingTable() {
     const fetchPlans = async () => {
       try {
         setLoading(true);
-        const baseUrl =
-          typeof window !== "undefined" && window.location.hostname !== "localhost"
-            ? `http://${window.location.hostname}:4000/api/v1`
-            : process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
-        const res = await fetch(`${baseUrl}/public/plans`);
+        // Same-origin: the marketing site and API are the same Next.js
+        // deployment now, so no base URL/host/port is needed.
+        const res = await fetch("/api/public/plans");
         if (res.ok) {
           const data = await res.json();
           setBackendPlans(data);

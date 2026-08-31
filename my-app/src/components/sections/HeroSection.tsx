@@ -72,7 +72,7 @@ export default function HeroSection() {
             {/* Dashboard Image */}
             <div className="relative z-10 w-full flex items-center justify-center max-w-[500px] lg:max-w-none mx-auto lg:scale-[1.05] lg:-translate-x-1">
               <Image
-                src="/Home.png"
+                src="/home.png"
                 alt="EdTech OS Dashboard Preview"
                 width={1200}
                 height={800}

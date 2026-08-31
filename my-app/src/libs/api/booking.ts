@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+// Same-origin: the marketing site and API are the same Next.js deployment
+// now, so no base URL/host/port is needed.
 
 export interface BookingData {
   instituteName: string;
@@ -16,7 +17,7 @@ export interface BookingResult {
 }
 
 export async function submitBooking(data: BookingData): Promise<BookingResult> {
-  const res = await fetch(`${API_BASE_URL}/leads`, {
+  const res = await fetch("/api/leads", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
