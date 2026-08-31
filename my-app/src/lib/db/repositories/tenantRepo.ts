@@ -1,0 +1,13 @@
+import { query } from '../index';
+import type { TenantRow } from '../rows';
+
+/** Ported verbatim from the Express backend's src/db/repositories/tenantRepo.ts. */
+export async function findBySlug(slug: string): Promise<TenantRow | null> {
+  const { rows } = await query<TenantRow>(`SELECT * FROM tenants WHERE slug = $1`, [slug]);
+  return rows[0] || null;
+}
+
+export async function findById(id: number): Promise<TenantRow | null> {
+  const { rows } = await query<TenantRow>(`SELECT * FROM tenants WHERE id = $1`, [id]);
+  return rows[0] || null;
+}
