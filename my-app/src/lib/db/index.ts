@@ -29,7 +29,10 @@ export const pool: PoolType =
   globalThis.__dbPool ??
   new Pool({
     connectionString: env.databaseUrl,
-    max: 2,
+    // 5 per instance leaves headroom for ~40 concurrently-warm instances
+    // before approaching Supabase free tier's ~200-connection pooler ceiling,
+    // while cutting per-instance queuing under concurrent requests vs max:2.
+    max: 5,
     idleTimeoutMillis: 5_000,
     connectionTimeoutMillis: 10_000,
     ssl: {
