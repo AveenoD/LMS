@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App primary green — used as the tint color for FCM's default tray
+         notification icon (matches AppColors.primary in Dart). -->
+    <color name="notification_color">#FF2E6656</color>
+</resources>

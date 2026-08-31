@@ -33,6 +33,13 @@ final studentTodayLiveProvider = FutureProvider<List<dynamic>>((ref) async {
   return await api.get('/student/live/today') as List<dynamic>;
 });
 
+// ─── Upcoming Live Classes (next 7 days) ─────────────────────────────────────
+
+final studentUpcomingLiveProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/student/live/upcoming') as List<dynamic>;
+});
+
 // ─── Student Fees ────────────────────────────────────────────────────────────
 
 final studentFeesProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -46,6 +53,16 @@ final studentNotificationsProvider = FutureProvider<List<dynamic>>((ref) async {
   final api = ref.read(apiServiceProvider);
   return await api.get('/student/notifications') as List<dynamic>;
 });
+
+final studentUnreadNotificationCountProvider = FutureProvider<int>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  final response = await api.get('/student/notifications/unread-count') as Map<String, dynamic>;
+  return response['count'] as int? ?? 0;
+});
+
+Future<void> markStudentNotificationRead(ApiService api, int id) async {
+  await api.patch('/student/notifications/$id/read', {});
+}
 // ─── Tests & Quiz ────────────────────────────────────────────────────────────
 
 final studentTestsProvider = FutureProvider<Map<String, dynamic>>((ref) async {

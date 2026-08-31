@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/student_providers.dart';
+import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 
 class StudentNotificationsScreen extends ConsumerWidget {
@@ -9,6 +10,12 @@ class StudentNotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(studentNotificationsProvider);
+
+    Future<void> markRead(int id) async {
+      await markStudentNotificationRead(ref.read(apiServiceProvider), id);
+      ref.invalidate(studentNotificationsProvider);
+      ref.invalidate(studentUnreadNotificationCountProvider);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -60,7 +67,12 @@ class StudentNotificationsScreen extends ConsumerWidget {
                 } catch (_) {}
               }
 
-              return Container(
+              final id = notif['id'] as int?;
+
+              return InkWell(
+                onTap: (!isRead && id != null) ? () => markRead(id) : null,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isRead ? Colors.white : AppColors.primary.withValues(alpha: 0.05),
@@ -118,6 +130,7 @@ class StudentNotificationsScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
+                ),
                 ),
               );
             },

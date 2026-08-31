@@ -11,29 +11,61 @@ import 'services/push_notification_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+/// Owned outside the widget tree so [PushNotificationService] (a plain
+/// singleton, not a widget) can invalidate providers — e.g. refresh the
+/// unread-count badge — when a push arrives while the app never rebuilds
+/// that part of the tree on its own.
+final ProviderContainer rootProviderContainer = ProviderContainer();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await CacheService.instance.init();
   await PushNotificationService().initialize(navigatorKey);
-  
+
   runApp(
-    // Wrap the entire app in a ProviderScope so Riverpod can manage state
-    const ProviderScope(
-      child: MyApp(),
+    // UncontrolledProviderScope reuses rootProviderContainer instead of
+    // creating a new one, so both the widget tree and PushNotificationService
+    // share the same provider state.
+    UncontrolledProviderScope(
+      container: rootProviderContainer,
+      child: const MyApp(),
     ),
   );
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Reflects the logged-in institute's brand color once known; falls back
-    // to the default seed before login / for super_admin (no tenant color).
-    final primaryColor = Constants.colorFromHex(ref.watch(authProvider).primaryColor);
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Catches pushes that arrived while backgrounded and were never tapped
+    // (banner dismissed, or the app reopened from the app switcher) — the
+    // in-app providers would otherwise keep serving stale unread counts.
+    if (state == AppLifecycleState.resumed) {
+      PushNotificationService().refreshNotificationProviders();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: 'EdTech OS Mobile',
@@ -41,7 +73,7 @@ class MyApp extends ConsumerWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryColor,
+          seedColor: Constants.defaultPrimaryColor,
           primary: const Color(0xFF1F2E27),
           secondary: const Color(0xFF2E6656),
           tertiary: const Color(0xFFA87D26),

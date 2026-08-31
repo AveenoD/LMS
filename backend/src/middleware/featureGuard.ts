@@ -18,7 +18,6 @@ export type FeatureKey =
   | 'performance_reports'
   | 'online_tests'
   | 'doubt_solving'
-  | 'custom_branding'
   | 'teacher_accounts';
 
 interface PlanRow {

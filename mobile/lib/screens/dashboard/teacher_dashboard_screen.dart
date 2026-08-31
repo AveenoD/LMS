@@ -21,6 +21,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
     final fullName = authState.fullName ?? 'Teacher';
     final instituteName = authState.instituteName ?? 'EdTech OS';
     
+    final unreadCount = ref.watch(teacherUnreadNotificationCountProvider).asData?.value ?? 0;
     final scheduleAsync = ref.watch(todayScheduleProvider);
     final classesToday = scheduleAsync.maybeWhen(
       data: (data) {
@@ -39,9 +40,15 @@ class TeacherDashboardScreen extends ConsumerWidget {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherNotificationsScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherNotificationsScreen()))
+                  .then((_) => ref.invalidate(teacherUnreadNotificationCountProvider));
             },
-            icon: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text('$unreadCount'),
+              backgroundColor: Colors.redAccent,
+              child: const Icon(Icons.notifications_none_outlined, color: Colors.white),
+            ),
           ),
         ],
       ),

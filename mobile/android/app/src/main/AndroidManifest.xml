@@ -34,6 +34,17 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- FCM's own tray notification (app fully killed, not just backgrounded)
+             bypasses our PushNotificationService code, so it needs its default
+             icon/color set here too — otherwise it falls back to the full-color
+             launcher icon, which Android renders as a blurry solid blob. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_stat_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

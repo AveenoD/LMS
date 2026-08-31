@@ -5,10 +5,8 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/
 import ApiError from '../utils/ApiError.js';
 import type { PublicUser } from '../db/rows.js';
 
-export interface Branding {
+export interface TenantInfo {
   name: string;
-  logoUrl: string | null;
-  primaryColor: string | null;
   slug: string;
 }
 
@@ -21,7 +19,7 @@ export interface LoginResult {
   accessToken: string;
   refreshToken: string;
   user: PublicUser | null;
-  branding: Branding | null;
+  tenant: TenantInfo | null;
 }
 
 /**
@@ -39,17 +37,12 @@ export async function login({ phone, password }: LoginInput): Promise<LoginResul
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid phone or password');
 
-  let branding: Branding | null = null;
+  let tenantInfo: TenantInfo | null = null;
   if (user.tenant_id) {
     const tenant = await tenantRepo.findById(user.tenant_id);
     if (!tenant) throw ApiError.unauthorized('INVALID_CREDENTIALS', 'Invalid login');
     if (!tenant.is_active) throw ApiError.forbidden('TENANT_SUSPENDED', 'This institute is suspended');
-    branding = {
-      name: tenant.name,
-      logoUrl: tenant.logo_url,
-      primaryColor: tenant.primary_color,
-      slug: tenant.slug,
-    };
+    tenantInfo = { name: tenant.name, slug: tenant.slug };
   }
 
   const accessToken = signAccessToken({
@@ -63,7 +56,7 @@ export async function login({ phone, password }: LoginInput): Promise<LoginResul
     accessToken,
     refreshToken,
     user: userRepo.toPublicUser(user),
-    branding,
+    tenant: tenantInfo,
   };
 }
 
@@ -86,12 +79,12 @@ export async function refresh({ refreshToken }: { refreshToken: string }): Promi
   return { accessToken };
 }
 
-/** Return current user + branding for /auth/me. */
-export async function me({ userId }: { userId: number }): Promise<{ user: PublicUser | null; branding: Branding | null }> {
+/** Return current user + institute info for /auth/me. */
+export async function me({ userId }: { userId: number }): Promise<{ user: PublicUser | null; tenant: TenantInfo | null }> {
   const user = await userRepo.findById(userId);
   if (!user) throw ApiError.unauthorized('USER_NOT_FOUND');
-  const branding = user.tenant_id ? await tenantRepo.getBranding(user.tenant_id) : null;
-  return { user: userRepo.toPublicUser(user), branding };
+  const tenant = user.tenant_id ? await tenantRepo.findById(user.tenant_id) : null;
+  return { user: userRepo.toPublicUser(user), tenant: tenant ? { name: tenant.name, slug: tenant.slug } : null };
 }
 
 /** Sets the caller's own profile photo — any role, no ownership check

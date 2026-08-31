@@ -71,6 +71,15 @@ export interface FirebaseConfig {
   readonly enabled: boolean;
 }
 
+export interface GoogleOAuthConfig {
+  /** Web-application OAuth client — used both by the mobile app (as
+   *  serverClientId, to request a server auth code) and by this backend
+   *  (to exchange that code for tokens). Same client works for both. */
+  clientId: string;
+  clientSecret: string;
+  readonly enabled: boolean;
+}
+
 export interface AppEnv {
   nodeEnv: string;
   isProd: boolean;
@@ -90,6 +99,7 @@ export interface AppEnv {
   };
   razorpay: RazorpayConfig;
   firebase: FirebaseConfig;
+  googleOAuth: GoogleOAuthConfig;
   notify: {
     email: EmailConfig;
     telegram: TelegramConfig;
@@ -153,6 +163,14 @@ export const env: AppEnv = {
     privateKey: optional('FIREBASE_PRIVATE_KEY', '').replace(/\\n/g, '\n'),
     get enabled(): boolean {
       return Boolean(this.projectId && this.clientEmail && this.privateKey);
+    },
+  },
+
+  googleOAuth: {
+    clientId: optional('GOOGLE_OAUTH_CLIENT_ID', ''),
+    clientSecret: optional('GOOGLE_OAUTH_CLIENT_SECRET', ''),
+    get enabled(): boolean {
+      return Boolean(this.clientId && this.clientSecret);
     },
   },
 

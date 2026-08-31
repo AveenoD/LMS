@@ -28,15 +28,15 @@ async function seed(): Promise<void> {
       // ---- Tenants ----
       const apex = (
         await client.query<{ id: number }>(
-          `INSERT INTO tenants (name, slug, city, contact_phone, primary_color)
-         VALUES ('Apex Academy','apex','Nashik','919999900001','#2563EB') RETURNING id`
+          `INSERT INTO tenants (name, slug, city, contact_phone)
+         VALUES ('Apex Academy','apex','Nashik','919999900001') RETURNING id`
         )
       ).rows[0].id;
 
       const pioneer = (
         await client.query<{ id: number }>(
-          `INSERT INTO tenants (name, slug, city, contact_phone, primary_color)
-         VALUES ('Pioneer Classes','pioneer','Nashik','919999900002','#16A34A') RETURNING id`
+          `INSERT INTO tenants (name, slug, city, contact_phone)
+         VALUES ('Pioneer Classes','pioneer','Nashik','919999900002') RETURNING id`
         )
       ).rows[0].id;
 

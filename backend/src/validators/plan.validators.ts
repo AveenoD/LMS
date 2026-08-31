@@ -11,7 +11,6 @@ const featureKeySchema = z.enum([
   'performance_reports',
   'online_tests',
   'doubt_solving',
-  'custom_branding',
   'teacher_accounts',
 ]);
 

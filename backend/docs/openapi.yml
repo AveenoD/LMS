@@ -144,12 +144,12 @@ components:
             role:       { type: string, example: student }
             tenantId:   { type: integer, example: 1 }
             fullName:   { type: string, example: Aarav Joshi }
-        branding:
+        tenant:
           type: object
+          nullable: true
           properties:
-            name:         { type: string, example: Apex Academy }
-            logoUrl:      { type: string, nullable: true, example: "https://cdn.edtechos.com/apex.png" }
-            primaryColor: { type: string, example: "#2563EB" }
+            name: { type: string, example: Apex Academy }
+            slug: { type: string, example: apex }
 
     MeResponse:
       type: object
@@ -163,8 +163,8 @@ components:
             fullName: { type: string, example: Rajesh Deshmukh }
             phone:    { type: string, example: "919000000011" }
             email:    { type: string, nullable: true, example: rajesh@apexacademy.com }
-        branding:
-          $ref: '#/components/schemas/LoginResponse/properties/branding'
+        tenant:
+          $ref: '#/components/schemas/LoginResponse/properties/tenant'
 
     # ── Plan Catalog ──────────────────────────────────────────────────────────
     PlanItem:
@@ -200,7 +200,7 @@ components:
             type: string
             enum: [student_management, batch_management, digital_attendance, fee_management,
                    video_library, whatsapp_reminders, live_classes, performance_reports,
-                   online_tests, doubt_solving, custom_branding, teacher_accounts]
+                   online_tests, doubt_solving, teacher_accounts]
           example: ["digital_attendance", "live_classes", "whatsapp_reminders"]
         displayOrder: { type: integer, example: 2 }
 
@@ -629,10 +629,10 @@ paths:
       tags: [Auth]
       summary: Login
       description: |
-        Authenticates a user and returns JWT access + refresh tokens along with branding info.
+        Authenticates a user and returns JWT access + refresh tokens along with institute info.
         One login form for every role — phone + password only. Phone is globally
         unique across all institutes, so the backend resolves the user (and, for
-        non-super-admin roles, the institute/branding) from the phone number alone.
+        non-super-admin roles, the institute) from the phone number alone.
       operationId: login
       requestBody:
         required: true
@@ -689,7 +689,7 @@ paths:
     get:
       tags: [Auth]
       summary: Get current user
-      description: Returns the authenticated user's profile and institute branding.
+      description: Returns the authenticated user's profile and institute info.
       operationId: getMe
       security:
         - BearerAuth: []
@@ -1509,47 +1509,6 @@ paths:
                 waUrl: "https://wa.me/919000000099?text=Namaste%20ji%2C%20Aarav%20ki%20Term%201%20fees%20%E2%82%B95000%20pending%20hai."
         '403': { $ref: '#/components/responses/Forbidden' }
 
-  # ══════════════════════════════════════════════════════════════════════════
-  # COACHING ADMIN — BRANDING
-  # ══════════════════════════════════════════════════════════════════════════
-  /admin/branding:
-    get:
-      tags: [Coaching Admin — Branding]
-      summary: Get institute branding
-      operationId: getBranding
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: Branding info
-          content:
-            application/json:
-              example: { logoUrl: "https://cdn.edtechos.com/apex.png", primaryColor: "#2563EB", name: "Apex Academy" }
-    put:
-      tags: [Coaching Admin — Branding]
-      summary: Update branding (logo + color)
-      description: |
-        **Requires Elite plan** (`custom_branding` feature).
-        Also blocked when subscription is expired.
-      operationId: updateBranding
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                logoUrl:      { type: string, format: uri, example: "https://cdn.edtechos.com/apex-new.png" }
-                primaryColor: { type: string, example: "#16A34A" }
-      responses:
-        '200':
-          description: Branding updated
-          content:
-            application/json:
-              example: { logoUrl: "https://cdn.edtechos.com/apex-new.png", primaryColor: "#16A34A" }
-        '403': { $ref: '#/components/responses/Forbidden' }
 
   # ══════════════════════════════════════════════════════════════════════════
   # COACHING ADMIN — REPORTS

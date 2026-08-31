@@ -1,6 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
 
+final teacherNotificationsProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/notifications') as List<dynamic>;
+});
+
+final teacherUnreadNotificationCountProvider = FutureProvider<int>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  final response = await api.get('/teacher/notifications/unread-count') as Map<String, dynamic>;
+  return response['count'] as int? ?? 0;
+});
+
+Future<void> markTeacherNotificationRead(ApiService api, int id) async {
+  await api.patch('/teacher/notifications/$id/read', {});
+}
+
 class TeacherShellTabIndexNotifier extends Notifier<int> {
   @override
   int build() => 0;
@@ -90,3 +105,61 @@ final teacherStudentDetailsProvider = FutureProvider.family<Map<String, dynamic>
   final api = ref.read(apiServiceProvider);
   return await api.get('/teacher/students/$studentId/details') as Map<String, dynamic>;
 });
+
+// ─── Live Classes ─────────────────────────────────────────────────────────────
+
+/// All live classes created by this teacher (upcoming + past).
+final teacherLiveClassesProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/live-classes') as List<dynamic>;
+});
+
+/// Whether this teacher has connected their Google account — required
+/// before a Meet link can be auto-generated for a live class.
+final googleConnectionStatusProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return await api.get('/teacher/google/status') as Map<String, dynamic>;
+});
+
+/// Exchanges the one-time server auth code (from google_sign_in's
+/// authorizeServer) for a stored refresh token on the backend.
+Future<Map<String, dynamic>> connectGoogleAccount(ApiService api, String serverAuthCode) async {
+  return await api.post('/teacher/google/connect', {
+    'serverAuthCode': serverAuthCode,
+  }) as Map<String, dynamic>;
+}
+
+Future<void> disconnectGoogleAccount(ApiService api) async {
+  await api.delete('/teacher/google/disconnect');
+}
+
+/// Creates a new live class. Returns the created live class object.
+/// Creates a live class — the backend auto-generates the Google Meet link
+/// via Calendar API, so no meetUrl is sent from the client.
+Future<Map<String, dynamic>> createLiveClass(
+  ApiService api, {
+  required String title,
+  required int batchId,
+  required String scheduledAt,
+  int? durationMinutes,
+}) async {
+  return await api.post('/teacher/live-classes', {
+    'title': title,
+    'batchId': batchId,
+    'scheduledAt': scheduledAt,
+    if (durationMinutes != null) 'durationMinutes': durationMinutes,
+  }) as Map<String, dynamic>;
+}
+
+/// Deletes a live class by ID (only allowed before it starts).
+Future<void> deleteLiveClass(ApiService api, int id) async {
+  await api.delete('/teacher/live-classes/$id');
+}
+
+/// Manually marks a live class as ended. The app has no way to detect when
+/// the actual Google Meet call ends, so this is how a teacher moves a class
+/// out of "LIVE now" once they're done — the real call must still be ended
+/// from within Meet itself.
+Future<void> endLiveClass(ApiService api, int id) async {
+  await api.patch('/teacher/live-classes/$id/end', {});
+}

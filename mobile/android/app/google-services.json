@@ -12,7 +12,12 @@
           "package_name": "com.edtechos.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "616148352281-69ektourfds5q3mi1u9042bbpkfgg148.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBRVQgU9RZ6C3WBGS9uHh732WU0jktBB6k"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "616148352281-69ektourfds5q3mi1u9042bbpkfgg148.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

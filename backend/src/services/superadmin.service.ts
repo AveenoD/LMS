@@ -9,7 +9,6 @@ export interface RegisterTenantInput {
   slug: string;
   city?: string;
   contactPhone?: string;
-  primaryColor?: string;
   adminName: string;
   adminPhone: string;
   adminPassword: string;
@@ -22,7 +21,6 @@ interface TenantResult {
   name: string;
   slug: string;
   city: string | null;
-  primaryColor: string | null;
   contactPhone: string | null;
 }
 
@@ -46,7 +44,6 @@ export async function registerTenant(
     slug,
     city,
     contactPhone,
-    primaryColor,
     adminName,
     adminPhone,
     adminPassword,
@@ -62,10 +59,10 @@ export async function registerTenant(
 
     const tenant = (
       await client.query<TenantResult>(
-        `INSERT INTO tenants (name, slug, city, contact_phone, primary_color)
-       VALUES ($1,$2,$3,$4,$5)
-       RETURNING id, name, slug, city, primary_color AS "primaryColor", contact_phone AS "contactPhone"`,
-        [name, slug, city || null, contactPhone || null, primaryColor || '#2563EB']
+        `INSERT INTO tenants (name, slug, city, contact_phone)
+       VALUES ($1,$2,$3,$4)
+       RETURNING id, name, slug, city, contact_phone AS "contactPhone"`,
+        [name, slug, city || null, contactPhone || null]
       )
     ).rows[0];
 

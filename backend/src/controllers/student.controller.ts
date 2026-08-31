@@ -23,6 +23,10 @@ export const todayLive = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.todayLive(tenantId(req), userId(req)))
 );
 
+export const upcomingLive = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.upcomingLive(tenantId(req), userId(req)))
+);
+
 export const fees = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.fees(tenantId(req), userId(req)))
 );

@@ -4,7 +4,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/app_colors.dart';
 import 'api_service.dart';
+import '../main.dart' show rootProviderContainer;
+import '../providers/management_providers.dart' show notificationsProvider, unreadNotificationCountProvider;
+import '../providers/student_providers.dart' show studentNotificationsProvider, studentUnreadNotificationCountProvider;
+import '../providers/teacher_providers.dart' show teacherNotificationsProvider, teacherUnreadNotificationCountProvider;
 
 // Screens
 import '../screens/superadmin/notifications_screen.dart' as superadmin;
@@ -53,7 +58,7 @@ class PushNotificationService {
     // 3. Setup Local Notifications (for foreground)
     await _localNotifications.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/launcher_icon'),
+        android: AndroidInitializationSettings('@mipmap/ic_stat_notification'),
         iOS: DarwinInitializationSettings(),
       ),
       onDidReceiveNotificationResponse: (NotificationResponse response) {
@@ -80,6 +85,7 @@ class PushNotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('Got a message whilst in the foreground!');
       debugPrint('Message data: ${message.data}');
+      refreshNotificationProviders();
 
       if (message.notification != null) {
         debugPrint('Message also contained a notification: ${message.notification}');
@@ -90,12 +96,14 @@ class PushNotificationService {
     // 5. Handle clicks when app is in background but NOT killed
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('A new onMessageOpenedApp event was published!');
+      refreshNotificationProviders();
       _navigateToNotifications();
     });
 
     // 6. Handle clicks when app is killed completely and opened via push
     final initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
+      refreshNotificationProviders();
       // Delay slightly to let the app finish booting before navigating
       Future.delayed(const Duration(milliseconds: 500), () {
         _navigateToNotifications();
@@ -132,12 +140,26 @@ class PushNotificationService {
           channelDescription: 'This channel is used for important notifications.',
           importance: Importance.max,
           priority: Priority.high,
-          icon: '@mipmap/launcher_icon',
+          icon: '@mipmap/ic_stat_notification',
+          color: AppColors.primary,
         ),
         iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
       ),
       payload: jsonEncode(message.data),
     );
+  }
+
+  /// Invalidates every role's notification list/unread-count providers so
+  /// the bell badge and inbox screen reflect a just-arrived push immediately
+  /// — plain FutureProviders otherwise keep serving their last-fetched
+  /// (now stale) result until something explicitly refetches them.
+  void refreshNotificationProviders() {
+    rootProviderContainer.invalidate(notificationsProvider);
+    rootProviderContainer.invalidate(unreadNotificationCountProvider);
+    rootProviderContainer.invalidate(studentNotificationsProvider);
+    rootProviderContainer.invalidate(studentUnreadNotificationCountProvider);
+    rootProviderContainer.invalidate(teacherNotificationsProvider);
+    rootProviderContainer.invalidate(teacherUnreadNotificationCountProvider);
   }
 
   Future<void> _navigateToNotifications() async {

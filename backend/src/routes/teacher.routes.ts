@@ -6,12 +6,14 @@ import { featureGuard } from '../middleware/featureGuard.js';
 import { validate } from '../middleware/validate.js';
 import {
   idParamSchema,
+  connectGoogleSchema,
   markAttendanceSchema,
   createQrSessionSchema,
   qrSessionIdParamSchema,
   createContentSchema,
   createChapterSchema,
   createLiveClassSchema,
+  liveClassIdParamSchema,
   batchIdParamSchema,
   batchStudentsQuerySchema,
   studentIdParamSchema,
@@ -65,12 +67,31 @@ router.post('/chapters', validate(createChapterSchema), ctrl.createChapter);
 router.get('/content', ctrl.listContent);
 router.post('/content', validate(createContentSchema), ctrl.createContent);
 
+// Google account connection — required before scheduling a live class
+// (Meet-link generation runs as the teacher's own Google identity).
+router.get('/google/status', ctrl.googleConnectionStatus);
+router.post('/google/connect', validate(connectGoogleSchema), ctrl.connectGoogleAccount);
+router.delete('/google/disconnect', ctrl.disconnectGoogleAccount);
+
 // Live classes — Pro & Elite only
+router.get('/live-classes', featureGuard('live_classes'), ctrl.listLiveClasses);
 router.post(
   '/live-classes',
   featureGuard('live_classes'),
   validate(createLiveClassSchema),
   ctrl.createLiveClass
+);
+router.delete(
+  '/live-classes/:id',
+  featureGuard('live_classes'),
+  validate(liveClassIdParamSchema, 'params'),
+  ctrl.deleteLiveClass
+);
+router.patch(
+  '/live-classes/:id/end',
+  featureGuard('live_classes'),
+  validate(liveClassIdParamSchema, 'params'),
+  ctrl.endLiveClass
 );
 
 // Doubt link — Pro & Elite only

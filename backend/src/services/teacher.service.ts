@@ -3,6 +3,7 @@ import ApiError from '../utils/ApiError.js';
 import { buildWaUrl, absentMessage } from './whatsapp.service.js';
 import * as adminService from './admin.service.js';
 import * as notificationCenter from './notificationCenter.service.js';
+import { createMeetEvent, deleteMeetEvent } from './googleMeet.service.js';
 import * as https from 'https';
 import { randomBytes } from 'crypto';
 import logger from '../utils/logger.js';
@@ -468,25 +469,116 @@ export async function createContent(
 /* Live classes */
 export interface CreateLiveClassInput {
   title: string;
-  meetUrl: string;
   batchId: number;
   scheduledAt: string;
+  durationMinutes?: number;
 }
 
 export async function createLiveClass(
   tenantId: number,
   teacherId: number,
-  { title, meetUrl, batchId, scheduledAt }: CreateLiveClassInput
+  { title, batchId, scheduledAt, durationMinutes }: CreateLiveClassInput
 ) {
-  const b = await query(`SELECT 1 FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
+  const b = await query<{ name: string }>(`SELECT name FROM batches WHERE id=$1 AND tenant_id=$2`, [batchId, tenantId]);
   if (!b.rowCount) throw ApiError.badRequest('INVALID_BATCH');
+
+  const { eventId, meetUrl } = await createMeetEvent(teacherId, { title, scheduledAt, durationMinutes });
+
   const { rows } = await query(
-    `INSERT INTO live_classes (tenant_id, batch_id, title, meet_url, scheduled_at, teacher_id)
-     VALUES ($1,$2,$3,$4,$5,$6)
+    `INSERT INTO live_classes (tenant_id, batch_id, title, meet_url, scheduled_at, teacher_id, calendar_event_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
      RETURNING id, title, meet_url AS "meetUrl", scheduled_at AS "scheduledAt", batch_id AS "batchId"`,
-    [tenantId, batchId, title, meetUrl, scheduledAt, teacherId]
+    [tenantId, batchId, title, meetUrl, scheduledAt, teacherId, eventId]
   );
-  return rows[0];
+  const liveClass = rows[0];
+
+  // Instant notification to all batch students
+  const scheduledDate = new Date(scheduledAt);
+  const timeStr = scheduledDate.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+  const dateStr = scheduledDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' });
+  notificationCenter
+    .batchStudentUserIds(tenantId, batchId)
+    .then((userIds) =>
+      notificationCenter.sendNotification({
+        userIds,
+        tenantId,
+        title: `📹 Live Class Scheduled: ${title}`,
+        body: `Your class "${title}" is scheduled on ${dateStr} at ${timeStr} in batch ${b.rows[0].name}.`,
+        type: 'live_class_reminder',
+        entityId: liveClass.id,
+      })
+    )
+    .catch((err) => logger.error('Live-class-created notify failed', { error: err instanceof Error ? err.message : String(err) }));
+
+  return liveClass;
+}
+
+export interface LiveClassListItem {
+  id: number;
+  title: string;
+  meetUrl: string;
+  scheduledAt: string;
+  batchId: number;
+  batchName: string;
+  isPast: boolean;
+}
+
+export async function listLiveClasses(
+  tenantId: number,
+  teacherId: number
+): Promise<LiveClassListItem[]> {
+  const { rows } = await query<LiveClassListItem>(
+    `SELECT lc.id, lc.title, lc.meet_url AS "meetUrl",
+            lc.scheduled_at AS "scheduledAt",
+            lc.batch_id AS "batchId", b.name AS "batchName",
+            (lc.ended_at IS NOT NULL OR lc.scheduled_at + interval '60 minutes' < now()) AS "isPast"
+       FROM live_classes lc
+       JOIN batches b ON b.id = lc.batch_id
+      WHERE lc.tenant_id=$1 AND lc.teacher_id=$2
+      ORDER BY lc.scheduled_at DESC
+      LIMIT 100`,
+    [tenantId, teacherId]
+  );
+  return rows;
+}
+
+/** Manually marks a live class as ended — the app has no way to detect when
+ *  a Google Meet call actually ends (Google pushes no such event anywhere),
+ *  so the "LIVE now" state is otherwise stuck on until the scheduled window
+ *  passes on its own. Does not touch the underlying Calendar event/Meet
+ *  link — teachers end the actual call from within Meet itself. */
+export async function endLiveClass(tenantId: number, teacherId: number, id: number): Promise<void> {
+  const { rowCount } = await query(
+    `UPDATE live_classes SET ended_at = now()
+      WHERE id=$1 AND tenant_id=$2 AND teacher_id=$3 AND ended_at IS NULL`,
+    [id, tenantId, teacherId]
+  );
+  if (!rowCount) throw ApiError.notFound('LIVE_CLASS_NOT_FOUND');
+}
+
+export async function deleteLiveClass(
+  tenantId: number,
+  teacherId: number,
+  id: number
+): Promise<void> {
+  const check = await query(
+    `SELECT id, scheduled_at, calendar_event_id FROM live_classes WHERE id=$1 AND tenant_id=$2 AND teacher_id=$3`,
+    [id, tenantId, teacherId]
+  );
+  if (!check.rowCount) throw ApiError.notFound('LIVE_CLASS_NOT_FOUND');
+  const row = check.rows[0] as { id: number; scheduled_at: string; calendar_event_id: string | null };
+  if (new Date(row.scheduled_at) <= new Date()) {
+    throw ApiError.badRequest('CANNOT_DELETE_PAST_CLASS', 'Cannot delete a class that has already started or passed.');
+  }
+  if (row.calendar_event_id) {
+    await deleteMeetEvent(teacherId, row.calendar_event_id).catch((err) =>
+      logger.error('Failed to delete Calendar event for live class', {
+        liveClassId: id,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    );
+  }
+  await query(`DELETE FROM live_classes WHERE id=$1`, [id]);
 }
 
 /** Free wa.me link to reply to a student's doubt. */

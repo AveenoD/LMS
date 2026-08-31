@@ -7,6 +7,15 @@ final subscriptionStatusProvider = FutureProvider<Map<String, dynamic>>((ref) as
   return result as Map<String, dynamic>;
 });
 
+/// Public plan catalog (active plans only) — no auth required, same
+/// endpoint the marketing site uses. Lets coaching_admin compare plans
+/// before deciding whether to switch.
+final publicPlansProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.watch(apiServiceProvider);
+  final result = await api.get('/public/plans');
+  return result as List<dynamic>;
+});
+
 Future<Map<String, dynamic>> createPaymentOrder(ApiService api) async {
   final result = await api.post('/payments/create-order', {});
   return result as Map<String, dynamic>;

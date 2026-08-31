@@ -8,10 +8,10 @@ import '../management/subjects_screen.dart';
 import '../academics/timetable_screen.dart';
 import '../fees/fees_management_screen.dart';
 import '../reports/reports_screen.dart';
-import '../settings/branding_screen.dart';
 import '../notifications/admin_notifications_screen.dart';
 import '../notifications/broadcast_students_screen.dart';
 import '../settings/subscription_screen.dart';
+import '../settings/browse_plans_screen.dart';
 import '../settings/support_screens.dart';
 import '../../providers/management_providers.dart';
 import '../../widgets/app_shell.dart';
@@ -44,14 +44,14 @@ class CoachingAdminShell extends StatelessWidget {
               MoreMenuItem(icon: Icons.book, label: 'Subjects', destination: SubjectsScreen()),
               MoreMenuItem(icon: Icons.schedule, label: 'Timetable', destination: TimetableScreen()),
               MoreMenuItem(
-                icon: Icons.settings,
-                label: 'Branding & Settings',
-                destination: BrandingScreen(),
-              ),
-              MoreMenuItem(
                 icon: Icons.payment,
                 label: 'Subscription & Billing',
                 destination: SubscriptionScreen(),
+              ),
+              MoreMenuItem(
+                icon: Icons.list_alt,
+                label: 'Browse Plans',
+                destination: BrowsePlansScreen(),
               ),
               MoreMenuItem(
                 icon: Icons.help,

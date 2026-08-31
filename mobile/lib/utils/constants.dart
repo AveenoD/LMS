@@ -6,18 +6,13 @@ class Constants {
 
   static const String currencySymbol = '₹';
 
-  /// Fallback brand color used before login / if an institute hasn't set one.
-  static const Color defaultPrimaryColor = Color(0xFF1F2E27);
+  /// The "Web application" OAuth client ID from Google Cloud Console —
+  /// used as google_sign_in's serverClientId so the backend can exchange
+  /// the resulting server auth code for a refresh token. Must match
+  /// GOOGLE_OAUTH_CLIENT_ID in the backend's .env.
+  static const String googleOAuthWebClientId =
+      '616148352281-69ektourfds5q3mi1u9042bbpkfgg148.apps.googleusercontent.com';
 
-  /// Parses a `#RRGGBB` hex string (as returned by the branding API) into a
-  /// [Color]. Falls back to [defaultPrimaryColor] for null/malformed input.
-  static Color colorFromHex(String? hex) {
-    if (hex == null) return defaultPrimaryColor;
-    var value = hex.trim();
-    if (value.startsWith('#')) value = value.substring(1);
-    if (value.length != 6) return defaultPrimaryColor;
-    final parsed = int.tryParse('FF$value', radix: 16);
-    if (parsed == null) return defaultPrimaryColor;
-    return Color(parsed);
-  }
+  /// The app's single fixed theme color — every institute uses the same UI color.
+  static const Color defaultPrimaryColor = Color(0xFF1F2E27);
 }

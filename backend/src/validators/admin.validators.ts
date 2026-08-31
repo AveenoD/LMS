@@ -77,13 +77,6 @@ export const recordPaymentSchema = z
   })
   .strict();
 
-export const updateBrandingSchema = z
-  .object({
-    logoUrl: z.string().url().optional(),
-    primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  })
-  .strict();
-
 export const idParamSchema = z.object({ id: z.coerce.number().int().positive() }).strict();
 export const studentIdParamSchema = z.object({ studentId: z.coerce.number().int().positive() }).strict();
 export const batchIdParamSchema = z.object({ batchId: z.coerce.number().int().positive() }).strict();

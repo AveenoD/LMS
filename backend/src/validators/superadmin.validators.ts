@@ -8,7 +8,6 @@ export const registerTenantSchema = z
     slug: z.string().trim().regex(/^[a-z0-9-]{2,60}$/, 'Slug: lowercase letters, digits, hyphens'),
     city: z.string().trim().max(80).optional(),
     contactPhone: phone.optional(),
-    primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     adminName: z.string().trim().min(2).max(120),
     adminPhone: phone,
     adminPassword: z.string().min(6).max(100),

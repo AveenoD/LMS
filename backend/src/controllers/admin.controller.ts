@@ -100,14 +100,6 @@ export const performance = asyncHandler(async (req: Request, res: Response) =>
   res.json(await svc.performanceReport(tenantId(req), req.query.batchId ? Number(req.query.batchId) : null))
 );
 
-/* Branding */
-export const getBranding = asyncHandler(async (req: Request, res: Response) =>
-  res.json(await svc.getBranding(tenantId(req)))
-);
-export const updateBranding = asyncHandler(async (req: Request, res: Response) =>
-  res.json(await svc.updateBranding(tenantId(req), userId(req), req.body))
-);
-
 /* Notifications */
 export const listNotifications = asyncHandler(async (req: Request, res: Response) =>
   res.json(await notificationCenter.listMyNotifications(userId(req)))

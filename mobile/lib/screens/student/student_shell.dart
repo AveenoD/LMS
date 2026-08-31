@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import 'student_home_screen.dart';
 import 'student_learn_screen.dart';
+import 'student_live_screen.dart';
 import 'student_tests_screen.dart';
 import 'student_profile_screen.dart';
 
@@ -19,6 +20,7 @@ class _StudentShellState extends State<StudentShell> {
   final List<Widget> _screens = const [
     StudentHomeScreen(),
     StudentLearnScreen(),
+    StudentLiveScreen(),
     StudentTestsScreen(),
     StudentProfileScreen(),
   ];
@@ -53,6 +55,7 @@ class _StudentShellState extends State<StudentShell> {
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
               BottomNavigationBarItem(icon: Icon(Icons.menu_book_rounded), label: 'Learn'),
+              BottomNavigationBarItem(icon: Icon(Icons.videocam_outlined), activeIcon: Icon(Icons.videocam_rounded), label: 'Live'),
               BottomNavigationBarItem(icon: Icon(Icons.quiz_rounded), label: 'Tests'),
               BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
             ],

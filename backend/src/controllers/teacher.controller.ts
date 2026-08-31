@@ -1,8 +1,21 @@
 import type { Request, Response } from 'express';
 import * as svc from '../services/teacher.service.js';
 import * as notificationCenter from '../services/notificationCenter.service.js';
+import * as googleAuth from '../services/teacherGoogleAuth.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { tenantId, userId } from './helpers.js';
+
+export const connectGoogleAccount = asyncHandler(async (req: Request, res: Response) => {
+  const result = await googleAuth.connectGoogleAccount(userId(req), tenantId(req), req.body.serverAuthCode);
+  res.json({ success: true, googleEmail: result.googleEmail });
+});
+export const googleConnectionStatus = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await googleAuth.getConnectionStatus(userId(req)))
+);
+export const disconnectGoogleAccount = asyncHandler(async (req: Request, res: Response) => {
+  await googleAuth.disconnectGoogleAccount(userId(req));
+  res.json({ success: true });
+});
 
 export const listNotifications = asyncHandler(async (req: Request, res: Response) =>
   res.json(await notificationCenter.listMyNotifications(userId(req)))
@@ -64,6 +77,20 @@ export const createChapter = asyncHandler(async (req: Request, res: Response) =>
 export const createLiveClass = asyncHandler(async (req: Request, res: Response) =>
   res.status(201).json(await svc.createLiveClass(tenantId(req), userId(req), req.body))
 );
+
+export const listLiveClasses = asyncHandler(async (req: Request, res: Response) =>
+  res.json(await svc.listLiveClasses(tenantId(req), userId(req)))
+);
+
+export const deleteLiveClass = asyncHandler(async (req: Request, res: Response) => {
+  await svc.deleteLiveClass(tenantId(req), userId(req), Number(req.params.id));
+  res.json({ success: true });
+});
+
+export const endLiveClass = asyncHandler(async (req: Request, res: Response) => {
+  await svc.endLiveClass(tenantId(req), userId(req), Number(req.params.id));
+  res.json({ success: true });
+});
 
 export const doubtLink = asyncHandler(async (req: Request, res: Response) => {
   const text = typeof req.query.text === 'string' ? req.query.text : undefined;

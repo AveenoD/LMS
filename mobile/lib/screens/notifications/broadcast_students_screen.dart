@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/management_providers.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_textfield.dart';
 
-/// Coaching Admin composes a notification for students in their own
-/// institute — everyone, or filtered to one batch.
+/// Coaching Admin composes a notification for students or teachers in their
+/// own institute — everyone (of that role), or filtered to one batch.
 class BroadcastStudentsScreen extends ConsumerStatefulWidget {
   const BroadcastStudentsScreen({super.key});
 
@@ -17,6 +18,7 @@ class BroadcastStudentsScreen extends ConsumerStatefulWidget {
 class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScreen> {
   final _title = TextEditingController();
   final _body = TextEditingController();
+  String _targetRole = 'student';
   int? _batchId;
   bool _sending = false;
   String? _error;
@@ -43,11 +45,13 @@ class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScree
         title: _title.text.trim(),
         body: _body.text.trim(),
         batchId: _batchId,
+        targetRole: _targetRole,
       );
       if (mounted) {
         final count = result['recipientCount'] ?? 0;
+        final who = _targetRole == 'teacher' ? 'teacher(s)' : 'student(s)';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sent to $count student(s).')),
+          SnackBar(content: Text('Sent to $count $who.')),
         );
         _title.clear();
         _body.clear();
@@ -67,27 +71,66 @@ class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScree
   @override
   Widget build(BuildContext context) {
     final batchesAsync = ref.watch(batchesProvider);
+    final isTeacher = _targetRole == 'teacher';
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Send Announcement'),
-              ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'This goes to your students — everyone, or just one batch.',
-                style: TextStyle(color: Colors.grey),
+              Text(
+                isTeacher
+                    ? 'This goes to your teachers — everyone, or just those teaching one batch.'
+                    : 'This goes to your students — everyone, or just one batch.',
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Send to', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _RoleTab(
+                        label: 'Students',
+                        icon: Icons.school_rounded,
+                        selected: !isTeacher,
+                        onTap: () => setState(() {
+                          _targetRole = 'student';
+                          _batchId = null;
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: _RoleTab(
+                        label: 'Teachers',
+                        icon: Icons.badge_rounded,
+                        selected: isTeacher,
+                        onTap: () => setState(() {
+                          _targetRole = 'teacher';
+                          _batchId = null;
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               CustomTextField(label: 'Title', hint: 'e.g. Holiday tomorrow', controller: _title),
               const SizedBox(height: 12),
               CustomTextField(
                 label: 'Message (optional)',
-                hint: 'Details for the students',
+                hint: isTeacher ? 'Details for the teachers' : 'Details for the students',
                 controller: _body,
               ),
               const SizedBox(height: 12),
@@ -126,6 +169,45 @@ class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScree
                     ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleTab extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _RoleTab({required this.label, required this.icon, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: selected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6, offset: const Offset(0, 1))] : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: selected ? AppColors.primary : Colors.grey.shade500),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? AppColors.primary : Colors.grey.shade500,
+              ),
+            ),
+          ],
         ),
       ),
     );

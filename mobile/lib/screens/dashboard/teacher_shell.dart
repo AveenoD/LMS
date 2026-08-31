@@ -6,6 +6,7 @@ import '../../providers/teacher_providers.dart';
 import 'teacher_schedule_screen.dart';
 import 'teacher_batches_screen.dart';
 import 'teacher_profile_screen.dart';
+import 'teacher_live_classes_screen.dart';
 
 class TeacherShell extends ConsumerStatefulWidget {
   const TeacherShell({super.key});
@@ -18,6 +19,7 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
   final List<Widget> _screens = [
     const TeacherDashboardScreen(),
     const TeacherScheduleScreen(),
+    const TeacherLiveClassesScreen(),
     const TeacherBatchesScreen(),
     const TeacherProfileScreen(),
   ];
@@ -50,6 +52,7 @@ class _TeacherShellState extends ConsumerState<TeacherShell> {
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_today), label: 'Schedule'),
+            BottomNavigationBarItem(icon: Icon(Icons.videocam_outlined), activeIcon: Icon(Icons.videocam_rounded), label: 'Live'),
             BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Batches'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ],

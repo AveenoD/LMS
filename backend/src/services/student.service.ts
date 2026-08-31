@@ -251,6 +251,37 @@ export async function todayLive(tenantId: number, userId: number): Promise<LiveC
   return rows;
 }
 
+export interface UpcomingLiveClassItem {
+  id: number;
+  title: string;
+  meetUrl: string;
+  scheduledAt: string;
+  batchName: string;
+  isPast: boolean;
+  joinable: boolean;
+}
+
+export async function upcomingLive(tenantId: number, userId: number): Promise<UpcomingLiveClassItem[]> {
+  const studentId = await getStudentId(tenantId, userId);
+  const batchIds = await enrolledBatchIds(tenantId, studentId);
+  const safeBatches = batchIds.length ? batchIds : [-1];
+  const { rows } = await query<UpcomingLiveClassItem>(
+    `SELECT lc.id, lc.title, lc.meet_url AS "meetUrl",
+            lc.scheduled_at AS "scheduledAt", b.name AS "batchName",
+            (lc.scheduled_at + interval '60 minutes' < now()) AS "isPast",
+            (now() BETWEEN lc.scheduled_at - interval '10 minutes'
+                       AND lc.scheduled_at + interval '60 minutes') AS "joinable"
+       FROM live_classes lc
+       JOIN batches b ON b.id = lc.batch_id
+      WHERE lc.tenant_id=$1 AND lc.batch_id = ANY($2::int[])
+        AND lc.scheduled_at >= now() - interval '1 hour'
+        AND lc.scheduled_at <= now() + interval '7 days'
+      ORDER BY lc.scheduled_at ASC`,
+    [tenantId, safeBatches]
+  );
+  return rows;
+}
+
 export interface FeePayment {
   id: number;
   receiptNo: string;

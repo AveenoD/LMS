@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/student_providers.dart';
 import '../../theme/app_colors.dart';
@@ -20,6 +21,7 @@ class StudentHomeScreen extends ConsumerWidget {
     final greeting = timeBasedGreeting();
 
     final dashAsync = ref.watch(studentDashboardProvider);
+    final unreadCount = ref.watch(studentUnreadNotificationCountProvider).asData?.value ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -87,7 +89,7 @@ class StudentHomeScreen extends ConsumerWidget {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (_) => const StudentNotificationsScreen()),
-                                  );
+                                  ).then((_) => ref.invalidate(studentUnreadNotificationCountProvider));
                                 },
                                 child: Container(
                                   width: 38,
@@ -96,7 +98,12 @@ class StudentHomeScreen extends ConsumerWidget {
                                     color: Colors.white.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
+                                  child: Badge(
+                                    isLabelVisible: unreadCount > 0,
+                                    label: Text('$unreadCount'),
+                                    backgroundColor: Colors.redAccent,
+                                    child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
+                                  ),
                                 ),
                               ),
                             ],
@@ -169,7 +176,116 @@ class StudentHomeScreen extends ConsumerWidget {
             ),
           ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+          // ── Live Class Banner ─────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Consumer(
+              builder: (context, ref, _) {
+                final liveAsync = ref.watch(studentUpcomingLiveProvider);
+                return liveAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (classes) {
+                    if (classes.isEmpty) return const SizedBox.shrink();
+                    final now = DateTime.now();
+                    // Find a class that's live or starting within 2 hours
+                    final nearest = classes.cast<Map<String, dynamic>>().where((c) {
+                      final dt = DateTime.parse(c['scheduledAt'] as String).toLocal();
+                      return dt.isAfter(now.subtract(const Duration(minutes: 60))) &&
+                          dt.isBefore(now.add(const Duration(hours: 2)));
+                    }).firstOrNull;
+                    if (nearest == null) return const SizedBox.shrink();
+
+                    final dt = DateTime.parse(nearest['scheduledAt'] as String).toLocal();
+                    final isLive = dt.isBefore(now.add(const Duration(minutes: 10)));
+                    final diff = dt.difference(now);
+                    final timeLabel = isLive ? 'LIVE NOW' : diff.inMinutes < 60 ? 'In ${diff.inMinutes}m' : 'In ${diff.inHours}h ${diff.inMinutes % 60}m';
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: GestureDetector(
+                        onTap: () async {
+                          if (isLive) {
+                            final uri = Uri.parse(nearest['meetUrl'] as String);
+                            if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: isLive
+                                  ? [const Color(0xFFD32F2F), const Color(0xFFEF5350)]
+                                  : [AppColors.primaryDark, AppColors.primary],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (isLive ? Colors.red : AppColors.primary).withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  isLive ? Icons.live_tv_rounded : Icons.videocam_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      nearest['title'] as String,
+                                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      isLive ? 'Tap to join the class' : nearest['batchName'] as String? ?? '',
+                                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  timeLabel,
+                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
           // ── Continue Learning (recent video from backend) ─────────────────
           SliverToBoxAdapter(

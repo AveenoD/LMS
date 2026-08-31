@@ -18,8 +18,6 @@ class AuthState {
   final String? email;
   final String? phone;
   final String? instituteName;
-  final String? primaryColor;
-  final String? logoUrl;
   final String? avatarUrl;
 
   AuthState({
@@ -32,8 +30,6 @@ class AuthState {
     this.email,
     this.phone,
     this.instituteName,
-    this.primaryColor,
-    this.logoUrl,
     this.avatarUrl,
   });
 
@@ -47,8 +43,6 @@ class AuthState {
     String? email,
     String? phone,
     String? instituteName,
-    String? primaryColor,
-    String? logoUrl,
     String? avatarUrl,
   }) {
     return AuthState(
@@ -61,15 +55,13 @@ class AuthState {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       instituteName: instituteName ?? this.instituteName,
-      primaryColor: primaryColor ?? this.primaryColor,
-      logoUrl: logoUrl ?? this.logoUrl,
       avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 }
 
 class AuthNotifier extends Notifier<AuthState> {
-  late final ApiService _api;
+  late ApiService _api;
 
   @override
   AuthState build() {
@@ -78,8 +70,8 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   /// Reads whatever was cached from the last successful login/session
-  /// restore, so the UI (and app theme) has something to show immediately
-  /// while `restoreSession()` confirms the token is still valid.
+  /// restore, so the UI has something to show immediately while
+  /// `restoreSession()` confirms the token is still valid.
   Future<void> hydrateFromCache() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
@@ -91,8 +83,6 @@ class AuthNotifier extends Notifier<AuthState> {
       email: prefs.getString('email'),
       phone: prefs.getString('phone'),
       instituteName: prefs.getString('institute_name'),
-      primaryColor: prefs.getString('primary_color'),
-      logoUrl: prefs.getString('logo_url'),
       avatarUrl: prefs.getString('avatar_url'),
     );
   }
@@ -112,7 +102,7 @@ class AuthNotifier extends Notifier<AuthState> {
         await prefs.setString('refresh_token', response['refreshToken']);
       }
 
-      await _applyUserAndBranding(response['user'], response['branding']);
+      await _applyUserAndTenant(response['user'], response['tenant']);
 
       // Sync FCM token with backend
       await PushNotificationService().sendTokenToBackend();
@@ -129,13 +119,13 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   /// Validates a previously-stored token against `GET /auth/me` (also
-  /// refreshes cached role/branding). Used on app start so a user with a
-  /// still-valid session skips the login screen entirely.
+  /// refreshes cached role/institute info). Used on app start so a user
+  /// with a still-valid session skips the login screen entirely.
   Future<bool> restoreSession() async {
     try {
       final me = await _api.get('/auth/me');
-      await _applyUserAndBranding(me['user'], me['branding']);
-      
+      await _applyUserAndTenant(me['user'], me['tenant']);
+
       // Sync FCM token with backend in case it changed while app was killed
       PushNotificationService().sendTokenToBackend();
 
@@ -147,7 +137,7 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<void> _applyUserAndBranding(dynamic user, dynamic branding) async {
+  Future<void> _applyUserAndTenant(dynamic user, dynamic tenant) async {
     final prefs = await SharedPreferences.getInstance();
 
     String? userRole;
@@ -170,17 +160,11 @@ class AuthNotifier extends Notifier<AuthState> {
 
     String? tenantSlug;
     String? instituteName;
-    String? primaryColor;
-    String? logoUrl;
-    if (branding is Map) {
-      tenantSlug = branding['slug']?.toString();
-      instituteName = branding['name']?.toString();
-      primaryColor = branding['primaryColor']?.toString();
-      logoUrl = branding['logoUrl']?.toString();
+    if (tenant is Map) {
+      tenantSlug = tenant['slug']?.toString();
+      instituteName = tenant['name']?.toString();
       if (tenantSlug != null) await prefs.setString('tenant_slug', tenantSlug);
       if (instituteName != null) await prefs.setString('institute_name', instituteName);
-      if (primaryColor != null) await prefs.setString('primary_color', primaryColor);
-      if (logoUrl != null) await prefs.setString('logo_url', logoUrl);
     }
 
     state = state.copyWith(
@@ -191,22 +175,6 @@ class AuthNotifier extends Notifier<AuthState> {
       avatarUrl: avatarUrl,
       tenantSlug: tenantSlug,
       instituteName: instituteName,
-      primaryColor: primaryColor,
-      logoUrl: logoUrl,
-    );
-  }
-
-  /// Called after a successful branding save so the app theme/drawer update
-  /// immediately, without needing another round-trip to the server.
-  Future<void> updateLocalBranding({String? instituteName, String? primaryColor, String? logoUrl}) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (instituteName != null) await prefs.setString('institute_name', instituteName);
-    if (primaryColor != null) await prefs.setString('primary_color', primaryColor);
-    if (logoUrl != null) await prefs.setString('logo_url', logoUrl);
-    state = state.copyWith(
-      instituteName: instituteName ?? state.instituteName,
-      primaryColor: primaryColor ?? state.primaryColor,
-      logoUrl: logoUrl ?? state.logoUrl,
     );
   }
 
@@ -237,9 +205,7 @@ class AuthNotifier extends Notifier<AuthState> {
     await prefs.remove('email');
     await prefs.remove('phone');
     await prefs.remove('institute_name');
-    await prefs.remove('primary_color');
     await prefs.remove('avatar_url');
-    await prefs.remove('logo_url');
     state = AuthState();
   }
 }

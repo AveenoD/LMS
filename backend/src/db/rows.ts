@@ -11,17 +11,8 @@ export interface TenantRow {
   slug: string;
   city: string | null;
   contact_phone: string | null;
-  logo_url: string | null;
-  primary_color: string | null;
   is_active: boolean;
   created_at: Date;
-}
-
-export interface BrandingRow {
-  name: string;
-  logoUrl: string | null;
-  primaryColor: string | null;
-  slug: string;
 }
 
 export interface UserRow {

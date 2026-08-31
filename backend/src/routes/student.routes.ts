@@ -33,6 +33,7 @@ router.get('/videos/:id', validate(idParamSchema, 'params'), ctrl.videoDetail);
 
 /* ── Live Classes ───────────────────────────────────────────────────────── */
 router.get('/live/today', ctrl.todayLive);
+router.get('/live/upcoming', ctrl.upcomingLive);
 
 /* ── Tests & Quiz ───────────────────────────────────────────────────────── */
 router.get('/tests', ctrl.listTests);

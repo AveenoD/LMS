@@ -13,7 +13,6 @@ import {
   createTimetableSchema,
   createFeeStructureSchema,
   recordPaymentSchema,
-  updateBrandingSchema,
   idParamSchema,
   studentIdParamSchema,
   broadcastNotificationSchema,
@@ -34,7 +33,6 @@ router.get('/subjects', ctrl.listSubjects);
 router.get('/timetable', ctrl.listTimetable);
 router.get('/fees', ctrl.listFees);
 router.get('/fees/analytics', ctrl.feeAnalytics);
-router.get('/branding', ctrl.getBranding);
 router.get('/notifications', ctrl.listNotifications);
 router.get('/notifications/unread-count', ctrl.unreadNotificationCount);
 router.patch('/notifications/:id/read', validate(idParamSchema, 'params'), ctrl.markNotificationRead);
@@ -77,15 +75,6 @@ router.post('/timetable', subscriptionGuard, validate(createTimetableSchema), ct
 
 router.post('/fees/structures', subscriptionGuard, validate(createFeeStructureSchema), ctrl.createFeeStructure);
 router.post('/fees/payments', subscriptionGuard, validate(recordPaymentSchema), ctrl.recordPayment);
-
-// Custom branding (logo + colors) — Elite only
-router.put(
-  '/branding',
-  subscriptionGuard,
-  featureGuard('custom_branding'),
-  validate(updateBrandingSchema),
-  ctrl.updateBranding
-);
 
 router.post(
   '/notifications/broadcast',

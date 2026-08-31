@@ -103,15 +103,6 @@ final performanceReportProvider = FutureProvider.family<Map<String, dynamic>, in
   return response as Map<String, dynamic>;
 });
 
-// Provides branding settings
-final brandingProvider = FutureProvider<Map<String, dynamic>>((ref) async {
-  final canAccess = await _canAccessManagement();
-  if (!canAccess) return {};
-  final api = ref.watch(apiServiceProvider);
-  final result = await api.cachedGet('/admin/branding', cacheKey: 'admin_branding');
-  return result.data as Map<String, dynamic>;
-});
-
 // Provides the logged-in coaching_admin's own notification inbox
 final notificationsProvider = FutureProvider<List<dynamic>>((ref) async {
   final canAccess = await _canAccessManagement();
@@ -301,33 +292,25 @@ Future<Map<String, dynamic>> sendFeeReminder(ApiService api, int studentId) asyn
   return await api.post('/admin/fees/$studentId/remind', {}) as Map<String, dynamic>;
 }
 
-Future<Map<String, dynamic>> updateBranding(ApiService api, {
-  String? logoUrl,
-  String? primaryColor,
-}) async {
-  final body = <String, dynamic>{
-    if (logoUrl != null && logoUrl.isNotEmpty) 'logoUrl': logoUrl,
-    if (primaryColor != null && primaryColor.isNotEmpty) 'primaryColor': primaryColor,
-  };
-  return await api.put('/admin/branding', body) as Map<String, dynamic>;
-}
-
 Future<void> markNotificationRead(ApiService api, int id) async {
   await api.patch('/admin/notifications/$id/read', {});
 }
 
-/// Broadcasts a notification to students in the caller's own institute —
-/// every student, or filtered by batch. Returns `{recipientCount}`.
+/// Broadcasts a notification to students or teachers in the caller's own
+/// institute — everyone (of that role), or filtered by batch. Returns
+/// `{recipientCount}`.
 Future<Map<String, dynamic>> broadcastToStudents(
   ApiService api, {
   required String title,
   String? body,
   int? batchId,
+  String targetRole = 'student',
 }) async {
   final requestBody = <String, dynamic>{
     'title': title,
     if (body != null && body.isNotEmpty) 'body': body,
     'batchId': ?batchId,
+    'targetRole': targetRole,
   };
   return await api.post('/admin/notifications/broadcast', requestBody) as Map<String, dynamic>;
 }

@@ -8,11 +8,22 @@ const { Pool } = pkg;
 /**
  * Single shared connection pool for the whole app.
  * SSL is required for Supabase (pooler uses self-signed cert in chain).
+ *
+ * max is intentionally low: DATABASE_URL points at Supabase's Transaction
+ * Pooler (port 6543, Supavisor/pgbouncer), which already multiplexes many
+ * app-side connections down to a handful of real Postgres connections. In a
+ * serverless deployment each concurrently-warm function instance creates
+ * its OWN Pool — so max is a PER-INSTANCE ceiling, not a global one. A high
+ * max here (e.g. 10) means N concurrent instances can each open up to 10
+ * connections against Supavisor, exhausting its own connection limit under
+ * real concurrent load. Keeping max low here, and idle connections released
+ * quickly, is what actually lets Supavisor's higher-level pooling work as
+ * intended.
  */
 export const pool: PoolType = new Pool({
   connectionString: env.databaseUrl,
-  max: 10,
-  idleTimeoutMillis: 30_000,
+  max: 2,
+  idleTimeoutMillis: 5_000,
   connectionTimeoutMillis: 10_000,
   ssl: {
     rejectUnauthorized: false, // Supabase pooler uses self-signed cert

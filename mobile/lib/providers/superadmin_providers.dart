@@ -65,7 +65,6 @@ Future<Map<String, dynamic>> registerTenant(
   required String adminPassword,
   String? city,
   String? contactPhone,
-  String? primaryColor,
 }) async {
   final body = <String, dynamic>{
     'name': name,
@@ -75,7 +74,6 @@ Future<Map<String, dynamic>> registerTenant(
     'adminPassword': adminPassword,
     if (city != null && city.isNotEmpty) 'city': city,
     if (contactPhone != null && contactPhone.isNotEmpty) 'contactPhone': contactPhone,
-    if (primaryColor != null && primaryColor.isNotEmpty) 'primaryColor': primaryColor,
   };
   return await api.post('/superadmin/tenants', body) as Map<String, dynamic>;
 }
