@@ -17,8 +17,16 @@ export function renderNotificationEmail(title: string, body: string | undefined)
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:#FFFFFF; border-radius:16px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
             <tr>
               <td style="background-color:#1F2E27; padding:20px 28px;">
-                <img src="https://my-app-tau-umber-67.vercel.app/logo-white.png" alt="EdTech OS" width="36" height="36" style="display:block; margin-bottom:8px;" />
-                <span style="color:#FFFFFF; font-size:18px; font-weight:700; letter-spacing:0.02em;">EdTech OS</span>
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align:middle; padding-right:10px;">
+                      <img src="https://my-app-tau-umber-67.vercel.app/logo-white.png" alt="EdTech OS" width="28" height="28" style="display:block;" />
+                    </td>
+                    <td style="vertical-align:middle;">
+                      <span style="color:#FFFFFF; font-size:18px; font-weight:700; letter-spacing:0.02em;">EdTech OS</span>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
