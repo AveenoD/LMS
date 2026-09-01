@@ -1,8 +1,11 @@
 import { after } from 'next/server';
+import { Resend } from 'resend';
 import { query } from '../db';
 import ApiError from '../utils/ApiError';
 import { writeAudit } from '../utils/audit';
 import { getFirebaseMessaging } from '../config/firebase';
+import { hasFeature } from '../middleware/featureGuard';
+import env from '../config/env';
 import logger from '../utils/logger';
 
 /**
@@ -90,6 +93,18 @@ export async function sendNotification(input: {
     )
   );
 
+  // Email is a paid-tier feature (Pro/Elite) — check once per tenant before
+  // bothering to look up any user's email address. Skipped entirely for
+  // super_admin broadcasts (tenantId null) and for tenants without the
+  // feature; a missing email on a given user is skipped silently too.
+  if (tenantId !== null) {
+    after(() =>
+      emailToUsers(tenantId, userIds, title, body).catch((err) =>
+        logger.error('Email delivery failed', { error: err instanceof Error ? err.message : String(err) })
+      )
+    );
+  }
+
   return { recipientCount: rows.length };
 }
 
@@ -132,6 +147,47 @@ async function pushToUsers(
 
 function isUnregisteredError(code?: string): boolean {
   return code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token';
+}
+
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!env.resend.enabled) return null;
+  if (!_resend) _resend = new Resend(env.resend.apiKey);
+  return _resend;
+}
+
+/** Best-effort email to every given user who (a) belongs to a tenant on a
+ *  plan with the 'email_notifications' feature and (b) has an email address
+ *  on file — most students/parents log in by phone only and have none, so
+ *  this silently reaches only the subset who do. */
+async function emailToUsers(
+  tenantId: number,
+  userIds: number[],
+  title: string,
+  body: string | undefined
+): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
+
+  const allowed = await hasFeature(tenantId, 'email_notifications');
+  if (!allowed) return;
+
+  const { rows: recipients } = await query<{ email: string }>(
+    `SELECT email FROM users WHERE id = ANY($1::int[]) AND email IS NOT NULL AND email <> ''`,
+    [userIds]
+  );
+  if (recipients.length === 0) return;
+
+  await Promise.allSettled(
+    recipients.map((r) =>
+      resend.emails.send({
+        from: env.resend.from,
+        to: r.email,
+        subject: title,
+        text: body ?? title,
+      })
+    )
+  );
 }
 
 /** Resolves the user_ids of every active student enrolled in a batch — the

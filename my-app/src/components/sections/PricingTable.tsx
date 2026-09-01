@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Star, Building2, Loader2 } from "lucide-react";
-import { PRICING_PLANS, PRICING_BADGES } from "@/utils/constants";
+import { PRICING_BADGES } from "@/utils/constants";
 import { cn } from "@/utils/cn";
 import Button from "@/components/ui/Button";
 
@@ -41,6 +41,7 @@ interface BackendPlan {
   priceMonthly: number;
   priceQuarterly: number;
   priceYearly: number;
+  flatPriceMonthly: number;
   features: string[];
 }
 
@@ -302,127 +303,155 @@ export default function PricingTable() {
                 </motion.div>
               )
             ) : (
-              // FLAT PRICING (STATIC FROM CONSTANTS)
-              <motion.div key="static-plans" className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                {PRICING_PLANS.map((plan, i) => (
-                  <motion.div
-                    key={`flat-${plan.name}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.4, delay: i * 0.08 }}
-                  className={cn(
-                    "relative rounded-2xl p-6 border-2 flex flex-col h-full",
-                    plan.popular
-                      ? "border-ink-green bg-ink-green text-white shadow-xl scale-[1.02] z-10"
-                      : "border-paper bg-card-surface hover:border-chalk-teal/30 shadow-card transition-[box-shadow,border-color] duration-300"
-                  )}
+              // FLAT PRICING (FROM BACKEND — same plan list as per-user tab,
+              // just showing each tier's flat_price_monthly instead)
+              loading ? (
+                <motion.div
+                  key="flat-loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex justify-center items-center py-20 col-span-1 md:col-span-3"
                 >
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <span className="bg-brass-gold text-white text-xs font-body font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
+                  <Loader2 className="w-10 h-10 animate-spin text-ink-green opacity-50" />
+                </motion.div>
+              ) : backendPlans.length === 0 ? (
+                <motion.div
+                  key="flat-empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center py-10 col-span-1 md:col-span-3 text-ink-green/60 font-body text-lg"
+                >
+                  No pricing plans available at the moment.
+                </motion.div>
+              ) : (
+                <motion.div key="backend-flat-plans" className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {backendPlans.map((plan, i) => {
+                  const isPopular = plan.name.toLowerCase() === "pro";
+                  const Icon = planIcons[i % planIcons.length];
 
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
+                  return (
+                    <motion.div
+                      key={`flat-${plan.id}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.4, delay: i * 0.08 }}
                       className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center",
-                        plan.popular ? "bg-white/10" : "bg-chalk-teal/10"
+                        "relative rounded-2xl p-6 border-2 flex flex-col h-full",
+                        isPopular
+                          ? "border-ink-green bg-ink-green text-white shadow-xl scale-[1.02] z-10"
+                          : "border-paper bg-card-surface hover:border-chalk-teal/30 shadow-card transition-[box-shadow,border-color] duration-300"
                       )}
                     >
-                      {React.createElement(planIcons[i % planIcons.length], {
-                        className: cn(
-                          "w-5 h-5",
-                          plan.popular ? "text-brass-gold" : "text-chalk-teal"
-                        ),
-                      })}
-                    </div>
-                    <div>
-                      <h3
-                        className={cn(
-                          "text-xl font-display font-bold",
-                          plan.popular ? "text-white" : "text-ink-green"
-                        )}
-                      >
-                        {plan.name}
-                      </h3>
-                      <p
-                        className={cn(
-                          "text-xs font-body leading-tight mt-1 line-clamp-2",
-                          plan.popular ? "text-white/60" : "text-ink-green/50"
-                        )}
-                      >
-                        {plan.tagline}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mb-6 flex-shrink-0">
-                    <div className="flex items-baseline gap-1">
-                      <span
-                        className={cn(
-                          "text-4xl font-display font-bold",
-                          plan.popular ? "text-white" : "text-ink-green"
-                        )}
-                      >
-                        {plan.price}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-sm font-body font-medium",
-                          plan.popular ? "text-white/50" : "text-ink-green/40"
-                        )}
-                      >
-                        / month
-                      </span>
-                    </div>
-                    <p
-                      className={cn(
-                        "text-xs font-body mt-1 font-medium",
-                        plan.popular ? "text-white/40" : "text-ink-green/40"
+                      {isPopular && (
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                          <span className="bg-brass-gold text-white text-xs font-body font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
+                            Most Popular
+                          </span>
+                        </div>
                       )}
-                    >
-                      {plan.billing}
-                    </p>
-                  </div>
 
-                  <ul className="space-y-2 mb-4 flex-grow">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2.5">
-                        <Check
+                      <div className="flex items-center gap-3 mb-4">
+                        <div
                           className={cn(
-                            "w-4 h-4 mt-0.5 flex-shrink-0",
-                            plan.popular ? "text-brass-gold" : "text-chalk-teal"
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            "text-sm font-body leading-tight",
-                            plan.popular ? "text-white/80" : "text-ink-green/70"
+                            "w-10 h-10 rounded-xl flex items-center justify-center",
+                            isPopular ? "bg-white/10" : "bg-chalk-teal/10"
                           )}
                         >
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                          <Icon
+                            className={cn(
+                              "w-5 h-5",
+                              isPopular ? "text-brass-gold" : "text-chalk-teal"
+                            )}
+                          />
+                        </div>
+                        <div>
+                          <h3
+                            className={cn(
+                              "text-xl font-display font-bold",
+                              isPopular ? "text-white" : "text-ink-green"
+                            )}
+                          >
+                            {plan.name}
+                          </h3>
+                          <p
+                            className={cn(
+                              "text-xs font-body leading-tight mt-1 line-clamp-2",
+                              isPopular ? "text-white/60" : "text-ink-green/50"
+                            )}
+                          >
+                            {plan.tagline}
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="mt-auto pt-3 border-t border-dashed border-black/5 dark:border-white/10">
-                    <Button
-                      variant={plan.popular ? "primary" : "secondary"}
-                      size="lg"
-                      className="w-full"
-                      withArrow={plan.popular}
-                    >
-                      {plan.cta}
-                    </Button>
-                  </div>
+                      <div className="mb-6 flex-shrink-0">
+                        <div className="flex items-baseline gap-1">
+                          <span
+                            className={cn(
+                              "text-4xl font-display font-bold",
+                              isPopular ? "text-white" : "text-ink-green"
+                            )}
+                          >
+                            ₹{plan.flatPriceMonthly}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-sm font-body font-medium",
+                              isPopular ? "text-white/50" : "text-ink-green/40"
+                            )}
+                          >
+                            / month
+                          </span>
+                        </div>
+                        <p
+                          className={cn(
+                            "text-xs font-body mt-1 font-medium",
+                            isPopular ? "text-white/40" : "text-ink-green/40"
+                          )}
+                        >
+                          Flat rate, any number of students
+                        </p>
+                      </div>
+
+                      <ul className="space-y-2 mb-4 flex-grow">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2.5">
+                            <Check
+                              className={cn(
+                                "w-4 h-4 mt-0.5 flex-shrink-0",
+                                isPopular ? "text-brass-gold" : "text-chalk-teal"
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "text-sm font-body leading-tight",
+                                isPopular ? "text-white/80" : "text-ink-green/70"
+                              )}
+                            >
+                              {formatFeatureName(feature)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="mt-auto pt-3 border-t border-dashed border-black/5 dark:border-white/10">
+                        <Button
+                          variant={isPopular ? "primary" : "secondary"}
+                          size="lg"
+                          className="w-full"
+                          withArrow={isPopular}
+                        >
+                          Start 7-Day Free Trial
+                        </Button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
                 </motion.div>
-                ))}
-              </motion.div>
+              )
             )}
           </AnimatePresence>
         </div>

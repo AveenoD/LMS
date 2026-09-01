@@ -104,6 +104,11 @@ export interface AppEnv {
     email: EmailConfig;
     telegram: TelegramConfig;
   };
+  resend: {
+    apiKey: string;
+    from: string;
+    get enabled(): boolean;
+  };
   cloudinary: {
     cloudName?: string;
     apiKey?: string;
@@ -190,6 +195,17 @@ export const env: AppEnv = {
       enabled: bool('TELEGRAM_NOTIFY_ENABLED', false),
       botToken: optional('TELEGRAM_BOT_TOKEN', ''),
       chatId: optional('TELEGRAM_CHAT_ID', ''),
+    },
+  },
+  // Tenant-facing automated emails (fee due, attendance, etc.) — separate
+  // from notify.email above, which is SMTP-based and only alerts the
+  // platform owner about new leads. Gated per-tenant by the 'email_notifications'
+  // plan feature in featureGuard.
+  resend: {
+    apiKey: optional('RESEND_API_KEY', ''),
+    from: optional('RESEND_FROM_EMAIL', 'EdTech OS <notifications@edtechos.com>'),
+    get enabled(): boolean {
+      return Boolean(this.apiKey);
     },
   },
   cloudinary: {
