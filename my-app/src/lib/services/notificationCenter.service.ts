@@ -5,6 +5,7 @@ import ApiError from '../utils/ApiError';
 import { writeAudit } from '../utils/audit';
 import { getFirebaseMessaging } from '../config/firebase';
 import { hasFeature } from '../middleware/featureGuard';
+import { renderNotificationEmail } from '../utils/emailTemplate';
 import env from '../config/env';
 import logger from '../utils/logger';
 
@@ -178,6 +179,7 @@ async function emailToUsers(
   );
   if (recipients.length === 0) return;
 
+  const html = renderNotificationEmail(title, body);
   await Promise.allSettled(
     recipients.map((r) =>
       resend.emails.send({
@@ -185,6 +187,7 @@ async function emailToUsers(
         to: r.email,
         subject: title,
         text: body ?? title,
+        html,
       })
     )
   );
