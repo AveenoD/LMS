@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 class Constants {
-  // Use 10.0.2.2 for Android Emulator, 192.168.1.14 for physical device on LAN
-  static const String baseUrl = 'http://192.168.1.9:4000/api/v1';
+  static const String baseUrl = 'https://my-app-tau-umber-67.vercel.app/api';
+
+  static const String privacyPolicyUrl =
+      'https://www.campusweb.co.in/legals/privacy-policy';
+  static const String termsAndConditionsUrl =
+      'https://www.campusweb.co.in/legals/terms-conditions';
 
   static const String currencySymbol = '₹';
 

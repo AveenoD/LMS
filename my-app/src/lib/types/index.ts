@@ -1,5 +1,5 @@
 /**
- * Shared domain types for the EdTech OS backend.
+ * Shared domain types for the Campus backend.
  * Ported verbatim from the Express backend's src/types/index.ts.
  */
 

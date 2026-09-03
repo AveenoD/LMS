@@ -10,7 +10,7 @@ if (env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecre
   });
 }
 
-export function generateSignature(folder: string = 'edtech_os') {
+export function generateSignature(folder: string = 'campus') {
   const timestamp = Math.round(new Date().getTime() / 1000);
   const signature = cloudinary.utils.api_sign_request(
     {

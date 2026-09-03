@@ -23,6 +23,7 @@ export const createPlanSchema = z
     priceQuarterly: z.number().int().min(1).max(10000),
     priceYearly: z.number().int().min(1).max(10000),
     flatPriceMonthly: z.number().int().min(1).max(1000000),
+    flatStudentLimit: z.number().int().min(1).max(100000),
     features: z.array(featureKeySchema).min(1),
     displayOrder: z.number().int().min(0).max(100).optional(),
   })
@@ -35,6 +36,7 @@ export const updatePlanSchema = z
     priceQuarterly: z.number().int().min(1).max(10000).optional(),
     priceYearly: z.number().int().min(1).max(10000).optional(),
     flatPriceMonthly: z.number().int().min(1).max(1000000).optional(),
+    flatStudentLimit: z.number().int().min(1).max(100000).optional(),
     features: z.array(featureKeySchema).min(1).optional(),
     isActive: z.boolean().optional(),
     displayOrder: z.number().int().min(0).max(100).optional(),

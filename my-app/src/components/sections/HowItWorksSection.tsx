@@ -21,7 +21,7 @@ export default function HowItWorksSection() {
         >
           <span className="badge-teal mb-4 inline-block">Simple. Fast. Powerful.</span>
           <h2 className="text-3xl sm:text-4xl font-display font-bold text-ink-green mt-3">
-            How EdTech OS{" "}
+            How Campus{" "}
             <span className="text-gradient-gold">Works</span>
           </h2>
           <p className="mt-4 text-ink-green/60 font-body text-base max-w-md mx-auto">

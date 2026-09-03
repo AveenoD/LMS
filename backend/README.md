@@ -1,6 +1,6 @@
-# EdTech OS — Backend (TypeScript)
+# Campus — Backend (TypeScript)
 
-Multi-Tenant EdTech OS: an ERP + LMS for coaching institutes. This is the core
+Multi-Tenant Campus: an ERP + LMS for coaching institutes. This is the core
 API server, now written entirely in **TypeScript** (Node.js + Express 4 +
 PostgreSQL).
 
@@ -14,7 +14,7 @@ PostgreSQL).
 - **Notifications (FREE)**: SMTP email + Telegram Bot + in-app leads inbox
 - **wa.me deep links**: free click-to-chat for fee reminders / absentee / doubts
 - **Jobs**: `node-cron` daily billing sweep
-- **Process manager**: PM2 (app `edtech-api`, port `4000`)
+- **Process manager**: PM2 (app `campus-api`, port `4000`)
 
 ## Scripts
 | Command | Description |

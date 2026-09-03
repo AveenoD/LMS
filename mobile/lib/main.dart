@@ -68,7 +68,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: 'EdTech OS Mobile',
+      title: 'Campus Mobile',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -130,9 +130,9 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             foregroundColor: const Color(0xFF2E6656),
           ),
         ),
-        // --- Floating Action Button -> Brass-gold ---
+        // --- Floating Action Button -> Ink-green (consistency with FilledButton) ---
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFFA87D26),
+          backgroundColor: Color(0xFF1F2E27),
           foregroundColor: Colors.white,
         ),
         // --- Cards -> White with subtle shadow ---
@@ -257,7 +257,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   child: Column(
                     children: [
                       const Text(
-                        'EdTech OS',
+                        'Campus',
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,

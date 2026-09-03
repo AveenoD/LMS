@@ -42,7 +42,7 @@ export interface TrustItem {
 }
 
 export const TRUST_BADGES: TrustItem[] = [
-  { icon: Users, title: "1000+ Institutes", subtitle: "Trust EdTech OS" },
+  { icon: Users, title: "1000+ Institutes", subtitle: "Trust Campus" },
   { icon: Clock, title: "24/7 Support", subtitle: "We're here to help" },
   { icon: Shield, title: "Secure & Reliable", subtitle: "Your data is safe" },
   {
@@ -141,7 +141,7 @@ export const DETAILED_FEATURES: DetailedFeature[] = [
     icon: IndianRupee,
     title: "Fees Management",
     description:
-      "Track fees, manage dues and send automatic reminders on WhatsApp.",
+      "Track fees, manage dues and send reminders straight to WhatsApp.",
     highlights: ["Online payments", "Due reminders", "Payment history"],
   },
   {
@@ -187,7 +187,7 @@ export const HOW_IT_WORKS_STEPS: Step[] = [
     step: 1,
     title: "Book a Free Demo",
     description:
-      "Schedule a demo with our expert and see how EdTech OS can transform your institute.",
+      "Schedule a demo with our expert and see how Campus can transform your institute.",
     subtext: "Takes less than 30 seconds",
   },
   {
@@ -229,7 +229,7 @@ export const USP_ITEMS: USPItem[] = [
   {
     icon: MessageCircle,
     title: "Free WhatsApp Reminders",
-    description: "Automated messages for fees, attendance and more.",
+    description: "One-tap WhatsApp messages for fees, attendance and more.",
   },
   {
     icon: Users,
@@ -244,97 +244,12 @@ export const USP_ITEMS: USPItem[] = [
   },
 ];
 
-/* ───────── Pricing Plans ───────── */
-export interface PricingPlan {
-  name: string;
-  tagline: string;
-  price: string;
-  billing: string;
-  features: string[];
-  cta: string;
-  popular: boolean;
-}
-
-export const PRICING_PLANS: PricingPlan[] = [
-  {
-    name: "Basic",
-    tagline: "Perfect for small institutes just getting started.",
-    price: "₹999",
-    billing: "Billed monthly",
-    features: [
-      "Up to 100 Students",
-      "Attendance & Fees",
-      "Live Classes (Google Meet)",
-      "Tests & Assignments",
-      "Basic Reports",
-      "Email Support",
-    ],
-    cta: "Start 7-Day Free Trial",
-    popular: false,
-  },
-  {
-    name: "Pro",
-    tagline: "Ideal for growing institutes that need more power.",
-    price: "₹2,499",
-    billing: "Billed monthly",
-    features: [
-      "Up to 500 Students",
-      "All Basic Features",
-      "WhatsApp Reminders",
-      "Video Library",
-      "Advanced Reports",
-      "Priority Support",
-    ],
-    cta: "Start 7-Day Free Trial",
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    tagline: "For large institutes with advanced requirements.",
-    price: "₹4,999",
-    billing: "Billed monthly",
-    features: [
-      "Unlimited Students",
-      "All Pro Features",
-      "Custom Branding",
-      "API Access",
-      "Dedicated Account Manager",
-      "24/7 Premium Support",
-    ],
-    cta: "Start 7-Day Free Trial",
-    popular: false,
-  },
-];
-
 /* ───────── Pricing Guarantee Badges ───────── */
 export const PRICING_BADGES = [
   "7 Days Free Trial",
   "No Credit Card Required",
   "Cancel Anytime",
   "Trusted by 1000+ Institutes",
-];
-
-/* ───────── Comparison Table ───────── */
-export interface ComparisonRow {
-  feature: string;
-  icon: LucideIcon;
-  basic: boolean | string;
-  pro: boolean | string;
-  enterprise: boolean | string;
-}
-
-export const COMPARISON_TABLE: ComparisonRow[] = [
-  { feature: "Students Limit", icon: Users, basic: "Up to 100", pro: "Up to 500", enterprise: "Unlimited" },
-  { feature: "Attendance", icon: ClipboardCheck, basic: true, pro: true, enterprise: true },
-  { feature: "Fees Management", icon: IndianRupee, basic: true, pro: true, enterprise: true },
-  { feature: "Live Classes (Google Meet)", icon: Video, basic: true, pro: true, enterprise: true },
-  { feature: "WhatsApp Reminders", icon: MessageCircle, basic: false, pro: true, enterprise: true },
-  { feature: "Video Library", icon: BookOpen, basic: false, pro: true, enterprise: true },
-  { feature: "Advanced Reports", icon: BarChart3, basic: false, pro: true, enterprise: true },
-  { feature: "Custom Branding", icon: Shield, basic: false, pro: false, enterprise: true },
-  { feature: "API Access", icon: FileText, basic: false, pro: false, enterprise: true },
-  { feature: "Dedicated Account Manager", icon: Users, basic: false, pro: false, enterprise: true },
-  { feature: "Support", icon: MessageCircle, basic: "Email Support", pro: "Priority Support", enterprise: "24/7 Premium Support" },
 ];
 
 /* ───────── FAQs ───────── */
@@ -365,7 +280,7 @@ export const FAQS: FAQ[] = [
       "We accept UPI, credit/debit cards, net banking and wallet payments through Razorpay.",
   },
   {
-    question: "Is my data secure with EdTech OS?",
+    question: "Is my data secure with Campus?",
     answer:
       "Your data is encrypted with industry-standard SSL encryption and stored securely on AWS servers in India.",
   },

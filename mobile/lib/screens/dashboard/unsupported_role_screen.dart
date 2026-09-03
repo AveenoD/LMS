@@ -13,7 +13,7 @@ class UnsupportedRoleScreen extends ConsumerWidget {
     final role = ref.watch(authProvider).userRole;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('EdTech OS')),
+      appBar: AppBar(title: const Text('Campus')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

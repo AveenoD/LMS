@@ -43,7 +43,7 @@ router.get(
 // Cloudinary Upload Signature
 import { generateSignature } from '../services/cloudinary.service.js';
 router.get('/upload-signature', (req, res) => {
-  res.json(generateSignature('edtech_os'));
+  res.json(generateSignature('campus'));
 });
 
 // Attendance — all plans (present/absent/late saved for everyone)

@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "616148352281",
-    "project_id": "edtech-os-ae23e",
-    "storage_bucket": "edtech-os-ae23e.firebasestorage.app"
+    "project_number": "618925709812",
+    "project_id": "campus-b0502",
+    "storage_bucket": "campus-b0502.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:616148352281:android:275676bfa0344a172d9988",
+        "mobilesdk_app_id": "1:618925709812:android:31514ba28ddd13e0e081a1",
         "android_client_info": {
-          "package_name": "com.edtechos.app"
+          "package_name": "com.campusweb.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "616148352281-69ektourfds5q3mi1u9042bbpkfgg148.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBRVQgU9RZ6C3WBGS9uHh732WU0jktBB6k"
+          "current_key": "AIzaSyDLr7iiWexG-SiLB1_gtRVLfuALk2gFnBQ"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "616148352281-69ektourfds5q3mi1u9042bbpkfgg148.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

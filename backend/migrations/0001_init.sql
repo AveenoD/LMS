@@ -1,5 +1,5 @@
 -- ============================================================
--- Multi-Tenant EdTech OS — Initial Schema (0001)
+-- Multi-Tenant Campus — Initial Schema (0001)
 -- Golden rule: every tenant-owned table has tenant_id NOT NULL
 -- REFERENCES tenants(id), and every query filters by it.
 -- ============================================================

@@ -21,10 +21,13 @@ final subscriptionsProvider = FutureProvider<List<dynamic>>((ref) async {
 });
 
 /// `days` mirrors `GET /superadmin/subscriptions/expiring?days=`.
-final expiringSubscriptionsProvider = FutureProvider.family<List<dynamic>, int>((ref, days) async {
-  final api = ref.watch(apiServiceProvider);
-  return await api.get('/superadmin/subscriptions/expiring?days=$days') as List<dynamic>;
-});
+final expiringSubscriptionsProvider = FutureProvider.family<List<dynamic>, int>(
+  (ref, days) async {
+    final api = ref.watch(apiServiceProvider);
+    return await api.get('/superadmin/subscriptions/expiring?days=$days')
+        as List<dynamic>;
+  },
+);
 
 final leadsProvider = FutureProvider<List<dynamic>>((ref) async {
   final api = ref.watch(apiServiceProvider);
@@ -33,21 +36,26 @@ final leadsProvider = FutureProvider<List<dynamic>>((ref) async {
 
 final unreadLeadsCountProvider = FutureProvider<int>((ref) async {
   final api = ref.watch(apiServiceProvider);
-  final response = await api.get('/superadmin/leads/unread-count') as Map<String, dynamic>;
+  final response =
+      await api.get('/superadmin/leads/unread-count') as Map<String, dynamic>;
   return response['count'] as int? ?? 0;
 });
 
 /// Subscription detail for one tenant — used by the "Assign Plan" dialog.
-final tenantSubscriptionProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, tenantId) async {
-  final api = ref.watch(apiServiceProvider);
-  return await api.get('/superadmin/tenants/$tenantId/subscription') as Map<String, dynamic>;
-});
+final tenantSubscriptionProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, tenantId) async {
+      final api = ref.watch(apiServiceProvider);
+      return await api.get('/superadmin/tenants/$tenantId/subscription')
+          as Map<String, dynamic>;
+    });
 
 /// Dashboard metrics for a single tenant
-final tenantDashboardProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, tenantId) async {
-  final api = ref.watch(apiServiceProvider);
-  return await api.get('/superadmin/tenants/$tenantId/dashboard') as Map<String, dynamic>;
-});
+final tenantDashboardProvider =
+    FutureProvider.family<Map<String, dynamic>, int>((ref, tenantId) async {
+      final api = ref.watch(apiServiceProvider);
+      return await api.get('/superadmin/tenants/$tenantId/dashboard')
+          as Map<String, dynamic>;
+    });
 
 // ─────────────────────────── Write actions ───────────────────────────
 // Plain helper functions (not providers) — screens call these directly, then
@@ -73,13 +81,20 @@ Future<Map<String, dynamic>> registerTenant(
     'adminPhone': adminPhone,
     'adminPassword': adminPassword,
     if (city != null && city.isNotEmpty) 'city': city,
-    if (contactPhone != null && contactPhone.isNotEmpty) 'contactPhone': contactPhone,
+    if (contactPhone != null && contactPhone.isNotEmpty)
+      'contactPhone': contactPhone,
   };
   return await api.post('/superadmin/tenants', body) as Map<String, dynamic>;
 }
 
-Future<Map<String, dynamic>> setTenantActive(ApiService api, int tenantId, bool isActive) async {
-  return await api.patch('/superadmin/tenants/$tenantId/suspend', {'isActive': isActive})
+Future<Map<String, dynamic>> setTenantActive(
+  ApiService api,
+  int tenantId,
+  bool isActive,
+) async {
+  return await api.patch('/superadmin/tenants/$tenantId/suspend', {
+        'isActive': isActive,
+      })
       as Map<String, dynamic>;
 }
 
@@ -88,12 +103,15 @@ Future<Map<String, dynamic>> assignPlanToTenant(
   int tenantId, {
   required int planCatalogId,
   required String billingCycle,
+  String? billingMode, // 'per_student' (default) | 'flat'
 }) async {
   final body = <String, dynamic>{
     'planCatalogId': planCatalogId,
     'billingCycle': billingCycle,
+    'billingMode': ?billingMode,
   };
-  return await api.put('/superadmin/tenants/$tenantId/subscription', body) as Map<String, dynamic>;
+  return await api.put('/superadmin/tenants/$tenantId/subscription', body)
+      as Map<String, dynamic>;
 }
 
 Future<Map<String, dynamic>> createPlan(
@@ -102,6 +120,8 @@ Future<Map<String, dynamic>> createPlan(
   required int priceMonthly,
   required int priceQuarterly,
   required int priceYearly,
+  required int flatPriceMonthly,
+  required int flatStudentLimit,
   required List<String> features,
   String? tagline,
   int? displayOrder,
@@ -111,6 +131,8 @@ Future<Map<String, dynamic>> createPlan(
     'priceMonthly': priceMonthly,
     'priceQuarterly': priceQuarterly,
     'priceYearly': priceYearly,
+    'flatPriceMonthly': flatPriceMonthly,
+    'flatStudentLimit': flatStudentLimit,
     'features': features,
     if (tagline != null && tagline.isNotEmpty) 'tagline': tagline,
     'displayOrder': ?displayOrder,
@@ -125,6 +147,8 @@ Future<Map<String, dynamic>> updatePlan(
   int? priceMonthly,
   int? priceQuarterly,
   int? priceYearly,
+  int? flatPriceMonthly,
+  int? flatStudentLimit,
   List<String>? features,
   bool? isActive,
   int? displayOrder,
@@ -134,6 +158,8 @@ Future<Map<String, dynamic>> updatePlan(
     'priceMonthly': ?priceMonthly,
     'priceQuarterly': ?priceQuarterly,
     'priceYearly': ?priceYearly,
+    'flatPriceMonthly': ?flatPriceMonthly,
+    'flatStudentLimit': ?flatStudentLimit,
     'features': ?features,
     'isActive': ?isActive,
     'displayOrder': ?displayOrder,
@@ -149,8 +175,13 @@ Future<void> markLeadRead(ApiService api, int id) async {
   await api.patch('/superadmin/leads/$id/read', {});
 }
 
-Future<Map<String, dynamic>> updateLeadStatus(ApiService api, int id, String status) async {
-  return await api.patch('/superadmin/leads/$id/status', {'status': status}) as Map<String, dynamic>;
+Future<Map<String, dynamic>> updateLeadStatus(
+  ApiService api,
+  int id,
+  String status,
+) async {
+  return await api.patch('/superadmin/leads/$id/status', {'status': status})
+      as Map<String, dynamic>;
 }
 
 /// Broadcasts a notification to coaching_admins — every institute, or
@@ -166,5 +197,6 @@ Future<Map<String, dynamic>> broadcastToAdmins(
     if (body != null && body.isNotEmpty) 'body': body,
     if (city != null && city.isNotEmpty) 'city': city,
   };
-  return await api.post('/superadmin/notifications/broadcast', requestBody) as Map<String, dynamic>;
+  return await api.post('/superadmin/notifications/broadcast', requestBody)
+      as Map<String, dynamic>;
 }

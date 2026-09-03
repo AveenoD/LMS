@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the full subscription lifecycle for EdTech OS — from tenant creation by Super Admin, through free-tier login, plan selection, payment, and mid-cycle plan switching with pro-rated refund and 2% platform fee.
+This document outlines the full subscription lifecycle for Campus — from tenant creation by Super Admin, through free-tier login, plan selection, payment, and mid-cycle plan switching with pro-rated refund and 2% platform fee.
 
 ---
 

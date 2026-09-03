@@ -1,5 +1,5 @@
 /**
- * Shared domain types for the EdTech OS backend.
+ * Shared domain types for the Campus backend.
  */
 
 export type Role = 'super_admin' | 'coaching_admin' | 'teacher' | 'student';

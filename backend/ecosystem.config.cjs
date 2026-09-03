@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'edtech-api',
+      name: 'campus-api',
       // Run compiled JS from dist (built via `npm run build`).
       script: 'dist/app.js',
       cwd: __dirname,

@@ -3,9 +3,9 @@ import DetailedFeaturesGrid from "@/components/sections/DetailedFeaturesGrid";
 import CTABanner from "@/components/sections/CTABanner";
 
 export const metadata: Metadata = {
-  title: "Features — EdTech OS",
+  title: "Features — Campus",
   description:
-    "Explore all the powerful features of EdTech OS: Dashboard, Students Management, Attendance, Fees, Live Classes, Tests & Exams, and more.",
+    "Explore all the powerful features of Campus: Dashboard, Students Management, Attendance, Fees, Live Classes, Tests & Exams, and more.",
 };
 
 export default function FeaturesPage() {

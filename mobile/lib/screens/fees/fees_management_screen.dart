@@ -17,7 +17,8 @@ class FeesManagementScreen extends ConsumerStatefulWidget {
   const FeesManagementScreen({super.key});
 
   @override
-  ConsumerState<FeesManagementScreen> createState() => _FeesManagementScreenState();
+  ConsumerState<FeesManagementScreen> createState() =>
+      _FeesManagementScreenState();
 }
 
 class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
@@ -55,26 +56,79 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
     final isPaymentTab = _tabController.index == 0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fees Management'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          indicatorColor: const Color(0xFFA87D26),
-          indicatorWeight: 3,
-          tabs: const [
-            Tab(text: 'Student Balances'),
-            Tab(text: 'Fee Structures'),
+      backgroundColor: const Color(0xFF1F2E27),
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fixed Green Header
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 10.0,
+                bottom: 8.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Fees Management',
+                    style: TextStyle(
+                      fontFamily: 'Playfair Display',
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Track payments and fee structures',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white60,
+              indicatorColor: const Color(0xFFA87D26),
+              indicatorWeight: 3,
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(text: 'Student Balances'),
+                Tab(text: 'Fee Structures'),
+              ],
+            ),
+            const SizedBox(height: 25.0),
+
+            // White Container with fixed parts and scrollable list
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F6F3),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildBalancesTab(feesAsync, analyticsAsync),
+                    _buildFeeStructuresTab(),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBalancesTab(feesAsync, analyticsAsync),
-          _buildFeeStructuresTab(),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
@@ -85,7 +139,10 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
     );
   }
 
-  Widget _buildBalancesTab(AsyncValue<List<dynamic>> feesAsync, AsyncValue<Map<String, dynamic>> analyticsAsync) {
+  Widget _buildBalancesTab(
+    AsyncValue<List<dynamic>> feesAsync,
+    AsyncValue<Map<String, dynamic>> analyticsAsync,
+  ) {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -97,11 +154,13 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
               SizedBox(
                 height: 110,
                 child: analyticsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(child: Text('Error: $err')),
                   data: (data) {
                     final totalCollected = data['totalCollected'] ?? 0;
-                    final totalCollectedGrowth = data['totalCollectedGrowth'] ?? 0;
+                    final totalCollectedGrowth =
+                        data['totalCollectedGrowth'] ?? 0;
                     final totalPending = data['totalPending'] ?? 0;
                     final pendingStudents = data['pendingStudents'] ?? 0;
                     final overdue = data['overdue'] ?? 0;
@@ -118,16 +177,23 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
                           value: '${Constants.currencySymbol}$totalCollected',
                           icon: Icons.account_balance_wallet_outlined,
                           iconColor: const Color(0xFF2E6656),
-                          iconBgColor: const Color(0xFF2E6656).withValues(alpha: 0.1),
-                          subtitle: 'This Month ${totalCollectedGrowth >= 0 ? '↑' : '↓'} ${totalCollectedGrowth.abs()}%',
-                          subtitleColor: totalCollectedGrowth >= 0 ? const Color(0xFF2E6656) : const Color(0xFFA93327),
+                          iconBgColor: const Color(
+                            0xFF2E6656,
+                          ).withValues(alpha: 0.1),
+                          subtitle:
+                              'This Month ${totalCollectedGrowth >= 0 ? '↑' : '↓'} ${totalCollectedGrowth.abs()}%',
+                          subtitleColor: totalCollectedGrowth >= 0
+                              ? const Color(0xFF2E6656)
+                              : const Color(0xFFA93327),
                         ),
                         FeeAnalyticCard(
                           title: 'Total Pending',
                           value: '${Constants.currencySymbol}$totalPending',
                           icon: Icons.access_time,
                           iconColor: const Color(0xFFA87D26),
-                          iconBgColor: const Color(0xFFA87D26).withValues(alpha: 0.1),
+                          iconBgColor: const Color(
+                            0xFFA87D26,
+                          ).withValues(alpha: 0.1),
                           subtitle: '$pendingStudents Students',
                           subtitleColor: const Color(0xFFA87D26),
                         ),
@@ -136,7 +202,9 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
                           value: '${Constants.currencySymbol}$overdue',
                           icon: Icons.warning_amber_rounded,
                           iconColor: const Color(0xFFA93327),
-                          iconBgColor: const Color(0xFFA93327).withValues(alpha: 0.1),
+                          iconBgColor: const Color(
+                            0xFFA93327,
+                          ).withValues(alpha: 0.1),
                           subtitle: '$overdueStudents Students',
                           subtitleColor: const Color(0xFFA93327),
                         ),
@@ -145,7 +213,9 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
                           value: '${Constants.currencySymbol}$todayCollection',
                           icon: Icons.calendar_today_outlined,
                           iconColor: const Color(0xFF2563EB),
-                          iconBgColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                          iconBgColor: const Color(
+                            0xFF2563EB,
+                          ).withValues(alpha: 0.1),
                           subtitle: '$todayPaymentsCount Payments',
                           subtitleColor: const Color(0xFF2563EB),
                         ),
@@ -162,14 +232,26 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
                   children: [
                     Expanded(
                       child: TextField(
-                        onChanged: (v) => setState(() => _searchQuery = v.trim().toLowerCase()),
+                        onChanged: (v) => setState(
+                          () => _searchQuery = v.trim().toLowerCase(),
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Search by student name...',
-                          hintStyle: TextStyle(color: const Color(0xFF1F2E27).withValues(alpha: 0.5)),
-                          prefixIcon: const Icon(Icons.search, color: Color(0xFF2E6656)),
+                          hintStyle: TextStyle(
+                            color: const Color(
+                              0xFF1F2E27,
+                            ).withValues(alpha: 0.5),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF2E6656),
+                          ),
                           filled: true,
                           fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -203,8 +285,11 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
         ),
         // List
         feesAsync.when(
-          loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
-          error: (err, stack) => SliverFillRemaining(child: Center(child: Text('Error: $err'))),
+          loading: () => const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (err, stack) =>
+              SliverFillRemaining(child: Center(child: Text('Error: $err'))),
           data: (fees) {
             final filteredFees = fees.where((f) {
               final name = (f['name'] ?? '').toString().toLowerCase();
@@ -216,12 +301,11 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
             return SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    return _buildFeeItem(filteredFees[index] as Map<String, dynamic>);
-                  },
-                  childCount: filteredFees.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return _buildFeeItem(
+                    filteredFees[index] as Map<String, dynamic>,
+                  );
+                }, childCount: filteredFees.length),
               ),
             );
           },
@@ -259,11 +343,19 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 64, color: Color(0xFF2E6656)),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 64,
+              color: Color(0xFF2E6656),
+            ),
             SizedBox(height: 16),
             Text(
               'No fee records yet',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2E27),
+              ),
             ),
             SizedBox(height: 8),
             Text(
@@ -280,8 +372,9 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
   Widget _buildFeeItem(Map<String, dynamic> fee) {
     final pending = (fee['pending'] is num) ? fee['pending'] as num : 0;
     final isPaid = pending <= 0;
-    final statusColor =
-        isPaid ? const Color(0xFF2E6656) : const Color(0xFFA93327);
+    final statusColor = isPaid
+        ? const Color(0xFF2E6656)
+        : const Color(0xFFA93327);
 
     return InkWell(
       onTap: () {
@@ -301,93 +394,98 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isPaid ? Icons.check_circle_outline : Icons.timelapse,
-                color: statusColor,
-              ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  isPaid ? Icons.check_circle_outline : Icons.timelapse,
+                  color: statusColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fee['name'] ?? 'Unknown',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2E27),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Total ${Constants.currencySymbol}${fee['total'] ?? 0}'
+                      ' • Paid ${Constants.currencySymbol}${fee['paid'] ?? 0}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF2E6656),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    fee['name'] ?? 'Unknown',
-                    style: const TextStyle(
+                    '${Constants.currencySymbol}$pending',
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2E27),
+                      fontSize: 16,
+                      color: statusColor,
                     ),
                   ),
-                  const SizedBox(height: 2),
                   Text(
-                    'Total ${Constants.currencySymbol}${fee['total'] ?? 0}'
-                    ' • Paid ${Constants.currencySymbol}${fee['paid'] ?? 0}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF2E6656)),
+                    isPaid ? 'Paid' : 'Pending',
+                    style: TextStyle(color: statusColor, fontSize: 12),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${Constants.currencySymbol}$pending',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: statusColor,
+              if (!isPaid)
+                IconButton(
+                  tooltip: 'Send WhatsApp reminder',
+                  icon: const Icon(
+                    Icons.notifications_active_outlined,
+                    color: Color(0xFF2E6656),
                   ),
+                  onPressed: () => _sendReminder(fee),
                 ),
-                Text(
-                  isPaid ? 'Paid' : 'Pending',
-                  style: TextStyle(color: statusColor, fontSize: 12),
-                ),
-              ],
-            ),
-            if (!isPaid)
-              IconButton(
-                tooltip: 'Send WhatsApp reminder',
-                icon: const Icon(
-                  Icons.notifications_active_outlined,
-                  color: Color(0xFF2E6656),
-                ),
-                onPressed: () => _sendReminder(fee),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Future<void> _sendReminder(Map<String, dynamic> fee) async {
     try {
-      final result =
-          await sendFeeReminder(ref.read(apiServiceProvider), fee['studentId'] as int);
+      final result = await sendFeeReminder(
+        ref.read(apiServiceProvider),
+        fee['studentId'] as int,
+      );
       final waUrl = result['waUrl']?.toString() ?? '';
-      
+
       if (waUrl.isNotEmpty) {
         final uri = Uri.parse(waUrl);
         if (await canLaunchUrl(uri)) {
@@ -395,7 +493,11 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Could not launch WhatsApp. Copying link instead.')),
+              const SnackBar(
+                content: Text(
+                  'Could not launch WhatsApp. Copying link instead.',
+                ),
+              ),
             );
             Clipboard.setData(ClipboardData(text: waUrl));
           }
@@ -403,7 +505,9 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     }
   }
@@ -421,7 +525,11 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
                 color: const Color(0xFF2E6656).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.receipt_outlined, size: 48, color: Color(0xFF2E6656)),
+              child: const Icon(
+                Icons.receipt_outlined,
+                size: 48,
+                color: Color(0xFF2E6656),
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
@@ -435,18 +543,9 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
             const SizedBox(height: 8),
             const Text(
               'Fee structures automatically apply to students in a batch. '
-              'Tap the button below to create one.',
+              'Tap "Add Fee Structure" to create one.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Color(0xFF2E6656), height: 1.5),
-            ),
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: () => showAddFeeStructureBottomSheet(context, ref),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Fee Structure'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              ),
             ),
           ],
         ),
@@ -454,4 +553,3 @@ class _FeesManagementScreenState extends ConsumerState<FeesManagementScreen>
     );
   }
 }
-

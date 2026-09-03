@@ -182,7 +182,7 @@ export const env: AppEnv = {
       user: optional('SMTP_USER', ''),
       pass: optional('SMTP_PASS', ''),
       to: optional('NOTIFY_EMAIL_TO', ''),
-      from: optional('NOTIFY_EMAIL_FROM', 'EdTech OS <no-reply@edtechos.com>'),
+      from: optional('NOTIFY_EMAIL_FROM', 'Campus <no-reply@campusweb.co.in>'),
     },
     telegram: {
       enabled: bool('TELEGRAM_NOTIFY_ENABLED', false),

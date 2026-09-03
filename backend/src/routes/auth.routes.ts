@@ -23,7 +23,7 @@ router.patch('/avatar', authMiddleware, validate(updateAvatarSchema), ctrl.updat
 // Cloudinary signature for profile-photo uploads — any authenticated role
 // (unlike /teacher/upload-signature, which is gated to teachers only).
 router.get('/upload-signature', authMiddleware, (req, res) => {
-  res.json(generateSignature('edtech_os/avatars'));
+  res.json(generateSignature('campus/avatars'));
 });
 
 // Push notification device tokens — any authenticated role registers its own.

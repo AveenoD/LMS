@@ -1,10 +1,10 @@
 openapi: 3.1.0
 
 info:
-  title: EdTech OS — Multi-Tenant Coaching API
+  title: Campus — Multi-Tenant Coaching API
   version: 1.0.0
   description: |
-    **Multi-Tenant EdTech OS** — complete REST API for coaching institute management.
+    **Multi-Tenant Campus** — complete REST API for coaching institute management.
 
     ### Authentication
     All protected routes require a JWT Bearer token obtained from `POST /auth/login`.
@@ -23,15 +23,15 @@ info:
     Never pass `tenantId` in the body — it is always read from the token.
 
   contact:
-    name: EdTech OS Support
-    email: support@edtechos.com
+    name: Campus Support
+    email: support@campusweb.co.in
   license:
     name: MIT
 
 servers:
   - url: http://localhost:4000/api/v1
     description: Local development server
-  - url: https://api.edtechos.com/api/v1
+  - url: https://api.campusweb.co.in/api/v1
     description: Production server
 
 tags:

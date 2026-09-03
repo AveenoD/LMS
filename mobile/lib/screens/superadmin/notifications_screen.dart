@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 
-
 import 'leads_screen.dart';
 import 'subscriptions_screen.dart';
 import 'tenants_screen.dart';
@@ -67,11 +66,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // Navigate based on type
     switch (notification['type']) {
       case 'lead':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const LeadsScreen()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const LeadsScreen()),
+        );
         break;
       case 'payment':
       case 'expiring':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsScreen()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SubscriptionsScreen()),
+        );
         break;
       case 'system':
       default:
@@ -96,38 +101,93 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        title: const Text('Notifications', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        actions: [
-          TextButton(
-            onPressed: _markAllAsRead,
-            child: const Text('Mark all read', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-      body: _notifications.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: const Color(0xFF1F2E27),
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fixed Green Header
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 12.0,
+                top: 10.0,
+                bottom: 20.0,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No new notifications', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  const Expanded(
+                    child: Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontFamily: 'Playfair Display',
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _markAllAsRead,
+                    child: const Text(
+                      'Mark all read',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                final notification = _notifications[index];
-                return _buildNotificationItem(notification);
-              },
             ),
+
+            // White Container with fixed parts and scrollable list
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F6F3),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: _notifications.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.notifications_off_outlined,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No new notifications',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _notifications.length,
+                        itemBuilder: (context, index) {
+                          final notification = _notifications[index];
+                          return _buildNotificationItem(notification);
+                        },
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -163,17 +223,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final isRead = notification['isRead'] as bool;
 
     return Container(
-      color: isRead ? Colors.transparent : AppColors.info.withValues(alpha: 0.03),
+      color: isRead
+          ? Colors.transparent
+          : AppColors.info.withValues(alpha: 0.03),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Stack(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: bgColor,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
               child: Icon(iconData, color: iconColor, size: 24),
             ),
             if (!isRead)

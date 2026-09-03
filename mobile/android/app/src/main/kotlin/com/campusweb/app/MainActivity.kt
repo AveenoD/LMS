@@ -1,4 +1,4 @@
-package com.edtechos.app
+package com.campusweb.app
 
 import io.flutter.embedding.android.FlutterActivity
 

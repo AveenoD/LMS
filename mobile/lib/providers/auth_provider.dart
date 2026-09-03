@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -90,7 +91,10 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<bool> login(String phone, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final response = await _api.post('/auth/login', {'phone': phone, 'password': password});
+      final response = await _api.post('/auth/login', {
+        'phone': phone,
+        'password': password,
+      });
       final accessToken = response['accessToken'];
       if (accessToken == null) {
         throw Exception('Token missing from response');
@@ -121,6 +125,13 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Validates a previously-stored token against `GET /auth/me` (also
   /// refreshes cached role/institute info). Used on app start so a user
   /// with a still-valid session skips the login screen entirely.
+  ///
+  /// Only a real server rejection (401/403 — token actually invalid or
+  /// expired) logs the user out. A network-level failure (no internet, DNS,
+  /// timeout) does NOT log out: the device may simply be offline, and the
+  /// already-cached screens (via `ApiService.cachedGet`) are meant to stay
+  /// usable in that case, so we keep the session (and cache) intact and let
+  /// the app proceed using whatever was hydrated from cache.
   Future<bool> restoreSession() async {
     try {
       final me = await _api.get('/auth/me');
@@ -131,9 +142,24 @@ class AuthNotifier extends Notifier<AuthState> {
 
       state = state.copyWith(isAuthenticated: true);
       return true;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await logout();
+        return false;
+      }
+      // Some other server-side error (5xx, etc.) — don't wipe the session
+      // over a transient backend issue; let cached screens keep working.
+      state = state.copyWith(isAuthenticated: true);
+      return true;
+    } on SocketException catch (_) {
+      // No internet / DNS failure — stay "logged in" with cached data.
+      state = state.copyWith(isAuthenticated: true);
+      return true;
     } catch (_) {
-      await logout();
-      return false;
+      // Any other unexpected failure (e.g. timeout) — treat the same as
+      // offline rather than destroying a possibly-valid session.
+      state = state.copyWith(isAuthenticated: true);
+      return true;
     }
   }
 
@@ -164,7 +190,8 @@ class AuthNotifier extends Notifier<AuthState> {
       tenantSlug = tenant['slug']?.toString();
       instituteName = tenant['name']?.toString();
       if (tenantSlug != null) await prefs.setString('tenant_slug', tenantSlug);
-      if (instituteName != null) await prefs.setString('institute_name', instituteName);
+      if (instituteName != null)
+        await prefs.setString('institute_name', instituteName);
     }
 
     state = state.copyWith(
@@ -183,7 +210,8 @@ class AuthNotifier extends Notifier<AuthState> {
   /// watching [authProvider] reflects the new photo immediately.
   Future<void> updateAvatarUrl(String avatarUrl) async {
     final result = await _api.patch('/auth/avatar', {'avatarUrl': avatarUrl});
-    final saved = (result['user'] as Map?)?['avatarUrl']?.toString() ?? avatarUrl;
+    final saved =
+        (result['user'] as Map?)?['avatarUrl']?.toString() ?? avatarUrl;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('avatar_url', saved);
     state = state.copyWith(avatarUrl: saved);

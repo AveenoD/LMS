@@ -24,9 +24,9 @@ import {
 import Button from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "About Us - EdTech OS",
+  title: "About Us - Campus",
   description:
-    "Built by Educators, For Educators. Learn more about the mission and team behind EdTech OS.",
+    "Built by Educators, For Educators. Learn more about the mission and team behind Campus.",
 };
 
 const STATS = [
@@ -127,7 +127,7 @@ export default function AboutPage() {
                 For Educators.
               </h2>
               <p className="text-base sm:text-lg text-ink-green/70 font-body leading-relaxed mb-12 max-w-lg">
-                EdTech OS was created with a simple mission — to simplify the daily
+                Campus was created with a simple mission — to simplify the daily
                 operations of coaching institutes so they can focus on what matters
                 most: teaching and growing students.
               </p>
@@ -160,7 +160,7 @@ export default function AboutPage() {
               <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-card">
                 <Image
                   src="/aboutus.png"
-                  alt="EdTech OS Team"
+                  alt="Campus Team"
                   fill
                   className="object-cover"
                   priority
@@ -176,13 +176,13 @@ export default function AboutPage() {
         <div className="container-main">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-display font-bold text-ink-green mb-4 relative inline-block">
-              Why We Built EdTech OS?
+              Why We Built Campus?
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-1 bg-brass-gold rounded-full" />
             </h2>
             <p className="text-base text-ink-green/70 font-body mt-6">
               We saw the challenges coaching institutes face every day — managing
               students, attendance, fees, classes and communication using multiple
-              tools and spreadsheets. We built EdTech OS to change that.
+              tools and spreadsheets. We built Campus to change that.
             </p>
           </div>
 
@@ -260,7 +260,7 @@ export default function AboutPage() {
 
                 <Image
                   src="/footer-logo.png"
-                  alt="EdTech OS Shield"
+                  alt="Campus Shield"
                   width={200}
                   height={200}
                   className="object-contain drop-shadow-2xl"
@@ -307,7 +307,7 @@ export default function AboutPage() {
         <div className="container-main">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-display font-bold text-ink-green relative inline-block">
-              Meet The People Behind EdTech OS
+              Meet The People Behind Campus
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-1 bg-brass-gold rounded-full" />
             </h2>
           </div>
@@ -374,7 +374,7 @@ export default function AboutPage() {
                   Let's Build the Future of Education Together
                 </h2>
                 <p className="text-sm sm:text-base text-white/70 font-body max-w-lg">
-                  Join 1000+ coaching institutes that trust EdTech OS to run and
+                  Join 1000+ coaching institutes that trust Campus to run and
                   grow their business.
                 </p>
               </div>

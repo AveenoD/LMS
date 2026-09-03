@@ -73,7 +73,7 @@ export default function HeroSection() {
             <div className="relative z-10 w-full flex items-center justify-center max-w-[500px] lg:max-w-none mx-auto lg:scale-[1.05] lg:-translate-x-1">
               <Image
                 src="/home.png"
-                alt="EdTech OS Dashboard Preview"
+                alt="Campus Dashboard Preview"
                 width={1200}
                 height={800}
                 className="w-full h-auto object-contain drop-shadow-2xl rounded-lg"

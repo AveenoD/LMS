@@ -19,7 +19,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final fullName = authState.fullName ?? 'Teacher';
-    final instituteName = authState.instituteName ?? 'EdTech OS';
+    final instituteName = authState.instituteName ?? 'Campus';
     
     final unreadCount = ref.watch(teacherUnreadNotificationCountProvider).asData?.value ?? 0;
     final scheduleAsync = ref.watch(todayScheduleProvider);

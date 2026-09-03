@@ -319,11 +319,14 @@ export async function getTenantDashboard(tenantId: number, month?: number, year?
       (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on < $3::date) AS "feesCollected",
       (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on >= $2::date AND paid_on < $3::date) AS "feesCollectedThisMonth",
       (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on >= $4::date AND paid_on < $2::date) AS "feesCollectedLastMonth",
+      (SELECT COALESCE(sum(amount_paid),0)::int FROM fee_payments WHERE tenant_id = $1 AND paid_on < $2::date) AS "feesCollectedBeforeThisMonth",
       (SELECT COALESCE(sum(amount),0)::int FROM fee_structures WHERE tenant_id = $1) AS "totalFees"
   `, [tenantId, startDateStr, endDateStr, lastMonthStartDateStr]);
 
   const stats = rows[0];
   const feesPending = Math.max(0, stats.totalFees - stats.feesCollected);
+  // Pending balance as of the start of this month, i.e. after last month's collections.
+  const feesPendingLastMonth = Math.max(0, stats.totalFees - stats.feesCollectedBeforeThisMonth);
 
   const calculateGrowth = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0;
@@ -332,6 +335,7 @@ export async function getTenantDashboard(tenantId: number, month?: number, year?
 
   const studentsGrowth = calculateGrowth(stats.studentsThisMonth, stats.studentsLastMonth);
   const feesCollectedGrowth = calculateGrowth(stats.feesCollectedThisMonth, stats.feesCollectedLastMonth);
+  const feesPendingGrowth = calculateGrowth(feesPending, feesPendingLastMonth);
 
   const isCurrentMonth = targetYear === d.getFullYear() && targetMonth === (d.getMonth() + 1);
   const chartEndDate = isCurrentMonth ? "CURRENT_DATE" : "$2::date - interval '1 day'";
@@ -370,7 +374,7 @@ export async function getTenantDashboard(tenantId: number, month?: number, year?
       feesCollected: stats.feesCollected,
       feesCollectedGrowth: feesCollectedGrowth,
       feesPending: feesPending,
-      feesPendingGrowth: 0,
+      feesPendingGrowth: feesPendingGrowth,
     },
     studentChart: chartRes.rows,
     feesChart: { collected: stats.feesCollectedThisMonth, pending: feesPending },

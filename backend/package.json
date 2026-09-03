@@ -1,7 +1,7 @@
 {
-  "name": "edtech-os-backend",
+  "name": "campus-backend",
   "version": "1.0.0",
-  "description": "Multi-Tenant EdTech OS - Core Backend (Node.js + Express + PostgreSQL + TypeScript)",
+  "description": "Multi-Tenant Campus - Core Backend (Node.js + Express + PostgreSQL + TypeScript)",
   "type": "module",
   "main": "dist/app.js",
   "scripts": {

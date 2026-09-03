@@ -13,11 +13,11 @@ export default function Footer() {
           <div className="lg:max-w-[280px]">
             <Link href="/" className="flex items-center gap-2 mb-4">
               <div className="w-12 h-12 flex items-center justify-center shrink-0">
-                <Image src="/footer-logo.png" alt="EdTech OS Logo" width={48} height={48} className="object-contain" />
+                <Image src="/footer-logo.png" alt="Campus Logo" width={48} height={48} className="object-contain" />
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-display font-bold leading-tight">
-                  EdTech OS
+                  Campus
                 </span>
                 <span className="text-[10px] text-white/50 font-body leading-none">
                   Run Your Institute. Delight Every Student.
@@ -116,11 +116,11 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="mailto:support@edtechos.com"
+                  href="mailto:support@campusweb.co.in"
                   className="flex items-center gap-3 text-sm font-body text-white/60 hover:text-brass-gold transition-colors"
                 >
                   <Mail className="w-4 h-4 flex-shrink-0" />
-                  support@edtechos.com
+                  support@campusweb.co.in
                 </a>
               </li>
             </ul>
@@ -132,7 +132,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container-main py-4">
           <p className="text-xs text-white/40 font-body text-center">
-            © {new Date().getFullYear()} EdTech OS. All rights reserved.
+            © {new Date().getFullYear()} Campus. All rights reserved.
           </p>
         </div>
       </div>

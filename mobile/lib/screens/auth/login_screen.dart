@@ -1,9 +1,12 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_textfield.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/role_router.dart';
+import '../../utils/constants.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +18,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _acceptedLegal = false;
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   void _handleLogin() async {
     final phone = _phoneController.text.trim();
@@ -27,7 +38,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).login(phone, password);
+    final success = await ref
+        .read(authProvider.notifier)
+        .login(phone, password);
 
     if (success && mounted) {
       final role = ref.read(authProvider).userRole;
@@ -72,7 +85,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 16.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -95,7 +111,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 child: Column(
                                   children: [
                                     const Text(
-                                      'EdTech OS',
+                                      'Campus',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 32,
@@ -107,7 +123,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     Text(
                                       'Run your institute. Delight every student.',
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7)),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -144,7 +165,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 4),
                         const Text(
                           'Sign in to continue',
-                          style: TextStyle(fontSize: 14, color: Color(0xFF2E6656)),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF2E6656),
+                          ),
                         ),
                         const SizedBox(height: 32),
                         CustomTextField(
@@ -162,24 +186,82 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           controller: _passwordController,
                         ),
                         const SizedBox(height: 8),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _acceptedLegal,
+                                onChanged: (v) =>
+                                    setState(() => _acceptedLegal = v ?? false),
+                                activeColor: const Color(0xFF1F2E27),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black87,
+                                      height: 1.4,
+                                    ),
+                                    children: [
+                                      const TextSpan(text: 'I accept the '),
+                                      TextSpan(
+                                        text: 'Privacy Policy',
+                                        style: const TextStyle(
+                                          color: Color(0xFFA87D26),
+                                          fontWeight: FontWeight.w600,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                        recognizer: TapGestureRecognizer()
+                                          ..onTap = () => _openUrl(
+                                            Constants.privacyPolicyUrl,
+                                          ),
+                                      ),
+                                      const TextSpan(text: ' and '),
+                                      TextSpan(
+                                        text: 'Terms & Conditions',
+                                        style: const TextStyle(
+                                          color: Color(0xFFA87D26),
+                                          fontWeight: FontWeight.w600,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                        recognizer: TapGestureRecognizer()
+                                          ..onTap = () => _openUrl(
+                                            Constants.termsAndConditionsUrl,
+                                          ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                         authState.isLoading
                             ? const Center(child: CircularProgressIndicator())
                             : SizedBox(
                                 height: 56,
                                 child: CustomButton(
                                   text: 'Sign In →',
-                                  onPressed: _handleLogin,
+                                  onPressed: _acceptedLegal
+                                      ? _handleLogin
+                                      : null,
                                 ),
                               ),
                         const SizedBox(height: 24),
                         const Text(
-                          'Powered by EdTech OS',
+                          'Powered by Campus',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ],
                     ),

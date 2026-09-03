@@ -17,7 +17,11 @@ class SubjectsScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditSubjectBottomSheet(BuildContext context, WidgetRef ref, Map<String, dynamic> subject) {
+  void _showEditSubjectBottomSheet(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> subject,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -26,14 +30,23 @@ class SubjectsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _deleteSubject(BuildContext context, WidgetRef ref, Map<String, dynamic> subject) async {
+  Future<void> _deleteSubject(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> subject,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Subject'),
-        content: Text('Are you sure you want to delete ${subject['name']}? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete ${subject['name']}? This action cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -48,11 +61,15 @@ class SubjectsScreen extends ConsumerWidget {
       await deleteSubject(ref.read(apiServiceProvider), subject['id']);
       ref.invalidate(subjectsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subject deleted successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Subject deleted successfully')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -62,79 +79,164 @@ class SubjectsScreen extends ConsumerWidget {
     final subjectsAsync = ref.watch(subjectsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2E27),
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Subjects', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-      ),
-      body: subjectsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-        data: (subjects) {
-          if (subjects.isEmpty) return const Center(child: Text('No subjects found.'));
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(subjectsProvider),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: subjects.length,
-              itemBuilder: (context, index) {
-                final subject = subjects[index] as Map<String, dynamic>;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  color: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blue.shade50,
-                      child: Icon(Icons.menu_book, color: Colors.blue.shade700),
-                    ),
-                    title: Text(subject['name'] ?? 'Unknown Subject', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
-                    subtitle: (subject['totalChapters'] as int? ?? 0) > 0
-                        ? Text('${subject['totalChapters']} chapters planned', style: TextStyle(color: Colors.grey.shade600, fontSize: 12))
-                        : null,
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _showEditSubjectBottomSheet(context, ref, subject);
-                        } else if (value == 'delete') {
-                          _deleteSubject(context, ref, subject);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 20, color: Colors.blue),
-                              SizedBox(width: 8),
-                              Text('Edit'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 20, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ],
+      backgroundColor: const Color(0xFF1F2E27),
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fixed Green Header
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 10.0,
+                bottom: 20.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Subjects',
+                    style: TextStyle(
+                      fontFamily: 'Playfair Display',
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 4),
+                  Text(
+                    'Manage subjects taught at your institute',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          );
-        },
+
+            // White Container with fixed parts and scrollable list
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F6F3),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: subjectsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Error: $err')),
+                  data: (subjects) {
+                    if (subjects.isEmpty)
+                      return const Center(child: Text('No subjects found.'));
+                    return RefreshIndicator(
+                      onRefresh: () async => ref.invalidate(subjectsProvider),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: subjects.length,
+                        itemBuilder: (context, index) {
+                          final subject =
+                              subjects[index] as Map<String, dynamic>;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            color: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.blue.shade50,
+                                child: Icon(
+                                  Icons.menu_book,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                              title: Text(
+                                subject['name'] ?? 'Unknown Subject',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1F2E27),
+                                ),
+                              ),
+                              subtitle:
+                                  (subject['totalChapters'] as int? ?? 0) > 0
+                                  ? Text(
+                                      '${subject['totalChapters']} chapters planned',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    )
+                                  : null,
+                              trailing: PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    _showEditSubjectBottomSheet(
+                                      context,
+                                      ref,
+                                      subject,
+                                    );
+                                  } else if (value == 'delete') {
+                                    _deleteSubject(context, ref, subject);
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.edit,
+                                          size: 20,
+                                          color: Colors.blue,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text('Edit'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.delete,
+                                          size: 20,
+                                          color: Colors.red,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
@@ -149,14 +251,16 @@ class SubjectsScreen extends ConsumerWidget {
 
 class _AddSubjectBottomSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic>? subject;
-  
+
   const _AddSubjectBottomSheet({this.subject});
 
   @override
-  ConsumerState<_AddSubjectBottomSheet> createState() => _AddSubjectBottomSheetState();
+  ConsumerState<_AddSubjectBottomSheet> createState() =>
+      _AddSubjectBottomSheetState();
 }
 
-class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> {
+class _AddSubjectBottomSheetState
+    extends ConsumerState<_AddSubjectBottomSheet> {
   final _name = TextEditingController();
   final _totalChapters = TextEditingController();
   bool _saving = false;
@@ -235,7 +339,11 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
               children: [
                 Text(
                   widget.subject != null ? 'Edit Subject' : 'Add New Subject',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2E27),
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.grey),
@@ -269,12 +377,24 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -285,7 +405,9 @@ class _AddSubjectBottomSheetState extends ConsumerState<_AddSubjectBottomSheet> 
                 : SizedBox(
                     height: 52,
                     child: CustomButton(
-                      text: widget.subject != null ? 'Update Subject' : 'Save Subject',
+                      text: widget.subject != null
+                          ? 'Update Subject'
+                          : 'Save Subject',
                       onPressed: _saving ? () {} : () => _submit(),
                     ),
                   ),

@@ -5,6 +5,7 @@ import '../../providers/student_providers.dart';
 import '../../widgets/profile/profile_header.dart';
 import '../../widgets/profile/profile_info_card.dart';
 import '../../widgets/profile/profile_menu_list.dart';
+import '../../widgets/profile/profile_notification_toggle.dart';
 import '../../widgets/profile/profile_logout_button.dart';
 
 class StudentProfileScreen extends ConsumerWidget {
@@ -88,6 +89,13 @@ class StudentProfileScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: ProfileNotificationToggle(),
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),

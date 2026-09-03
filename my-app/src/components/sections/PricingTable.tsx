@@ -42,11 +42,34 @@ interface BackendPlan {
   priceQuarterly: number;
   priceYearly: number;
   flatPriceMonthly: number;
+  flatStudentLimit: number;
   features: string[];
 }
 
+type Cycle = "monthly" | "quarterly" | "yearly" | "flat";
+
+const CYCLE_LABELS: Record<Cycle, string> = {
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  yearly: "Yearly",
+  flat: "Flat Rate",
+};
+
+function priceForCycle(plan: BackendPlan, cycle: Cycle): number {
+  switch (cycle) {
+    case "monthly":
+      return plan.priceMonthly;
+    case "quarterly":
+      return plan.priceQuarterly;
+    case "yearly":
+      return plan.priceYearly;
+    case "flat":
+      return plan.flatPriceMonthly;
+  }
+}
+
 export default function PricingTable() {
-  const [activeTab, setActiveTab] = useState<"per_user" | "flat">("per_user");
+  const [cycle, setCycle] = useState<Cycle>("monthly");
   const [backendPlans, setBackendPlans] = useState<BackendPlan[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,7 +118,7 @@ export default function PricingTable() {
           </p>
         </motion.div>
 
-        {/* Tabination (Pill inside Pill) */}
+        {/* Cycle Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -103,81 +126,72 @@ export default function PricingTable() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="flex justify-center mb-10 md:mb-12"
         >
-          <div className="relative flex items-center p-1.5 bg-[#f4f6f3] rounded-full border border-[#eaeeec] shadow-sm">
-            <button
-              onClick={() => setActiveTab("per_user")}
-              className={cn(
-                "relative z-10 flex items-center justify-center px-6 sm:px-8 py-2.5 text-sm sm:text-base font-semibold rounded-full transition-colors duration-300",
-                activeTab === "per_user"
-                  ? "text-white"
-                  : "text-ink-green hover:text-ink-green/80"
-              )}
-            >
-              {activeTab === "per_user" && (
-                <motion.div
-                  layoutId="pricing-tab"
-                  className="absolute inset-0 bg-ink-green rounded-full shadow-md"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <span className="relative z-20">Per User Price</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("flat")}
-              className={cn(
-                "relative z-10 flex items-center justify-center px-6 sm:px-8 py-2.5 text-sm sm:text-base font-semibold rounded-full transition-colors duration-300",
-                activeTab === "flat"
-                  ? "text-white"
-                  : "text-ink-green hover:text-ink-green/80"
-              )}
-            >
-              {activeTab === "flat" && (
-                <motion.div
-                  layoutId="pricing-tab"
-                  className="absolute inset-0 bg-ink-green rounded-full shadow-md"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <span className="relative z-20">Flat Price</span>
-            </button>
+          <div className="relative flex flex-wrap items-center justify-center p-1.5 bg-[#f4f6f3] rounded-full border border-[#eaeeec] shadow-sm gap-1">
+            {(Object.keys(CYCLE_LABELS) as Cycle[]).map((c) => (
+              <button
+                key={c}
+                onClick={() => setCycle(c)}
+                className={cn(
+                  "relative z-10 flex items-center justify-center px-5 sm:px-6 py-2.5 text-sm sm:text-base font-semibold rounded-full transition-colors duration-300",
+                  cycle === c
+                    ? "text-white"
+                    : "text-ink-green hover:text-ink-green/80"
+                )}
+              >
+                {cycle === c && (
+                  <motion.div
+                    layoutId="pricing-cycle-tab"
+                    className="absolute inset-0 bg-ink-green rounded-full shadow-md"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-20">{CYCLE_LABELS[c]}</span>
+              </button>
+            ))}
           </div>
         </motion.div>
 
         {/* Pricing Cards Grid */}
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 mb-10">
           <AnimatePresence mode="wait">
-            {activeTab === "per_user" ? (
-              // PER USER PRICING (FROM BACKEND)
-              loading ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex justify-center items-center py-20 col-span-1 md:col-span-3"
-                >
-                  <Loader2 className="w-10 h-10 animate-spin text-ink-green opacity-50" />
-                </motion.div>
-              ) : backendPlans.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-center py-10 col-span-1 md:col-span-3 text-ink-green/60 font-body text-lg"
-                >
-                  No pricing plans available at the moment.
-                </motion.div>
-              ) : (
-                <motion.div key="backend-plans" className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  {backendPlans.map((plan, i) => {
+            {loading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex justify-center items-center py-20 col-span-1 md:col-span-3"
+              >
+                <Loader2 className="w-10 h-10 animate-spin text-ink-green opacity-50" />
+              </motion.div>
+            ) : backendPlans.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-10 col-span-1 md:col-span-3 text-ink-green/60 font-body text-lg"
+              >
+                No pricing plans available at the moment.
+              </motion.div>
+            ) : (
+              <motion.div
+                key={`plans-${cycle}`}
+                className="contents"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {backendPlans.map((plan, i) => {
                   const isPopular = plan.name.toLowerCase() === "pro";
                   const Icon = planIcons[i % planIcons.length];
+                  const price = priceForCycle(plan, cycle);
+                  const priceSuffix =
+                    cycle === "flat" ? "/ month" : "/ student / month";
 
                   return (
                     <motion.div
-                      key={`backend-${plan.id}`}
+                      key={`${cycle}-${plan.id}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
@@ -239,17 +253,15 @@ export default function PricingTable() {
                               isPopular ? "text-white" : "text-ink-green"
                             )}
                           >
-                            ₹{plan.priceMonthly}
+                            ₹{price}
                           </span>
                           <span
                             className={cn(
                               "text-sm font-body font-medium",
-                              isPopular
-                                ? "text-white/50"
-                                : "text-ink-green/40"
+                              isPopular ? "text-white/50" : "text-ink-green/40"
                             )}
                           >
-                            / student
+                            {priceSuffix}
                           </span>
                         </div>
                         <p
@@ -258,7 +270,9 @@ export default function PricingTable() {
                             isPopular ? "text-white/40" : "text-ink-green/40"
                           )}
                         >
-                          Billed monthly
+                          {cycle === "flat"
+                            ? `Up to ${plan.flatStudentLimit} students`
+                            : `Billed ${cycle}`}
                         </p>
                       </div>
 
@@ -300,158 +314,7 @@ export default function PricingTable() {
                     </motion.div>
                   );
                 })}
-                </motion.div>
-              )
-            ) : (
-              // FLAT PRICING (FROM BACKEND — same plan list as per-user tab,
-              // just showing each tier's flat_price_monthly instead)
-              loading ? (
-                <motion.div
-                  key="flat-loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex justify-center items-center py-20 col-span-1 md:col-span-3"
-                >
-                  <Loader2 className="w-10 h-10 animate-spin text-ink-green opacity-50" />
-                </motion.div>
-              ) : backendPlans.length === 0 ? (
-                <motion.div
-                  key="flat-empty"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-center py-10 col-span-1 md:col-span-3 text-ink-green/60 font-body text-lg"
-                >
-                  No pricing plans available at the moment.
-                </motion.div>
-              ) : (
-                <motion.div key="backend-flat-plans" className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  {backendPlans.map((plan, i) => {
-                  const isPopular = plan.name.toLowerCase() === "pro";
-                  const Icon = planIcons[i % planIcons.length];
-
-                  return (
-                    <motion.div
-                      key={`flat-${plan.id}`}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.4, delay: i * 0.08 }}
-                      className={cn(
-                        "relative rounded-2xl p-6 border-2 flex flex-col h-full",
-                        isPopular
-                          ? "border-ink-green bg-ink-green text-white shadow-xl scale-[1.02] z-10"
-                          : "border-paper bg-card-surface hover:border-chalk-teal/30 shadow-card transition-[box-shadow,border-color] duration-300"
-                      )}
-                    >
-                      {isPopular && (
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                          <span className="bg-brass-gold text-white text-xs font-body font-semibold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
-                            Most Popular
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-3 mb-4">
-                        <div
-                          className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                            isPopular ? "bg-white/10" : "bg-chalk-teal/10"
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              "w-5 h-5",
-                              isPopular ? "text-brass-gold" : "text-chalk-teal"
-                            )}
-                          />
-                        </div>
-                        <div>
-                          <h3
-                            className={cn(
-                              "text-xl font-display font-bold",
-                              isPopular ? "text-white" : "text-ink-green"
-                            )}
-                          >
-                            {plan.name}
-                          </h3>
-                          <p
-                            className={cn(
-                              "text-xs font-body leading-tight mt-1 line-clamp-2",
-                              isPopular ? "text-white/60" : "text-ink-green/50"
-                            )}
-                          >
-                            {plan.tagline}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mb-6 flex-shrink-0">
-                        <div className="flex items-baseline gap-1">
-                          <span
-                            className={cn(
-                              "text-4xl font-display font-bold",
-                              isPopular ? "text-white" : "text-ink-green"
-                            )}
-                          >
-                            ₹{plan.flatPriceMonthly}
-                          </span>
-                          <span
-                            className={cn(
-                              "text-sm font-body font-medium",
-                              isPopular ? "text-white/50" : "text-ink-green/40"
-                            )}
-                          >
-                            / month
-                          </span>
-                        </div>
-                        <p
-                          className={cn(
-                            "text-xs font-body mt-1 font-medium",
-                            isPopular ? "text-white/40" : "text-ink-green/40"
-                          )}
-                        >
-                          Flat rate, any number of students
-                        </p>
-                      </div>
-
-                      <ul className="space-y-2 mb-4 flex-grow">
-                        {plan.features.map((feature) => (
-                          <li key={feature} className="flex items-start gap-2.5">
-                            <Check
-                              className={cn(
-                                "w-4 h-4 mt-0.5 flex-shrink-0",
-                                isPopular ? "text-brass-gold" : "text-chalk-teal"
-                              )}
-                            />
-                            <span
-                              className={cn(
-                                "text-sm font-body leading-tight",
-                                isPopular ? "text-white/80" : "text-ink-green/70"
-                              )}
-                            >
-                              {formatFeatureName(feature)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <div className="mt-auto pt-3 border-t border-dashed border-black/5 dark:border-white/10">
-                        <Button
-                          variant={isPopular ? "primary" : "secondary"}
-                          size="lg"
-                          className="w-full"
-                          withArrow={isPopular}
-                        >
-                          Start 7-Day Free Trial
-                        </Button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-                </motion.div>
-              )
+              </motion.div>
             )}
           </AnimatePresence>
         </div>

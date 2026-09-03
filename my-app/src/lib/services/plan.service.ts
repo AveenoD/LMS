@@ -10,6 +10,7 @@ export interface PlanCatalogItem {
   priceQuarterly: number;
   priceYearly: number;
   flatPriceMonthly: number;
+  flatStudentLimit: number;
   features: string[];
   isActive: boolean;
   displayOrder: number;
@@ -24,6 +25,7 @@ export interface CreatePlanInput {
   priceQuarterly: number;
   priceYearly: number;
   flatPriceMonthly: number;
+  flatStudentLimit: number;
   features: string[];
   displayOrder?: number;
 }
@@ -34,6 +36,7 @@ export interface UpdatePlanInput {
   priceQuarterly?: number;
   priceYearly?: number;
   flatPriceMonthly?: number;
+  flatStudentLimit?: number;
   features?: string[];
   isActive?: boolean;
   displayOrder?: number;
@@ -48,6 +51,7 @@ export async function listPlans(activeOnly = false): Promise<PlanCatalogItem[]> 
             price_quarterly AS "priceQuarterly",
             price_yearly AS "priceYearly",
             flat_price_monthly AS "flatPriceMonthly",
+            flat_student_limit AS "flatStudentLimit",
             features,
             is_active AS "isActive",
             display_order AS "displayOrder",
@@ -68,6 +72,7 @@ export async function getPlanById(id: number): Promise<PlanCatalogItem> {
             price_quarterly AS "priceQuarterly",
             price_yearly AS "priceYearly",
             flat_price_monthly AS "flatPriceMonthly",
+            flat_student_limit AS "flatStudentLimit",
             features,
             is_active AS "isActive",
             display_order AS "displayOrder",
@@ -85,23 +90,24 @@ export async function createPlan(
   input: CreatePlanInput,
   actorUserId: number | null = null
 ): Promise<PlanCatalogItem> {
-  const { name, tagline, priceMonthly, priceQuarterly, priceYearly, flatPriceMonthly, features, displayOrder = 0 } = input;
+  const { name, tagline, priceMonthly, priceQuarterly, priceYearly, flatPriceMonthly, flatStudentLimit, features, displayOrder = 0 } = input;
 
   const { rows } = await query<PlanCatalogItem>(
     `INSERT INTO plan_catalog
-       (name, tagline, price_monthly, price_quarterly, price_yearly, flat_price_monthly, features, display_order)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8)
+       (name, tagline, price_monthly, price_quarterly, price_yearly, flat_price_monthly, flat_student_limit, features, display_order)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
      RETURNING id, name, tagline,
                price_monthly AS "priceMonthly",
                price_quarterly AS "priceQuarterly",
                price_yearly AS "priceYearly",
                flat_price_monthly AS "flatPriceMonthly",
+               flat_student_limit AS "flatStudentLimit",
                features,
                is_active AS "isActive",
                display_order AS "displayOrder",
                created_at AS "createdAt",
                updated_at AS "updatedAt"`,
-    [name, tagline ?? null, priceMonthly, priceQuarterly, priceYearly, flatPriceMonthly, JSON.stringify(features), displayOrder]
+    [name, tagline ?? null, priceMonthly, priceQuarterly, priceYearly, flatPriceMonthly, flatStudentLimit, JSON.stringify(features), displayOrder]
   );
 
   await writeAudit({
@@ -132,6 +138,7 @@ export async function updatePlan(
   if (input.priceQuarterly !== undefined)  { setClauses.push(`price_quarterly = $${paramIdx++}`);    values.push(input.priceQuarterly); }
   if (input.priceYearly !== undefined)     { setClauses.push(`price_yearly = $${paramIdx++}`);       values.push(input.priceYearly); }
   if (input.flatPriceMonthly !== undefined){ setClauses.push(`flat_price_monthly = $${paramIdx++}`); values.push(input.flatPriceMonthly); }
+  if (input.flatStudentLimit !== undefined){ setClauses.push(`flat_student_limit = $${paramIdx++}`); values.push(input.flatStudentLimit); }
   if (input.features !== undefined)        { setClauses.push(`features = $${paramIdx++}::jsonb`);    values.push(JSON.stringify(input.features)); }
   if (input.isActive !== undefined)        { setClauses.push(`is_active = $${paramIdx++}`);          values.push(input.isActive); }
   if (input.displayOrder !== undefined)    { setClauses.push(`display_order = $${paramIdx++}`);     values.push(input.displayOrder); }
@@ -147,6 +154,7 @@ export async function updatePlan(
                 price_quarterly AS "priceQuarterly",
                 price_yearly AS "priceYearly",
                 flat_price_monthly AS "flatPriceMonthly",
+                flat_student_limit AS "flatStudentLimit",
                 features,
                 is_active AS "isActive",
                 display_order AS "displayOrder",

@@ -5,9 +5,9 @@ import CTABanner from "@/components/sections/CTABanner";
 import FAQSection from "@/components/sections/FAQSection";
 
 export const metadata: Metadata = {
-  title: "Pricing — EdTech OS",
+  title: "Pricing — Campus",
   description:
-    "Simple, transparent, affordable pricing plans for EdTech OS. Start your 7-day free trial today.",
+    "Simple, transparent, affordable pricing plans for Campus. Start your 7-day free trial today.",
 };
 
 export default function PricingPage() {

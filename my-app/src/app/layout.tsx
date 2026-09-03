@@ -20,7 +20,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "EdTech OS — Run Your Institute. Delight Every Student.",
+  title: "Campus — Run Your Institute. Delight Every Student.",
   description:
     "All-in-one LMS for coaching institutes. Manage attendance, fees, live classes, tests, assignments and communication from a single platform.",
   keywords: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "attendance management",
     "fee management",
     "EdTech",
-    "EdTech OS",
+    "Campus",
   ],
 };
 

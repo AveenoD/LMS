@@ -14,7 +14,7 @@ interface CTABannerProps {
 
 export default function CTABanner({
   title = "Ready to Transform Your Institute?",
-  subtitle = "Join 1000+ coaching institutes already using EdTech OS to simplify operations and deliver better results.",
+  subtitle = "Join 1000+ coaching institutes already using Campus to simplify operations and deliver better results.",
   variant = "teal",
 }: CTABannerProps) {
   return (
@@ -33,7 +33,7 @@ export default function CTABanner({
             <div className="flex items-center gap-4">
               {/* Logo */}
               <div className="hidden md:flex w-16 h-16 rounded-2xl bg-white items-center justify-center flex-shrink-0 overflow-hidden">
-                <Image src="/main-logo.png" alt="EdTech OS Logo" width={48} height={48} className="object-contain" />
+                <Image src="/main-logo.png" alt="Campus Logo" width={48} height={48} className="object-contain" />
               </div>
               <div>
                 <h3 className="text-xl md:text-2xl font-display font-bold text-white mb-1">

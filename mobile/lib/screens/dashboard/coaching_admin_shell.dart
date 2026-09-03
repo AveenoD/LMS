@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dashboard_screen.dart';
 import '../management/students_screen.dart';
+import '../management/admin_profile_screen.dart';
 import '../management/teachers_screen.dart';
 import '../management/batches_screen.dart';
 import '../management/subjects_screen.dart';
@@ -37,6 +38,7 @@ class CoachingAdminShell extends StatelessWidget {
           iconWidget: const _MoreIconWithUnreadBadge(),
           screen: const MoreMenuScreen(
             items: [
+              MoreMenuItem(icon: Icons.person, label: 'Profile', destination: AdminProfileScreen()),
               MoreMenuItem(icon: Icons.notifications, label: 'Notifications', destination: AdminNotificationsScreen()),
               MoreMenuItem(icon: Icons.campaign, label: 'Send Announcement', destination: BroadcastStudentsScreen()),
               MoreMenuItem(icon: Icons.badge, label: 'Teachers', destination: TeachersScreen()),

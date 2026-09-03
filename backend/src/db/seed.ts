@@ -55,7 +55,7 @@ async function seed(): Promise<void> {
       // ---- Global super admin (tenant_id NULL) ----
       await client.query(
         `INSERT INTO users (tenant_id, role, full_name, phone, email, password_hash)
-         VALUES (NULL,'super_admin','Platform Owner','918888800000','owner@edtechos.com',$1)`,
+         VALUES (NULL,'super_admin','Platform Owner','918888800000','owner@campusweb.co.in',$1)`,
         [hash]
       );
 

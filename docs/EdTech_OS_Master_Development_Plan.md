@@ -1,4 +1,4 @@
-# 🚀 Master Development Plan — Multi-Tenant EdTech OS
+# 🚀 Master Development Plan — Multi-Tenant Campus
 
 > **Purpose of this document:** This is a *complete, executable engineering blueprint*. It is written so that a small AI coding assistant (e.g. Gemini Pro) can follow it **phase-by-phase and build the entire product flawlessly**. Every decision has already been made for you — schemas, endpoints, folder structures, screens, navigation, and copy‑paste‑ready build prompts. Do not improvise; follow the spec.
 
@@ -24,7 +24,7 @@
 ## 1. Executive Summary & Vision
 
 ### 1.1 Product Vision
-**Multi-Tenant EdTech OS** is a zero-maintenance ERP + LMS that turns any local coaching institute into a fully digital operation in under 24 hours. One Flutter app serves four roles (Super Admin, Coaching Admin, Teacher, Student/Parent). One Node.js backend and one PostgreSQL database serve *all* institutes, isolated by a `tenant_id`.
+**Multi-Tenant Campus** is a zero-maintenance ERP + LMS that turns any local coaching institute into a fully digital operation in under 24 hours. One Flutter app serves four roles (Super Admin, Coaching Admin, Teacher, Student/Parent). One Node.js backend and one PostgreSQL database serve *all* institutes, isolated by a `tenant_id`.
 
 ### 1.2 Target Market
 - **Beachhead:** Coaching institutes in **Nashik** (JEE/NEET/board tuition, 50–500 students each).
@@ -612,7 +612,7 @@ export async function subscriptionGuard(req, res, next) {
 
 ### 5.4 REST API Specification
 
-**Base URL:** `https://api.edtechos.com/api/v1`
+**Base URL:** `https://api.campusweb.co.in/api/v1`
 All protected routes require `Authorization: Bearer <accessToken>`.
 
 #### 5.4.1 Auth Module
@@ -1092,13 +1092,13 @@ sudo apt update && sudo apt install -y nginx postgresql certbot python3-certbot-
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs
 sudo npm i -g pm2
 # Postgres
-sudo -u postgres psql -c "CREATE DATABASE edtechos;"
-sudo -u postgres psql -c "CREATE USER edtech WITH PASSWORD 'STRONG_PW'; GRANT ALL ON DATABASE edtechos TO edtech;"
+sudo -u postgres psql -c "CREATE DATABASE campus;"
+sudo -u postgres psql -c "CREATE USER campus WITH PASSWORD 'STRONG_PW'; GRANT ALL ON DATABASE campus TO campus;"
 ```
 
 ### 10.2 PM2 (`ecosystem.config.cjs`)
 ```js
-module.exports = { apps: [{ name:'edtech-api', script:'src/app.js',
+module.exports = { apps: [{ name:'campus-api', script:'src/app.js',
   instances:1, exec_mode:'fork', env:{ NODE_ENV:'production', PORT:4000 } }] };
 ```
 ```bash
@@ -1108,7 +1108,7 @@ pm2 start ecosystem.config.cjs && pm2 save && pm2 startup
 
 ### 10.3 Environment Variables (`.env`)
 ```
-DATABASE_URL=postgres://edtech:STRONG_PW@localhost:5432/edtechos
+DATABASE_URL=postgres://campus:STRONG_PW@localhost:5432/campus
 JWT_ACCESS_SECRET=<64-char-random>
 JWT_REFRESH_SECRET=<64-char-random>
 ACCESS_TOKEN_TTL=15m
@@ -1122,18 +1122,18 @@ PORT=4000
 ### 10.4 Nginx + SSL
 ```nginx
 server {
-  server_name api.edtechos.com;
+  server_name api.campusweb.co.in;
   location / { proxy_pass http://localhost:4000; proxy_set_header Host $host; }
 }
 ```
 ```bash
-sudo certbot --nginx -d api.edtechos.com
+sudo certbot --nginx -d api.campusweb.co.in
 ```
 
 ### 10.5 Backups (nightly `pg_dump`)
 ```bash
 # crontab -e
-0 2 * * * pg_dump -U edtech edtechos | gzip > /root/backups/edtechos_$(date +\%F).sql.gz
+0 2 * * * pg_dump -U campus campus | gzip > /root/backups/campus_$(date +\%F).sql.gz
 ```
 
 ### 10.6 Flutter Release

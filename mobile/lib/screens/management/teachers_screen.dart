@@ -15,105 +15,212 @@ class TeachersScreen extends ConsumerWidget {
     final teachersAsync = ref.watch(teachersProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F3),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2E27),
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Column(
+      backgroundColor: const Color(0xFF1F2E27),
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Teachers', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-            Text(
-              'Manage and view all your teachers',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w400),
+            // Fixed Green Header
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 10.0,
+                bottom: 20.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Teachers',
+                    style: TextStyle(
+                      fontFamily: 'Playfair Display',
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Manage and view all your teachers',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // White Container with fixed parts and scrollable list
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F6F3),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: teachersAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Error: $err')),
+                  data: (teachers) {
+                    return RefreshIndicator(
+                      onRefresh: () async => ref.invalidate(teachersProvider),
+                      child: Column(
+                        children: [
+                          // Stats Header
+                          Card(
+                            color: Colors.white,
+                            margin: const EdgeInsets.all(16),
+                            elevation: 1,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Builder(
+                                builder: (_) {
+                                  final activeCount = teachers.where((t) {
+                                    final m = t as Map<String, dynamic>;
+                                    return m['status'] == 'active' ||
+                                        m['status'] == null;
+                                  }).length;
+                                  final leaveCount = teachers
+                                      .where(
+                                        (t) =>
+                                            (t
+                                                as Map<
+                                                  String,
+                                                  dynamic
+                                                >)['status'] ==
+                                            'on_leave',
+                                      )
+                                      .length;
+                                  final inactiveCount = teachers
+                                      .where(
+                                        (t) =>
+                                            (t
+                                                as Map<
+                                                  String,
+                                                  dynamic
+                                                >)['status'] ==
+                                            'inactive',
+                                      )
+                                      .length;
+                                  return Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _buildStatItem(
+                                        'Total',
+                                        '${teachers.length}',
+                                        Icons.people_outline,
+                                        const Color(0xFF2E6656),
+                                      ),
+                                      _buildDivider(),
+                                      _buildStatItem(
+                                        'Active',
+                                        '$activeCount',
+                                        Icons.how_to_reg_outlined,
+                                        Colors.blue,
+                                      ),
+                                      _buildDivider(),
+                                      _buildStatItem(
+                                        'On Leave',
+                                        '$leaveCount',
+                                        Icons.beach_access,
+                                        Colors.orange,
+                                      ),
+                                      _buildDivider(),
+                                      _buildStatItem(
+                                        'Inactive',
+                                        '$inactiveCount',
+                                        Icons.person_off_outlined,
+                                        Colors.grey,
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+
+                          // Search Row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search,
+                                    color: Colors.grey.shade500,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Expanded(
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'Search by name or phone number...',
+                                        border: InputBorder.none,
+                                        hintStyle: TextStyle(fontSize: 13),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Teacher List
+                          Expanded(
+                            child: teachers.isEmpty
+                                ? const Center(
+                                    child: Text('No teachers found.'),
+                                  )
+                                : ListView.separated(
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: teachers.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 12),
+                                    itemBuilder: (context, index) {
+                                      final teacher =
+                                          teachers[index]
+                                              as Map<String, dynamic>;
+                                      return _buildTeacherCard(
+                                        context,
+                                        ref,
+                                        teacher,
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           ],
         ),
-      ),
-      body: teachersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-        data: (teachers) {
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(teachersProvider),
-            child: Column(
-              children: [
-                // Stats Header
-                Card(
-                  color: Colors.white,
-                  margin: const EdgeInsets.all(16),
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Builder(builder: (_) {
-                      final activeCount = teachers.where((t) { final m = t as Map<String, dynamic>; return m['status'] == 'active' || m['status'] == null; }).length;
-                      final leaveCount = teachers.where((t) => (t as Map<String, dynamic>)['status'] == 'on_leave').length;
-                      final inactiveCount = teachers.where((t) => (t as Map<String, dynamic>)['status'] == 'inactive').length;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStatItem('Total', '${teachers.length}', Icons.people_outline, const Color(0xFF2E6656)),
-                          _buildDivider(),
-                          _buildStatItem('Active', '$activeCount', Icons.how_to_reg_outlined, Colors.blue),
-                          _buildDivider(),
-                          _buildStatItem('On Leave', '$leaveCount', Icons.beach_access, Colors.orange),
-                          _buildDivider(),
-                          _buildStatItem('Inactive', '$inactiveCount', Icons.person_off_outlined, Colors.grey),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
-                
-                // Search Row
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.search, color: Colors.grey.shade500, size: 20),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Search by name or phone number...',
-                              border: InputBorder.none,
-                              hintStyle: TextStyle(fontSize: 13),
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                
-                // Teacher List
-                Expanded(
-                  child: teachers.isEmpty
-                      ? const Center(child: Text('No teachers found.'))
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: teachers.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final teacher = teachers[index] as Map<String, dynamic>;
-                            return _buildTeacherCard(context, ref, teacher);
-                          },
-                        ),
-                ),
-              ],
-            ),
-          );
-        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showModalBottomSheet(
@@ -124,12 +231,20 @@ class TeachersScreen extends ConsumerWidget {
         ),
         backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Teacher', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Add Teacher',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -142,22 +257,36 @@ class TeachersScreen extends ConsumerWidget {
           child: Icon(icon, color: color, size: 20),
         ),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1F2E27))),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1F2E27),
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildDivider() {
-    return Container(
-      height: 40,
-      width: 1,
-      color: Colors.grey.shade200,
-    );
+    return Container(height: 40, width: 1, color: Colors.grey.shade200);
   }
 
-  Widget _buildTeacherCard(BuildContext context, WidgetRef ref, Map<String, dynamic> teacher) {
+  Widget _buildTeacherCard(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> teacher,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -183,98 +312,158 @@ class TeachersScreen extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.orange.shade50,
-              child: const Icon(Icons.person_outline, color: Colors.orange, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    teacher['fullName'] ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F2E27)),
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.orange.shade50,
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: Colors.orange,
+                    size: 28,
                   ),
-                  const SizedBox(height: 2),
-                  const Text('Teacher', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(height: 8),
-                  Row(
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.phone_outlined, size: 14, color: Colors.grey.shade600),
-                      const SizedBox(width: 4),
-                      Text(teacher['phone']?.toString() ?? '', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Builder(builder: (_) {
-                    final status = teacher['status']?.toString() ?? 'active';
-                    Color color;
-                    Color bg;
-                    String label;
-                    if (status == 'on_leave') {
-                      color = Colors.orange.shade700;
-                      bg = Colors.orange.shade50;
-                      label = 'On Leave';
-                    } else if (status == 'inactive') {
-                      color = Colors.grey.shade600;
-                      bg = Colors.grey.shade100;
-                      label = 'Inactive';
-                    } else {
-                      color = Colors.green.shade700;
-                      bg = Colors.green.shade50;
-                      label = 'Active';
-                    }
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      Text(
+                        teacher['fullName'] ?? 'Unknown',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF1F2E27),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Teacher',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
                         children: [
-                          Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                          Icon(
+                            Icons.phone_outlined,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 4),
-                          Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+                          Text(
+                            teacher['phone']?.toString() ?? '',
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
                       ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.grey),
-                  padding: EdgeInsets.zero,
-                  onSelected: (val) {
-                    if (val == 'delete') _confirmDelete(context, ref, teacher);
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'delete', child: Text('Remove Teacher', style: TextStyle(color: Colors.red))),
+                      const SizedBox(height: 12),
+                      Builder(
+                        builder: (_) {
+                          final status =
+                              teacher['status']?.toString() ?? 'active';
+                          Color color;
+                          Color bg;
+                          String label;
+                          if (status == 'on_leave') {
+                            color = Colors.orange.shade700;
+                            bg = Colors.orange.shade50;
+                            label = 'On Leave';
+                          } else if (status == 'inactive') {
+                            color = Colors.grey.shade600;
+                            bg = Colors.grey.shade100;
+                            label = 'Inactive';
+                          } else {
+                            color = Colors.green.shade700;
+                            bg = Colors.green.shade50;
+                            label = 'Active';
+                          }
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: bg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.grey),
+                      padding: EdgeInsets.zero,
+                      onSelected: (val) {
+                        if (val == 'delete')
+                          _confirmDelete(context, ref, teacher);
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            'Remove Teacher',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Icon(Icons.chevron_right, color: Colors.black87),
                   ],
                 ),
-                const SizedBox(height: 24),
-                const Icon(Icons.chevron_right, color: Colors.black87),
               ],
             ),
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Map<String, dynamic> teacher) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> teacher,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove teacher?'),
-        content: Text('${teacher['fullName'] ?? 'This teacher'} will be removed permanently.'),
+        content: Text(
+          '${teacher['fullName'] ?? 'This teacher'} will be removed permanently.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remove', style: TextStyle(color: Colors.red)),
@@ -287,11 +476,15 @@ class TeachersScreen extends ConsumerWidget {
       await deleteTeacher(ref.read(apiServiceProvider), teacher['id'] as int);
       ref.invalidate(teachersProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teacher removed')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Teacher removed')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -301,10 +494,12 @@ class _AddTeacherBottomSheet extends ConsumerStatefulWidget {
   const _AddTeacherBottomSheet();
 
   @override
-  ConsumerState<_AddTeacherBottomSheet> createState() => _AddTeacherBottomSheetState();
+  ConsumerState<_AddTeacherBottomSheet> createState() =>
+      _AddTeacherBottomSheetState();
 }
 
-class _AddTeacherBottomSheetState extends ConsumerState<_AddTeacherBottomSheet> {
+class _AddTeacherBottomSheetState
+    extends ConsumerState<_AddTeacherBottomSheet> {
   final _fullName = TextEditingController();
   final _phone = TextEditingController();
   final _password = TextEditingController();
@@ -322,7 +517,9 @@ class _AddTeacherBottomSheetState extends ConsumerState<_AddTeacherBottomSheet> 
   }
 
   Future<void> _submit() async {
-    if (_fullName.text.trim().isEmpty || _phone.text.trim().isEmpty || _password.text.isEmpty) {
+    if (_fullName.text.trim().isEmpty ||
+        _phone.text.trim().isEmpty ||
+        _password.text.isEmpty) {
       setState(() => _error = 'Full name, phone and password are required.');
       return;
     }
@@ -369,7 +566,11 @@ class _AddTeacherBottomSheetState extends ConsumerState<_AddTeacherBottomSheet> 
               children: [
                 const Text(
                   'Add New Teacher',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2E27),
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.grey),
@@ -410,12 +611,24 @@ class _AddTeacherBottomSheetState extends ConsumerState<_AddTeacherBottomSheet> 
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ),
                   ],
                 ),
               ),

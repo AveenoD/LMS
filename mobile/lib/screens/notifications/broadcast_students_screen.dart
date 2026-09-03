@@ -12,10 +12,12 @@ class BroadcastStudentsScreen extends ConsumerStatefulWidget {
   const BroadcastStudentsScreen({super.key});
 
   @override
-  ConsumerState<BroadcastStudentsScreen> createState() => _BroadcastStudentsScreenState();
+  ConsumerState<BroadcastStudentsScreen> createState() =>
+      _BroadcastStudentsScreenState();
 }
 
-class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScreen> {
+class _BroadcastStudentsScreenState
+    extends ConsumerState<BroadcastStudentsScreen> {
   final _title = TextEditingController();
   final _body = TextEditingController();
   String _targetRole = 'student';
@@ -50,9 +52,9 @@ class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScree
       if (mounted) {
         final count = result['recipientCount'] ?? 0;
         final who = _targetRole == 'teacher' ? 'teacher(s)' : 'student(s)';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sent to $count $who.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Sent to $count $who.')));
         _title.clear();
         _body.clear();
         setState(() {
@@ -74,101 +76,188 @@ class _BroadcastStudentsScreenState extends ConsumerState<BroadcastStudentsScree
     final isTeacher = _targetRole == 'teacher';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Send Announcement'),
-      ),
+      backgroundColor: const Color(0xFF1F2E27),
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isTeacher
-                    ? 'This goes to your teachers — everyone, or just those teaching one batch.'
-                    : 'This goes to your students — everyone, or just one batch.',
-                style: const TextStyle(color: Colors.grey),
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fixed Green Header
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 10.0,
+                bottom: 20.0,
               ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Send to', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Send Announcement',
+                    style: TextStyle(
+                      fontFamily: 'Playfair Display',
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Broadcast to your students',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _RoleTab(
-                        label: 'Students',
-                        icon: Icons.school_rounded,
-                        selected: !isTeacher,
-                        onTap: () => setState(() {
-                          _targetRole = 'student';
-                          _batchId = null;
-                        }),
-                      ),
-                    ),
-                    Expanded(
-                      child: _RoleTab(
-                        label: 'Teachers',
-                        icon: Icons.badge_rounded,
-                        selected: isTeacher,
-                        onTap: () => setState(() {
-                          _targetRole = 'teacher';
-                          _batchId = null;
-                        }),
-                      ),
-                    ),
-                  ],
+            ),
+
+            // White Container with fixed parts and scrollable list
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F6F3),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(label: 'Title', hint: 'e.g. Holiday tomorrow', controller: _title),
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: 'Message (optional)',
-                hint: isTeacher ? 'Details for the teachers' : 'Details for the students',
-                controller: _body,
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Batch (optional)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
-              ),
-              const SizedBox(height: 8),
-              batchesAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (err, stack) => Text('$err', style: const TextStyle(color: Colors.red)),
-                data: (batches) => DropdownButtonFormField<int?>(
-                  initialValue: _batchId,
-                  decoration: const InputDecoration(border: OutlineInputBorder()),
-                  hint: const Text('Every batch'),
-                  items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('Every batch')),
-                    ...batches.cast<Map<String, dynamic>>().map(
-                          (b) => DropdownMenuItem<int?>(value: b['id'] as int, child: Text(b['name']?.toString() ?? '')),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isTeacher
+                            ? 'This goes to your teachers — everyone, or just those teaching one batch.'
+                            : 'This goes to your students — everyone, or just one batch.',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Send to',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
+                          ),
                         ),
-                  ],
-                  onChanged: (v) => setState(() => _batchId = v),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _RoleTab(
+                                label: 'Students',
+                                icon: Icons.school_rounded,
+                                selected: !isTeacher,
+                                onTap: () => setState(() {
+                                  _targetRole = 'student';
+                                  _batchId = null;
+                                }),
+                              ),
+                            ),
+                            Expanded(
+                              child: _RoleTab(
+                                label: 'Teachers',
+                                icon: Icons.badge_rounded,
+                                selected: isTeacher,
+                                onTap: () => setState(() {
+                                  _targetRole = 'teacher';
+                                  _batchId = null;
+                                }),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        label: 'Title',
+                        hint: 'e.g. Holiday tomorrow',
+                        controller: _title,
+                      ),
+                      const SizedBox(height: 12),
+                      CustomTextField(
+                        label: 'Message (optional)',
+                        hint: isTeacher
+                            ? 'Details for the teachers'
+                            : 'Details for the students',
+                        controller: _body,
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Batch (optional)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      batchesAsync.when(
+                        loading: () => const LinearProgressIndicator(),
+                        error: (err, stack) => Text(
+                          '$err',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        data: (batches) => DropdownButtonFormField<int?>(
+                          initialValue: _batchId,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                          ),
+                          hint: const Text('Every batch'),
+                          items: [
+                            const DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text('Every batch'),
+                            ),
+                            ...batches.cast<Map<String, dynamic>>().map(
+                              (b) => DropdownMenuItem<int?>(
+                                value: b['id'] as int,
+                                child: Text(b['name']?.toString() ?? ''),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) => setState(() => _batchId = v),
+                        ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      _sending
+                          ? const Center(child: CircularProgressIndicator())
+                          : SizedBox(
+                              height: 52,
+                              width: double.infinity,
+                              child: CustomButton(
+                                text: 'Send',
+                                onPressed: _send,
+                              ),
+                            ),
+                    ],
+                  ),
                 ),
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ],
-              const SizedBox(height: 24),
-              _sending
-                  ? const Center(child: CircularProgressIndicator())
-                  : SizedBox(
-                      height: 52,
-                      width: double.infinity,
-                      child: CustomButton(text: 'Send', onPressed: _send),
-                    ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -180,7 +269,12 @@ class _RoleTab extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  const _RoleTab({required this.label, required this.icon, required this.selected, required this.onTap});
+  const _RoleTab({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -192,12 +286,24 @@ class _RoleTab extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: selected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6, offset: const Offset(0, 1))] : null,
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: selected ? AppColors.primary : Colors.grey.shade500),
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? AppColors.primary : Colors.grey.shade500,
+            ),
             const SizedBox(width: 6),
             Text(
               label,

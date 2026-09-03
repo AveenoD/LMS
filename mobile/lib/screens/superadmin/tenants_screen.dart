@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/superadmin_providers.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_textfield.dart';
+import '../../widgets/custom_button.dart';
 import '../../widgets/analytics_top_card.dart';
 import '../../theme/app_colors.dart';
 import 'tenant_details_screen.dart';
@@ -31,150 +32,262 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
     final tenantsAsync = ref.watch(tenantsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tenants'),
+      backgroundColor: const Color(0xFF1F2E27),
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fixed Green Header
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 20.0,
+                top: 10.0,
+                bottom: 20.0,
               ),
-      body: tenantsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-        data: (tenants) {
-          final filteredTenants = tenants.where((t) {
-            if (_selectedFilter == 'All') return true;
-            return t['status']?.toString() == _selectedFilter;
-          }).toList();
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Tenants',
+                    style: TextStyle(
+                      fontFamily: 'Playfair Display',
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Manage all subscribed institutes',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-          final int totalTenants = tenants.length;
-          final int activeCount = tenants.where((t) => t['status'] == 'active').length;
-          final int trialCount = tenants.where((t) => t['status'] == 'trial').length;
-          final int suspendedCount = tenants.where((t) => t['status'] == 'suspended' || t['status'] == 'past_due').length;
-
-          final String activePercent = totalTenants == 0 ? '0%' : '${((activeCount / totalTenants) * 100).toStringAsFixed(0)}%';
-          final String trialPercent = totalTenants == 0 ? '0%' : '${((trialCount / totalTenants) * 100).toStringAsFixed(0)}%';
-          final String suspendedPercent = totalTenants == 0 ? '0%' : '${((suspendedCount / totalTenants) * 100).toStringAsFixed(0)}%';
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 155,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  children: [
-                    AnalyticsTopCard(
-                      title: 'Total Tenants', 
-                      value: totalTenants.toString(), 
-                      subtitle: 'All Institutes', 
-                      icon: Icons.business, 
-                      bgColor: const Color(0xFF1F2E27).withValues(alpha: 0.1), 
-                      iconColor: const Color(0xFF1F2E27),
-                      subtitleColor: Colors.grey.shade600,
-                      subtitleIcon: null,
-                    ),
-                    AnalyticsTopCard(
-                      title: 'Active', 
-                      value: activeCount.toString(), 
-                      subtitle: '$activePercent of total', 
-                      icon: Icons.check_circle, 
-                      bgColor: Colors.green.withValues(alpha: 0.1), 
-                      iconColor: Colors.green,
-                      subtitleColor: Colors.green,
-                      subtitleIcon: null,
-                    ),
-                    AnalyticsTopCard(
-                      title: 'Trial', 
-                      value: trialCount.toString(), 
-                      subtitle: '$trialPercent of total', 
-                      icon: Icons.hourglass_top, 
-                      bgColor: Colors.orange.withValues(alpha: 0.1), 
-                      iconColor: Colors.orange,
-                      subtitleColor: Colors.orange,
-                      subtitleIcon: null,
-                    ),
-                    AnalyticsTopCard(
-                      title: 'Suspended', 
-                      value: suspendedCount.toString(), 
-                      subtitle: '$suspendedPercent of total', 
-                      icon: Icons.pause_circle, 
-                      bgColor: Colors.red.withValues(alpha: 0.1), 
-                      iconColor: Colors.red,
-                      subtitleColor: Colors.red,
-                      subtitleIcon: null,
-                    ),
-                  ],
+            // White Container with fixed parts and scrollable list
+            Expanded(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF4F6F3),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
                 ),
-              ),
-              SizedBox(
-                height: 60,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  children: ['All', 'active', 'trial', 'suspended', 'past_due'].map((status) {
-                    final isSelected = _selectedFilter == status;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(
-                          status == 'All' ? 'ALL' : status.toUpperCase(), 
-                          style: TextStyle(
-                            fontSize: 12, 
-                            fontWeight: FontWeight.w600,
-                            color: isSelected ? Colors.white : const Color(0xFF1F2E27)
-                          )
-                        ),
-                        showCheckmark: false,
-                        selected: isSelected,
-                        selectedColor: const Color(0xFF2E6656),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(color: isSelected ? Colors.transparent : Colors.grey.shade300)
-                        ),
-                        onSelected: (selected) {
-                          if (selected) setState(() => _selectedFilter = status);
-                        },
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              Expanded(
-                child: filteredTenants.isEmpty
-                    ? const Center(child: Text('No institutes found.'))
-                    : RefreshIndicator(
-                        onRefresh: () async => ref.invalidate(tenantsProvider),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredTenants.length,
-                          itemBuilder: (context, index) {
-                            final tenant = filteredTenants[index] as Map<String, dynamic>;
-                final isActive = tenant['isActive'] == true;
-                final status = tenant['status']?.toString() ?? 'unknown';
-                final city = tenant['city']?.toString();
-                final studentCount = tenant['studentCount']?.toString() ?? '0';
+                child: tenantsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Error: $err')),
+                  data: (tenants) {
+                    final filteredTenants = tenants.where((t) {
+                      if (_selectedFilter == 'All') return true;
+                      return t['status']?.toString() == _selectedFilter;
+                    }).toList();
 
-                return TenantCard(
-                  tenant: tenant,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TenantDetailsScreen(tenant: tenant),
-                      ),
+                    final int totalTenants = tenants.length;
+                    final int activeCount = tenants
+                        .where((t) => t['status'] == 'active')
+                        .length;
+                    final int trialCount = tenants
+                        .where((t) => t['status'] == 'trial')
+                        .length;
+                    final int suspendedCount = tenants
+                        .where(
+                          (t) =>
+                              t['status'] == 'suspended' ||
+                              t['status'] == 'past_due',
+                        )
+                        .length;
+
+                    final String activePercent = totalTenants == 0
+                        ? '0%'
+                        : '${((activeCount / totalTenants) * 100).toStringAsFixed(0)}%';
+                    final String trialPercent = totalTenants == 0
+                        ? '0%'
+                        : '${((trialCount / totalTenants) * 100).toStringAsFixed(0)}%';
+                    final String suspendedPercent = totalTenants == 0
+                        ? '0%'
+                        : '${((suspendedCount / totalTenants) * 100).toStringAsFixed(0)}%';
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 155,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            children: [
+                              AnalyticsTopCard(
+                                title: 'Total Tenants',
+                                value: totalTenants.toString(),
+                                subtitle: 'All Institutes',
+                                icon: Icons.business,
+                                bgColor: const Color(
+                                  0xFF1F2E27,
+                                ).withValues(alpha: 0.1),
+                                iconColor: const Color(0xFF1F2E27),
+                                subtitleColor: Colors.grey.shade600,
+                                subtitleIcon: null,
+                              ),
+                              AnalyticsTopCard(
+                                title: 'Active',
+                                value: activeCount.toString(),
+                                subtitle: '$activePercent of total',
+                                icon: Icons.check_circle,
+                                bgColor: Colors.green.withValues(alpha: 0.1),
+                                iconColor: Colors.green,
+                                subtitleColor: Colors.green,
+                                subtitleIcon: null,
+                              ),
+                              AnalyticsTopCard(
+                                title: 'Trial',
+                                value: trialCount.toString(),
+                                subtitle: '$trialPercent of total',
+                                icon: Icons.hourglass_top,
+                                bgColor: Colors.orange.withValues(alpha: 0.1),
+                                iconColor: Colors.orange,
+                                subtitleColor: Colors.orange,
+                                subtitleIcon: null,
+                              ),
+                              AnalyticsTopCard(
+                                title: 'Suspended',
+                                value: suspendedCount.toString(),
+                                subtitle: '$suspendedPercent of total',
+                                icon: Icons.pause_circle,
+                                bgColor: Colors.red.withValues(alpha: 0.1),
+                                iconColor: Colors.red,
+                                subtitleColor: Colors.red,
+                                subtitleIcon: null,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: 60,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            children:
+                                [
+                                  'All',
+                                  'active',
+                                  'trial',
+                                  'suspended',
+                                  'past_due',
+                                ].map((status) {
+                                  final isSelected = _selectedFilter == status;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: ChoiceChip(
+                                      label: Text(
+                                        status == 'All'
+                                            ? 'ALL'
+                                            : status.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : const Color(0xFF1F2E27),
+                                        ),
+                                      ),
+                                      showCheckmark: false,
+                                      selected: isSelected,
+                                      selectedColor: const Color(0xFF2E6656),
+                                      backgroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: BorderSide(
+                                          color: isSelected
+                                              ? Colors.transparent
+                                              : Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      onSelected: (selected) {
+                                        if (selected)
+                                          setState(
+                                            () => _selectedFilter = status,
+                                          );
+                                      },
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+                        Expanded(
+                          child: filteredTenants.isEmpty
+                              ? const Center(
+                                  child: Text('No institutes found.'),
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: () async =>
+                                      ref.invalidate(tenantsProvider),
+                                  child: ListView.builder(
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: filteredTenants.length,
+                                    itemBuilder: (context, index) {
+                                      final tenant =
+                                          filteredTenants[index]
+                                              as Map<String, dynamic>;
+                                      final isActive =
+                                          tenant['isActive'] == true;
+                                      final status =
+                                          tenant['status']?.toString() ??
+                                          'unknown';
+                                      final city = tenant['city']?.toString();
+                                      final studentCount =
+                                          tenant['studentCount']?.toString() ??
+                                          '0';
+
+                                      return TenantCard(
+                                        tenant: tenant,
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  TenantDetailsScreen(
+                                                    tenant: tenant,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                        ),
+                      ],
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
-          ),
-          ),
           ],
-          );
-        },
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
-        onPressed: () => showDialog(context: context, builder: (_) => const _AddTenantDialog()),
+        onPressed: () => showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => const _AddTenantBottomSheet(),
+        ),
         backgroundColor: const Color(0xFF1F2E27),
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Tenant', style: TextStyle(color: Colors.white)),
@@ -182,21 +295,41 @@ class _TenantsScreenState extends ConsumerState<TenantsScreen> {
     );
   }
 
-  Future<void> _toggleActive(BuildContext context, WidgetRef ref, Map<String, dynamic> tenant, bool value) async {
+  Future<void> _toggleActive(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> tenant,
+    bool value,
+  ) async {
     try {
-      await setTenantActive(ref.read(apiServiceProvider), tenant['id'] as int, value);
+      await setTenantActive(
+        ref.read(apiServiceProvider),
+        tenant['id'] as int,
+        value,
+      );
       ref.invalidate(tenantsProvider);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
 
-  Future<void> _showAssignPlanDialog(BuildContext context, WidgetRef ref, Map<String, dynamic> tenant) async {
-    await showDialog(
+  Future<void> _showAssignPlanDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> tenant,
+  ) async {
+    await showModalBottomSheet(
       context: context,
-      builder: (_) => _AssignPlanDialog(tenantId: tenant['id'] as int, tenantName: tenant['name']?.toString() ?? ''),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AssignPlanBottomSheet(
+        tenantId: tenant['id'] as int,
+        tenantName: tenant['name']?.toString() ?? '',
+      ),
     );
   }
 }
@@ -227,8 +360,18 @@ class _StatusChip extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-      child: Text(status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
@@ -236,11 +379,24 @@ class _StatusChip extends StatelessWidget {
 class TenantCard extends StatelessWidget {
   final Map<String, dynamic> tenant;
   final VoidCallback onTap;
-  
+
   const TenantCard({super.key, required this.tenant, required this.onTap});
 
   String _monthStr(int month) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return months[month - 1];
   }
 
@@ -252,11 +408,17 @@ class TenantCard extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: Colors.grey.shade700),
             const SizedBox(width: 4),
-            Text(count, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(
+              count,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
           ],
         ),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 10)),
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
+        ),
       ],
     );
   }
@@ -282,30 +444,46 @@ class TenantCard extends StatelessWidget {
     final String? trialEndsAtStr = tenant['trialEndsAt'];
     final String? nextBillingDateStr = tenant['nextBillingDate'];
 
-    DateTime? trialEndsAt = trialEndsAtStr != null ? DateTime.tryParse(trialEndsAtStr) : null;
-    DateTime? nextBillingDate = nextBillingDateStr != null ? DateTime.tryParse(nextBillingDateStr) : null;
+    DateTime? trialEndsAt = trialEndsAtStr != null
+        ? DateTime.tryParse(trialEndsAtStr)
+        : null;
+    DateTime? nextBillingDate = nextBillingDateStr != null
+        ? DateTime.tryParse(nextBillingDateStr)
+        : null;
     final now = DateTime.now();
 
     String statusText = status.toUpperCase();
     Color statusColor = Colors.grey;
     Color statusBgColor = Colors.grey.withValues(alpha: 0.1);
-    
+
     Widget dateInfoWidget = const SizedBox.shrink();
 
     if (status == 'trial') {
       statusText = 'TRIAL';
       statusColor = Colors.orange;
       statusBgColor = Colors.orange.withValues(alpha: 0.1);
-      
+
       if (trialEndsAt != null) {
         final daysLeft = trialEndsAt.difference(now).inDays;
-        final dateStr = '${trialEndsAt.day} ${_monthStr(trialEndsAt.month)} ${trialEndsAt.year}';
+        final dateStr =
+            '${trialEndsAt.day} ${_monthStr(trialEndsAt.month)} ${trialEndsAt.year}';
         dateInfoWidget = Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('${daysLeft > 0 ? daysLeft : 0} Days Left', style: TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(
+              '${daysLeft > 0 ? daysLeft : 0} Days Left',
+              style: TextStyle(
+                color: Colors.orange,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text('Trial ends on\n$dateStr', textAlign: TextAlign.right, style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+            Text(
+              'Trial ends on\n$dateStr',
+              textAlign: TextAlign.right,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+            ),
           ],
         );
       }
@@ -313,13 +491,18 @@ class TenantCard extends StatelessWidget {
       statusText = 'PREMIUM';
       statusColor = Colors.green;
       statusBgColor = Colors.green.withValues(alpha: 0.1);
-      
+
       if (nextBillingDate != null) {
-        final dateStr = '${nextBillingDate.day} ${_monthStr(nextBillingDate.month)} ${nextBillingDate.year}';
+        final dateStr =
+            '${nextBillingDate.day} ${_monthStr(nextBillingDate.month)} ${nextBillingDate.year}';
         dateInfoWidget = Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('Valid till\n$dateStr', textAlign: TextAlign.right, style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+            Text(
+              'Valid till\n$dateStr',
+              textAlign: TextAlign.right,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+            ),
           ],
         );
       }
@@ -327,14 +510,19 @@ class TenantCard extends StatelessWidget {
       statusText = status == 'past_due' ? 'EXPIRED' : status.toUpperCase();
       statusColor = Colors.red;
       statusBgColor = Colors.red.withValues(alpha: 0.1);
-      
+
       DateTime? expiredOn = nextBillingDate ?? trialEndsAt;
       if (expiredOn != null) {
-        final dateStr = '${expiredOn.day} ${_monthStr(expiredOn.month)} ${expiredOn.year}';
+        final dateStr =
+            '${expiredOn.day} ${_monthStr(expiredOn.month)} ${expiredOn.year}';
         dateInfoWidget = Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('Expired on\n$dateStr', textAlign: TextAlign.right, style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+            Text(
+              'Expired on\n$dateStr',
+              textAlign: TextAlign.right,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+            ),
           ],
         );
       }
@@ -347,86 +535,129 @@ class TenantCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: const Color(0xFFE8F0ED),
-                  child: const Icon(Icons.business, color: Color(0xFF1F2E27)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1F2E27))),
-                      const SizedBox(height: 4),
-                      Text('${city != null && city.isNotEmpty ? '$city, ' : ''}Maharashtra', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                      const SizedBox(height: 16),
-                      Row(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFFE8F0ED),
+                      child: const Icon(
+                        Icons.business,
+                        color: Color(0xFF1F2E27),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildStat(Icons.school, studentCount, 'Students'),
-                          _buildVerticalDivider(),
-                          _buildStat(Icons.person, teacherCount, 'Teachers'),
-                          _buildVerticalDivider(),
-                          _buildStat(Icons.menu_book, batchCount, 'Batches'),
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Color(0xFF1F2E27),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${city != null && city.isNotEmpty ? '$city, ' : ''}Maharashtra',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              _buildStat(
+                                Icons.school,
+                                studentCount,
+                                'Students',
+                              ),
+                              _buildVerticalDivider(),
+                              _buildStat(
+                                Icons.person,
+                                teacherCount,
+                                'Teachers',
+                              ),
+                              _buildVerticalDivider(),
+                              _buildStat(
+                                Icons.menu_book,
+                                batchCount,
+                                'Batches',
+                              ),
+                            ],
+                          ),
                         ],
-                      )
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusBgColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusBgColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ),
+                  const SizedBox(height: 12),
+                  dateInfoWidget,
                 ],
               ),
-              const SizedBox(height: 12),
-              dateInfoWidget,
             ],
-          )
-        ],
-      ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _AddTenantDialog extends ConsumerStatefulWidget {
-  const _AddTenantDialog();
+class _AddTenantBottomSheet extends ConsumerStatefulWidget {
+  const _AddTenantBottomSheet();
 
   @override
-  ConsumerState<_AddTenantDialog> createState() => _AddTenantDialogState();
+  ConsumerState<_AddTenantBottomSheet> createState() =>
+      _AddTenantBottomSheetState();
 }
 
-class _AddTenantDialogState extends ConsumerState<_AddTenantDialog> {
+class _AddTenantBottomSheetState extends ConsumerState<_AddTenantBottomSheet> {
   final _name = TextEditingController();
   final _slug = TextEditingController();
   final _city = TextEditingController();
@@ -455,7 +686,10 @@ class _AddTenantDialogState extends ConsumerState<_AddTenantDialog> {
         _adminName.text.trim().isEmpty ||
         _adminPhone.text.trim().isEmpty ||
         _adminPassword.text.isEmpty) {
-      setState(() => _error = 'Name, slug, admin name, phone and password are required.');
+      setState(
+        () =>
+            _error = 'Name, slug, admin name, phone and password are required.',
+      );
       return;
     }
     setState(() {
@@ -485,57 +719,168 @@ class _AddTenantDialogState extends ConsumerState<_AddTenantDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add Institute'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomTextField(label: 'Institute Name', hint: 'e.g. Bright Future Coaching', controller: _name),
-            const SizedBox(height: 12),
-            CustomTextField(label: 'Slug', hint: 'lowercase-hyphenated, e.g. bright-future', controller: _slug),
-            const SizedBox(height: 12),
-            CustomTextField(label: 'City (optional)', hint: 'City', controller: _city),
-            const SizedBox(height: 12),
-            CustomTextField(label: 'Contact Phone (optional)', hint: 'Institute contact phone', controller: _contactPhone),
-            const SizedBox(height: 12),
-            CustomTextField(label: 'Admin Name', hint: 'Coaching admin\'s name', controller: _adminName),
-            const SizedBox(height: 12),
-            CustomTextField(label: 'Admin Phone', hint: '10-15 digit login phone', controller: _adminPhone),
-            const SizedBox(height: 12),
-            CustomTextField(label: 'Admin Password', hint: 'Min 6 characters', isPassword: true, controller: _adminPassword),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Add Institute',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2E27),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              CustomTextField(
+                label: 'Institute Name',
+                hint: 'e.g. Bright Future Coaching',
+                controller: _name,
+                prefixIcon: Icons.business_outlined,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: 'Slug',
+                hint: 'lowercase-hyphenated, e.g. bright-future',
+                controller: _slug,
+                prefixIcon: Icons.link,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: 'City (optional)',
+                hint: 'City',
+                controller: _city,
+                prefixIcon: Icons.location_city_outlined,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: 'Contact Phone (optional)',
+                hint: 'Institute contact phone',
+                controller: _contactPhone,
+                prefixIcon: Icons.call_outlined,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Coaching Admin',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2E27),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'This person logs in to manage the institute.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 10),
+              CustomTextField(
+                label: 'Admin Name',
+                hint: "Coaching admin's name",
+                controller: _adminName,
+                prefixIcon: Icons.person_outline,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: 'Admin Phone',
+                hint: '10-15 digit login phone',
+                controller: _adminPhone,
+                prefixIcon: Icons.phone_android_outlined,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: 'Admin Password',
+                hint: 'Min 6 characters',
+                isPassword: true,
+                controller: _adminPassword,
+                prefixIcon: Icons.lock_outline,
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 32),
+              _saving
+                  ? const Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      height: 52,
+                      child: CustomButton(
+                        text: 'Add Institute',
+                        onPressed: _submit,
+                      ),
+                    ),
             ],
-          ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Add'),
-        ),
-      ],
     );
   }
 }
 
-class _AssignPlanDialog extends ConsumerStatefulWidget {
+class _AssignPlanBottomSheet extends ConsumerStatefulWidget {
   final int tenantId;
   final String tenantName;
-  const _AssignPlanDialog({required this.tenantId, required this.tenantName});
+  const _AssignPlanBottomSheet({
+    required this.tenantId,
+    required this.tenantName,
+  });
 
   @override
-  ConsumerState<_AssignPlanDialog> createState() => _AssignPlanDialogState();
+  ConsumerState<_AssignPlanBottomSheet> createState() =>
+      _AssignPlanBottomSheetState();
 }
 
-class _AssignPlanDialogState extends ConsumerState<_AssignPlanDialog> {
+class _AssignPlanBottomSheetState
+    extends ConsumerState<_AssignPlanBottomSheet> {
   int? _planId;
   String _billingCycle = 'monthly';
+  String _billingMode = 'per_student';
   bool _saving = false;
   String? _error;
 
@@ -554,6 +899,7 @@ class _AssignPlanDialogState extends ConsumerState<_AssignPlanDialog> {
         widget.tenantId,
         planCatalogId: _planId!,
         billingCycle: _billingCycle,
+        billingMode: _billingMode,
       );
       ref.invalidate(tenantsProvider);
       ref.invalidate(tenantSubscriptionProvider(widget.tenantId));
@@ -568,74 +914,238 @@ class _AssignPlanDialogState extends ConsumerState<_AssignPlanDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final subDetailAsync = ref.watch(tenantSubscriptionProvider(widget.tenantId));
+    final subDetailAsync = ref.watch(
+      tenantSubscriptionProvider(widget.tenantId),
+    );
     final plansAsync = ref.watch(plansProvider);
 
-    return AlertDialog(
-      title: Text(widget.tenantName),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            subDetailAsync.when(
-              loading: () => const Padding(padding: EdgeInsets.all(8), child: LinearProgressIndicator()),
-              error: (err, stack) => Text('$err', style: const TextStyle(color: Colors.red)),
-              data: (detail) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Current: ${detail['planName'] ?? 'No plan assigned'} • ${detail['status']} • ₹${detail['amount'] ?? 0}',
-                  style: TextStyle(color: Colors.grey.shade700),
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.tenantName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1F2E27),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              subDetailAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: LinearProgressIndicator(),
+                ),
+                error: (err, stack) => Text(
+                  '$err',
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+                data: (detail) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Current: ${detail['planName'] ?? 'No plan assigned'} • ${detail['status']} • ₹${detail['amount'] ?? 0}',
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                  ),
                 ),
               ),
-            ),
-            const Text('Assign Plan', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            plansAsync.when(
-              loading: () => const CircularProgressIndicator(),
-              error: (err, stack) => Text('$err', style: const TextStyle(color: Colors.red)),
-              data: (plans) {
-                final active = plans.cast<Map<String, dynamic>>().where((p) => p['isActive'] == true).toList();
-                return DropdownButtonFormField<int>(
-                  initialValue: _planId,
-                  decoration: const InputDecoration(border: OutlineInputBorder()),
-                  hint: const Text('Choose plan'),
-                  items: active
-                      .map((p) => DropdownMenuItem<int>(value: p['id'] as int, child: Text(p['name']?.toString() ?? '')))
-                      .toList(),
-                  onChanged: (v) => setState(() => _planId = v),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            const Text('Billing Cycle', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _billingCycle,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
-              items: const [
-                DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-                DropdownMenuItem(value: 'quarterly', child: Text('Quarterly')),
-                DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
+              const SizedBox(height: 16),
+              const Text(
+                'Plan',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2E27),
+                ),
+              ),
+              const SizedBox(height: 8),
+              plansAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (err, stack) => Text(
+                  '$err',
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+                data: (plans) {
+                  final active = plans
+                      .cast<Map<String, dynamic>>()
+                      .where((p) => p['isActive'] == true)
+                      .toList();
+                  return DropdownButtonFormField<int>(
+                    initialValue: _planId,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                    hint: const Text('Choose plan'),
+                    items: active
+                        .map(
+                          (p) => DropdownMenuItem<int>(
+                            value: p['id'] as int,
+                            child: Text(p['name']?.toString() ?? ''),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _planId = v),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Billing Mode',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2E27),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Flat bills a fixed monthly amount regardless of student count.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Text('Per Student'),
+                      selected: _billingMode == 'per_student',
+                      onSelected: (v) {
+                        if (v) setState(() => _billingMode = 'per_student');
+                      },
+                      selectedColor: const Color(0xFF2E6656),
+                      labelStyle: TextStyle(
+                        color: _billingMode == 'per_student'
+                            ? Colors.white
+                            : const Color(0xFF1F2E27),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const Text('Flat'),
+                      selected: _billingMode == 'flat',
+                      onSelected: (v) {
+                        if (v) setState(() => _billingMode = 'flat');
+                      },
+                      selectedColor: const Color(0xFF2E6656),
+                      labelStyle: TextStyle(
+                        color: _billingMode == 'flat'
+                            ? Colors.white
+                            : const Color(0xFF1F2E27),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_billingMode == 'per_student') ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Billing Cycle',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2E27),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _billingCycle,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                    DropdownMenuItem(
+                      value: 'quarterly',
+                      child: Text('Quarterly'),
+                    ),
+                    DropdownMenuItem(value: 'yearly', child: Text('Yearly')),
+                  ],
+                  onChanged: (v) =>
+                      setState(() => _billingCycle = v ?? 'monthly'),
+                ),
               ],
-              onChanged: (v) => setState(() => _billingCycle = v ?? 'monthly'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
+              if (_error != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 32),
+              _saving
+                  ? const Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      height: 52,
+                      child: CustomButton(
+                        text: 'Assign Plan',
+                        onPressed: _submit,
+                      ),
+                    ),
             ],
-          ],
+          ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Close')),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Assign'),
-        ),
-      ],
     );
   }
 }

@@ -3,9 +3,9 @@ import { Phone, Mail, Clock, MapPin } from "lucide-react";
 import ContactForm from "@/components/sections/ContactForm";
 
 export const metadata: Metadata = {
-  title: "Contact Us — EdTech OS",
+  title: "Contact Us — Campus",
   description:
-    "Get in touch with the EdTech OS team. We're here to help you transform your institute.",
+    "Get in touch with the Campus team. We're here to help you transform your institute.",
 };
 
 export default function ContactPage() {
@@ -22,7 +22,7 @@ export default function ContactPage() {
               <span className="text-gradient-gold">From You.</span>
             </h1>
             <p className="text-base text-ink-green/60 font-body leading-relaxed mb-8">
-              Have questions about EdTech OS? Our team is here to help. Reach out
+              Have questions about Campus? Our team is here to help. Reach out
               and we&apos;ll get back to you as soon as possible.
             </p>
 
@@ -37,8 +37,8 @@ export default function ContactPage() {
                 {
                   icon: Mail,
                   label: "Email",
-                  value: "support@edtechos.com",
-                  href: "mailto:support@edtechos.com",
+                  value: "support@campusweb.co.in",
+                  href: "mailto:support@campusweb.co.in",
                 },
                 {
                   icon: Clock,

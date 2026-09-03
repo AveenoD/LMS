@@ -61,8 +61,8 @@ if (!env.isProd) {
     '/docs',
     swaggerUi.serve,
     swaggerUi.setup(openApiSpec, {
-      customSiteTitle: 'EdTech OS API Docs',
-      customCss: '.swagger-ui .topbar { background-color: #1e293b; } .swagger-ui .topbar-wrapper img { display: none; } .swagger-ui .topbar-wrapper::before { content: "EdTech OS API"; color: white; font-size: 1.2rem; font-weight: bold; }',
+      customSiteTitle: 'Campus API Docs',
+      customCss: '.swagger-ui .topbar { background-color: #1e293b; } .swagger-ui .topbar-wrapper img { display: none; } .swagger-ui .topbar-wrapper::before { content: "Campus API"; color: white; font-size: 1.2rem; font-weight: bold; }',
       swaggerOptions: {
         persistAuthorization: true,
         displayRequestDuration: true,
@@ -104,7 +104,7 @@ app.use(errorHandler);
 
 // ── Boot ──
 const server = app.listen(env.port, '0.0.0.0', () => {
-  logger.info(`EdTech OS API listening on :${env.port}`, { env: env.nodeEnv });
+  logger.info(`Campus API listening on :${env.port}`, { env: env.nodeEnv });
   scheduleBillingJob();
   scheduleTestReminderJob();
   scheduleFeeReminderJob();

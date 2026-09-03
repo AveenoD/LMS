@@ -46,7 +46,7 @@ class AnalyticsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Super Admin', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                Text('EdTech OS', style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                Text('Campus', style: TextStyle(color: AppColors.primary, fontSize: 12)),
               ],
             ),
           ],
@@ -196,33 +196,50 @@ class AnalyticsScreen extends ConsumerWidget {
                         selectedMonth: ref.watch(selectedAnalyticsMonthProvider),
                         onMonthTap: () async {
                           final current = ref.read(selectedAnalyticsMonthProvider);
-                          await showDialog(
+                          await showModalBottomSheet(
                             context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
                             builder: (context) {
-                              return AlertDialog(
-                                title: const Text('Select Month'),
-                                content: Container(
-                                  width: double.maxFinite,
-                                  constraints: BoxConstraints(
-                                    maxHeight: MediaQuery.of(context).size.height * 0.65,
-                                  ),
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: 12,
-                                    itemBuilder: (context, index) {
-                                      final date = DateTime(current.year, index + 1, 1);
-                                      final isSelected = current.month == date.month;
-                                      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                      return ListTile(
-                                        title: Text(monthNames[index]),
-                                        trailing: isSelected ? const Icon(Icons.check, color: AppColors.success) : null,
-                                        onTap: () {
-                                          ref.read(selectedAnalyticsMonthProvider.notifier).state = date;
-                                          Navigator.pop(context);
+                              return Container(
+                                padding: const EdgeInsets.all(16),
+                                height: 350,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 4,
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                                    ),
+                                    const Text(
+                                      'Select Month',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Expanded(
+                                      child: ListView.builder(
+                                        itemCount: 12,
+                                        itemBuilder: (context, index) {
+                                          final date = DateTime(current.year, index + 1, 1);
+                                          final isSelected = current.month == date.month;
+                                          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                          return ListTile(
+                                            title: Text(monthNames[index]),
+                                            trailing: isSelected ? const Icon(Icons.check, color: AppColors.success) : null,
+                                            onTap: () {
+                                              ref.read(selectedAnalyticsMonthProvider.notifier).state = date;
+                                              Navigator.pop(context);
+                                            },
+                                          );
                                         },
-                                      );
-                                    },
-                                  ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               );
                             },

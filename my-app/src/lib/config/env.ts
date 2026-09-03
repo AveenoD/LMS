@@ -189,7 +189,7 @@ export const env: AppEnv = {
       user: optional('SMTP_USER', ''),
       pass: optional('SMTP_PASS', ''),
       to: optional('NOTIFY_EMAIL_TO', ''),
-      from: optional('NOTIFY_EMAIL_FROM', 'EdTech OS <no-reply@edtechos.com>'),
+      from: optional('NOTIFY_EMAIL_FROM', 'Campus <no-reply@campusweb.co.in>'),
     },
     telegram: {
       enabled: bool('TELEGRAM_NOTIFY_ENABLED', false),
@@ -203,7 +203,7 @@ export const env: AppEnv = {
   // plan feature in featureGuard.
   resend: {
     apiKey: optional('RESEND_API_KEY', ''),
-    from: optional('RESEND_FROM_EMAIL', 'EdTech OS <notifications@edtechos.com>'),
+    from: optional('RESEND_FROM_EMAIL', 'Campus <notifications@campusweb.co.in>'),
     get enabled(): boolean {
       return Boolean(this.apiKey);
     },

@@ -80,6 +80,34 @@
     font-family: 'Inter', sans-serif;
     font-weight: 600;
   }
+
+  .legal-content {
+    @apply font-body text-ink-green/80 leading-relaxed;
+  }
+
+  .legal-content h2 {
+    @apply font-display font-bold text-ink-green text-xl sm:text-2xl mt-10 mb-4;
+  }
+
+  .legal-content h3 {
+    @apply font-display font-bold text-ink-green text-base sm:text-lg mt-6 mb-2;
+  }
+
+  .legal-content p {
+    @apply mb-4;
+  }
+
+  .legal-content ul {
+    @apply list-disc pl-6 mb-4 space-y-2;
+  }
+
+  .legal-content strong {
+    @apply text-ink-green font-semibold;
+  }
+
+  .legal-content code {
+    @apply bg-ink-green/5 text-ink-green px-1.5 py-0.5 rounded text-sm;
+  }
 }
 
 /* ===== UTILITY STYLES ===== */

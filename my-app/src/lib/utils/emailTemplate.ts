@@ -20,10 +20,10 @@ export function renderNotificationEmail(title: string, body: string | undefined)
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="vertical-align:middle; padding-right:10px;">
-                      <img src="https://my-app-tau-umber-67.vercel.app/logo-white.png" alt="EdTech OS" width="28" height="28" style="display:block;" />
+                      <img src="https://my-app-tau-umber-67.vercel.app/logo-white.png" alt="Campus" width="28" height="28" style="display:block;" />
                     </td>
                     <td style="vertical-align:middle;">
-                      <span style="color:#FFFFFF; font-size:18px; font-weight:700; letter-spacing:0.02em;">EdTech OS</span>
+                      <span style="color:#FFFFFF; font-size:18px; font-weight:700; letter-spacing:0.02em;">Campus</span>
                     </td>
                   </tr>
                 </table>
@@ -45,7 +45,7 @@ export function renderNotificationEmail(title: string, body: string | undefined)
               <td style="padding:0 28px 28px;">
                 <div style="height:1px; background-color:#F4F6F3; margin-bottom:20px;"></div>
                 <p style="margin:0; color:#1F2E2780; font-size:12px; line-height:1.5;">
-                  This is an automated notification from your institute's EdTech OS account.
+                  This is an automated notification from your institute's Campus account.
                 </p>
               </td>
             </tr>

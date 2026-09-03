@@ -16,8 +16,11 @@ class StudentReportScreen extends ConsumerStatefulWidget {
   /// ownership-scoped backend route). This screen just renders it.
   final AsyncValue<Map<String, dynamic>> detailsAsync;
 
-  const StudentReportScreen(
-      {super.key, required this.student, required this.detailsAsync});
+  const StudentReportScreen({
+    super.key,
+    required this.student,
+    required this.detailsAsync,
+  });
 
   @override
   ConsumerState<StudentReportScreen> createState() =>
@@ -27,8 +30,7 @@ class StudentReportScreen extends ConsumerStatefulWidget {
 class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
   // ──────────────────────────────────────── PDF ─────────────────────────────
 
-  Future<void> _generatePdf(
-      Map<String, dynamic> details, WidgetRef ref) async {
+  Future<void> _generatePdf(Map<String, dynamic> details, WidgetRef ref) async {
     final authState = ref.read(authProvider);
 
     // ── Load Fonts ──
@@ -46,8 +48,13 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
     final cError = PdfColor.fromHex('EA4335'); // Red for negative
     final cWarn = PdfColor.fromHex('FBBC05'); // Yellow
 
-    pw.TextStyle ts(double size,
-        {pw.Font? font, PdfColor? color, bool bold = false, bool italic = false}) {
+    pw.TextStyle ts(
+      double size, {
+      pw.Font? font,
+      PdfColor? color,
+      bool bold = false,
+      bool italic = false,
+    }) {
       return pw.TextStyle(
         font: font ?? (bold ? fontBold : (italic ? fontItalic : fontRegular)),
         fontSize: size,
@@ -63,7 +70,8 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
     final institute = (authState.instituteName?.isNotEmpty ?? false)
         ? authState.instituteName!
         : 'APEX ACADEMY';
-    final currentYearStr = "${DateTime.now().year} - ${(DateTime.now().year + 1).toString().substring(2)}";
+    final currentYearStr =
+        "${DateTime.now().year} - ${(DateTime.now().year + 1).toString().substring(2)}";
 
     final academics = details['academics'] as Map<String, dynamic>?;
     final overallPctStr = academics?['overallPercentage']?.toString() ?? '0.0';
@@ -71,7 +79,8 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
 
     final att = details['attendance'] as Map<String, dynamic>?;
     final totalDays = int.tryParse(att?['totalDays']?.toString() ?? '0') ?? 0;
-    final presentDays = int.tryParse(att?['presentDays']?.toString() ?? '0') ?? 0;
+    final presentDays =
+        int.tryParse(att?['presentDays']?.toString() ?? '0') ?? 0;
     final absentDays = int.tryParse(att?['absentDays']?.toString() ?? '0') ?? 0;
     final attPct = totalDays > 0 ? (presentDays / totalDays * 100) : 0.0;
 
@@ -94,7 +103,10 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
             topRight: pw.Radius.circular(6),
           ),
         ),
-        child: pw.Text(title, style: ts(10, bold: true, color: PdfColors.white)),
+        child: pw.Text(
+          title,
+          style: ts(10, bold: true, color: PdfColors.white),
+        ),
       );
     }
 
@@ -111,23 +123,32 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
           child: pw.Column(
             mainAxisAlignment: pw.MainAxisAlignment.center,
             children: [
-              pw.Text(title.toUpperCase(), style: ts(8, bold: true, color: cTextMuted)),
+              pw.Text(
+                title.toUpperCase(),
+                style: ts(8, bold: true, color: cTextMuted),
+              ),
               pw.SizedBox(height: 8),
               pw.Text(mainValue, style: ts(18, bold: true, color: cTextMain)),
               pw.SizedBox(height: 8),
               pw.Text(subText, style: ts(7, color: cTextMuted)),
               pw.Container(
-                  margin: const pw.EdgeInsets.only(top: 4),
-                  width: 16,
-                  height: 1,
-                  color: cBorder),
+                margin: const pw.EdgeInsets.only(top: 4),
+                width: 16,
+                height: 1,
+                color: cBorder,
+              ),
             ],
           ),
         ),
       );
     }
 
-    pw.Widget dataRow(String label, String value, {bool isHeader = false, PdfColor? valueColor}) {
+    pw.Widget dataRow(
+      String label,
+      String value, {
+      bool isHeader = false,
+      PdfColor? valueColor,
+    }) {
       return pw.Container(
         padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: pw.BoxDecoration(
@@ -136,8 +157,22 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
         child: pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text(label, style: ts(8.5, bold: isHeader, color: isHeader ? cTextMuted : cTextMain)),
-            pw.Text(value, style: ts(8.5, bold: isHeader, color: valueColor ?? (isHeader ? cTextMuted : cTextMain))),
+            pw.Text(
+              label,
+              style: ts(
+                8.5,
+                bold: isHeader,
+                color: isHeader ? cTextMuted : cTextMain,
+              ),
+            ),
+            pw.Text(
+              value,
+              style: ts(
+                8.5,
+                bold: isHeader,
+                color: valueColor ?? (isHeader ? cTextMuted : cTextMain),
+              ),
+            ),
           ],
         ),
       );
@@ -165,28 +200,43 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                       shape: pw.BoxShape.circle,
                     ),
                     child: pw.Center(
-                      child: pw.Text(institute[0].toUpperCase(), style: ts(20, bold: true, color: PdfColors.white)),
+                      child: pw.Text(
+                        institute[0].toUpperCase(),
+                        style: ts(20, bold: true, color: PdfColors.white),
+                      ),
                     ),
                   ),
                   pw.SizedBox(width: 12),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text(institute.toUpperCase(), style: ts(20, bold: true, color: cDark)),
+                      pw.Text(
+                        institute.toUpperCase(),
+                        style: ts(20, bold: true, color: cDark),
+                      ),
                       pw.SizedBox(height: 2),
-                      pw.Text('LEARN • GROW • ACHIEVE', style: ts(8, color: cTextMuted, bold: true)),
+                      pw.Text(
+                        'LEARN • GROW • ACHIEVE',
+                        style: ts(8, color: cTextMuted, bold: true),
+                      ),
                     ],
                   ),
                 ],
               ),
-              pw.Text('STUDENT REPORT CARD', style: ts(14, bold: true, color: cDark)),
+              pw.Text(
+                'STUDENT REPORT CARD',
+                style: ts(14, bold: true, color: cDark),
+              ),
             ],
           ),
           pw.SizedBox(height: 16),
 
           // ── INFO RIBBON ──
           pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const pw.EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 12,
+            ),
             decoration: pw.BoxDecoration(color: cDark),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -194,25 +244,43 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Batch', style: ts(8, color: const PdfColor(1, 1, 1, 0.7))),
+                    pw.Text(
+                      'Batch',
+                      style: ts(8, color: const PdfColor(1, 1, 1, 0.7)),
+                    ),
                     pw.SizedBox(height: 2),
-                    pw.Text(batchName, style: ts(10, bold: true, color: PdfColors.white)),
+                    pw.Text(
+                      batchName,
+                      style: ts(10, bold: true, color: PdfColors.white),
+                    ),
                   ],
                 ),
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Academic Year', style: ts(8, color: const PdfColor(1, 1, 1, 0.7))),
+                    pw.Text(
+                      'Academic Year',
+                      style: ts(8, color: const PdfColor(1, 1, 1, 0.7)),
+                    ),
                     pw.SizedBox(height: 2),
-                    pw.Text(currentYearStr, style: ts(10, bold: true, color: PdfColors.white)),
+                    pw.Text(
+                      currentYearStr,
+                      style: ts(10, bold: true, color: PdfColors.white),
+                    ),
                   ],
                 ),
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Generated On', style: ts(8, color: const PdfColor(1, 1, 1, 0.7))),
+                    pw.Text(
+                      'Generated On',
+                      style: ts(8, color: const PdfColor(1, 1, 1, 0.7)),
+                    ),
                     pw.SizedBox(height: 2),
-                    pw.Text(DateFormat('dd MMM yyyy').format(DateTime.now()), style: ts(10, bold: true, color: PdfColors.white)),
+                    pw.Text(
+                      DateFormat('dd MMM yyyy').format(DateTime.now()),
+                      style: ts(10, bold: true, color: PdfColors.white),
+                    ),
                   ],
                 ),
               ],
@@ -238,7 +306,10 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                     border: pw.Border.all(color: cGreen, width: 2),
                   ),
                   child: pw.Center(
-                    child: pw.Text(fullName[0].toUpperCase(), style: ts(24, bold: true, color: cGreen)),
+                    child: pw.Text(
+                      fullName[0].toUpperCase(),
+                      style: ts(24, bold: true, color: cGreen),
+                    ),
                   ),
                 ),
                 pw.SizedBox(width: 20),
@@ -247,7 +318,10 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text(fullName.toUpperCase(), style: ts(16, bold: true)),
+                      pw.Text(
+                        fullName.toUpperCase(),
+                        style: ts(16, bold: true),
+                      ),
                       pw.SizedBox(height: 8),
                       pw.Row(
                         children: [
@@ -255,10 +329,16 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                             child: pw.Column(
                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
-                                pw.Text('Roll No.', style: ts(7, color: cTextMuted)),
+                                pw.Text(
+                                  'Roll No.',
+                                  style: ts(7, color: cTextMuted),
+                                ),
                                 pw.Text(rollNo, style: ts(9, bold: true)),
                                 pw.SizedBox(height: 6),
-                                pw.Text('Batch', style: ts(7, color: cTextMuted)),
+                                pw.Text(
+                                  'Batch',
+                                  style: ts(7, color: cTextMuted),
+                                ),
                                 pw.Text(batchName, style: ts(9, bold: true)),
                               ],
                             ),
@@ -267,11 +347,20 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                             child: pw.Column(
                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
-                                pw.Text('Class', style: ts(7, color: cTextMuted)),
+                                pw.Text(
+                                  'Class',
+                                  style: ts(7, color: cTextMuted),
+                                ),
                                 pw.Text(grade, style: ts(9, bold: true)),
                                 pw.SizedBox(height: 6),
-                                pw.Text('Status', style: ts(7, color: cTextMuted)),
-                                pw.Text('Active', style: ts(9, bold: true, color: cSuccess)),
+                                pw.Text(
+                                  'Status',
+                                  style: ts(7, color: cTextMuted),
+                                ),
+                                pw.Text(
+                                  'Active',
+                                  style: ts(9, bold: true, color: cSuccess),
+                                ),
                               ],
                             ),
                           ),
@@ -290,7 +379,10 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                       pw.SizedBox(height: 40),
                       pw.Container(height: 1, color: cTextMuted),
                       pw.SizedBox(height: 4),
-                      pw.Text('Class Incharge', style: ts(8, color: cTextMuted)),
+                      pw.Text(
+                        'Class Incharge',
+                        style: ts(8, color: cTextMuted),
+                      ),
                     ],
                   ),
                 ),
@@ -322,7 +414,9 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                     pw.Container(
                       decoration: pw.BoxDecoration(
                         border: pw.Border.all(color: cBorder),
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                        borderRadius: const pw.BorderRadius.all(
+                          pw.Radius.circular(8),
+                        ),
                       ),
                       child: pw.Column(
                         children: [
@@ -332,7 +426,10 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                             pw.Container(
                               padding: const pw.EdgeInsets.all(32),
                               child: pw.Center(
-                                child: pw.Text('No test results recorded yet.', style: ts(9, color: cTextMuted)),
+                                child: pw.Text(
+                                  'No test results recorded yet.',
+                                  style: ts(9, color: cTextMuted),
+                                ),
                               ),
                             )
                           else
@@ -340,8 +437,13 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                               final sub = s as Map<String, dynamic>;
                               final m = (sub['marks'] ?? 0) as num;
                               final t = (sub['total'] ?? 1) as num;
-                              final pct = t > 0 ? (m / t * 100).toStringAsFixed(1) : '0';
-                              return dataRow(sub['name']?.toString() ?? '', '$pct%');
+                              final pct = t > 0
+                                  ? (m / t * 100).toStringAsFixed(1)
+                                  : '0';
+                              return dataRow(
+                                sub['name']?.toString() ?? '',
+                                '$pct%',
+                              );
                             }),
                         ],
                       ),
@@ -352,17 +454,37 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                     pw.Container(
                       decoration: pw.BoxDecoration(
                         border: pw.Border.all(color: cBorder),
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                        borderRadius: const pw.BorderRadius.all(
+                          pw.Radius.circular(8),
+                        ),
                       ),
                       child: pw.Column(
                         children: [
                           sectionHeader('FEE STATUS'),
-                          dataRow('PARTICULARS', 'AMOUNT (Rs.)', isHeader: true),
+                          dataRow(
+                            'PARTICULARS',
+                            'AMOUNT (Rs.)',
+                            isHeader: true,
+                          ),
                           dataRow('Total Fees', totalFees.toStringAsFixed(2)),
-                          dataRow('Amount Paid', paidFees.toStringAsFixed(2), valueColor: cSuccess),
-                          dataRow('Amount Pending', pendingFees.toStringAsFixed(2), valueColor: pendingFees > 0 ? cError : cTextMain),
-                          dataRow('Payment Status', pendingFees <= 0 ? 'Clear' : 'Pending'),
-                          dataRow('Next Due Date', nextDue != null ? _formatDate(nextDue) : '-'),
+                          dataRow(
+                            'Amount Paid',
+                            paidFees.toStringAsFixed(2),
+                            valueColor: cSuccess,
+                          ),
+                          dataRow(
+                            'Amount Pending',
+                            pendingFees.toStringAsFixed(2),
+                            valueColor: pendingFees > 0 ? cError : cTextMain,
+                          ),
+                          dataRow(
+                            'Payment Status',
+                            pendingFees <= 0 ? 'Clear' : 'Pending',
+                          ),
+                          dataRow(
+                            'Next Due Date',
+                            nextDue != null ? _formatDate(nextDue) : '-',
+                          ),
                         ],
                       ),
                     ),
@@ -379,23 +501,51 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                     pw.Container(
                       decoration: pw.BoxDecoration(
                         border: pw.Border.all(color: cBorder),
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                        borderRadius: const pw.BorderRadius.all(
+                          pw.Radius.circular(8),
+                        ),
                       ),
                       child: pw.Column(
                         children: [
                           sectionHeader('ATTENDANCE OVERVIEW'),
                           dataRow('TYPE', 'PERCENTAGE', isHeader: true),
-                          dataRow('Total Working Days', '$totalDays', valueColor: cTextMuted),
-                          dataRow('Days Present', '${totalDays > 0 ? (presentDays / totalDays * 100).toStringAsFixed(0) : 0}%', valueColor: cSuccess),
-                          dataRow('Days Absent', '${totalDays > 0 ? (absentDays / totalDays * 100).toStringAsFixed(0) : 0}%', valueColor: absentDays > 0 ? cError : cTextMuted),
+                          dataRow(
+                            'Total Working Days',
+                            '$totalDays',
+                            valueColor: cTextMuted,
+                          ),
+                          dataRow(
+                            'Days Present',
+                            '${totalDays > 0 ? (presentDays / totalDays * 100).toStringAsFixed(0) : 0}%',
+                            valueColor: cSuccess,
+                          ),
+                          dataRow(
+                            'Days Absent',
+                            '${totalDays > 0 ? (absentDays / totalDays * 100).toStringAsFixed(0) : 0}%',
+                            valueColor: absentDays > 0 ? cError : cTextMuted,
+                          ),
                           dataRow('Days Late', '0%', valueColor: cWarn),
                           pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             child: pw.Row(
-                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment:
+                                  pw.MainAxisAlignment.spaceBetween,
                               children: [
-                                pw.Text('Attendance %', style: ts(9, bold: true)),
-                                pw.Text('${attPct.toStringAsFixed(1)}%', style: ts(10, bold: true, color: attPct >= 75 ? cSuccess : cError)),
+                                pw.Text(
+                                  'Attendance %',
+                                  style: ts(9, bold: true),
+                                ),
+                                pw.Text(
+                                  '${attPct.toStringAsFixed(1)}%',
+                                  style: ts(
+                                    10,
+                                    bold: true,
+                                    color: attPct >= 75 ? cSuccess : cError,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -408,28 +558,59 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                     pw.Container(
                       decoration: pw.BoxDecoration(
                         border: pw.Border.all(color: cBorder),
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                        borderRadius: const pw.BorderRadius.all(
+                          pw.Radius.circular(8),
+                        ),
                       ),
                       child: pw.Column(
                         children: [
                           sectionHeader('RECENT TESTS'),
                           pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const pw.EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: pw.BoxDecoration(
-                              border: pw.Border(bottom: pw.BorderSide(color: cBorder, width: 0.5)),
+                              border: pw.Border(
+                                bottom: pw.BorderSide(
+                                  color: cBorder,
+                                  width: 0.5,
+                                ),
+                              ),
                             ),
                             child: pw.Row(
                               children: [
-                                pw.Expanded(flex: 3, child: pw.Text('TEST NAME', style: ts(8, bold: true, color: cTextMuted))),
-                                pw.Expanded(flex: 2, child: pw.Text('DATE', style: ts(8, bold: true, color: cTextMuted))),
-                                pw.Expanded(flex: 2, child: pw.Text('SCORE(%)', style: ts(8, bold: true, color: cTextMuted))),
+                                pw.Expanded(
+                                  flex: 3,
+                                  child: pw.Text(
+                                    'TEST NAME',
+                                    style: ts(8, bold: true, color: cTextMuted),
+                                  ),
+                                ),
+                                pw.Expanded(
+                                  flex: 2,
+                                  child: pw.Text(
+                                    'DATE',
+                                    style: ts(8, bold: true, color: cTextMuted),
+                                  ),
+                                ),
+                                pw.Expanded(
+                                  flex: 2,
+                                  child: pw.Text(
+                                    'SCORE(%)',
+                                    style: ts(8, bold: true, color: cTextMuted),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           pw.Container(
                             padding: const pw.EdgeInsets.all(32),
                             child: pw.Center(
-                              child: pw.Text('No test attempts yet.', style: ts(9, color: cTextMuted)),
+                              child: pw.Text(
+                                'No test attempts yet.',
+                                style: ts(9, color: cTextMuted),
+                              ),
                             ),
                           ),
                         ],
@@ -450,7 +631,9 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                   padding: const pw.EdgeInsets.all(12),
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(color: cBorder),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    borderRadius: const pw.BorderRadius.all(
+                      pw.Radius.circular(8),
+                    ),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -460,9 +643,15 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('Excellent! Keep it up.', style: ts(7, color: cSuccess)),
+                          pw.Text(
+                            'Excellent! Keep it up.',
+                            style: ts(7, color: cSuccess),
+                          ),
                           pw.Text('Good effort.', style: ts(7, color: cGreen)),
-                          pw.Text('Needs improvement.', style: ts(7, color: cError)),
+                          pw.Text(
+                            'Needs improvement.',
+                            style: ts(7, color: cError),
+                          ),
                         ],
                       ),
                       pw.SizedBox(height: 12),
@@ -481,7 +670,9 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                   padding: const pw.EdgeInsets.all(12),
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(color: cBorder),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    borderRadius: const pw.BorderRadius.all(
+                      pw.Radius.circular(8),
+                    ),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -538,8 +729,6 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
     );
   }
 
-
-
   // ──────────────────────────────────────── Helpers ─────────────────────────
 
   double _parseDouble(String? s) => double.tryParse(s ?? '0') ?? 0.0;
@@ -578,9 +767,14 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Performance Report',
-            style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+        title: const Text(
+          'Performance Report',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+          ),
+        ),
         backgroundColor: AppColors.primaryDark,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -588,17 +782,19 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
       body: widget.detailsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-            child: Text('Failed to load report: $err',
-                style: const TextStyle(color: Colors.grey))),
+          child: Text(
+            'Failed to load report: $err',
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
         data: (details) {
           // ── Parse academics ──
-          final academics =
-              details['academics'] as Map<String, dynamic>?;
-          final overallPct =
-              _parseDouble(academics?['overallPercentage']?.toString());
+          final academics = details['academics'] as Map<String, dynamic>?;
+          final overallPct = _parseDouble(
+            academics?['overallPercentage']?.toString(),
+          );
           final academicGrade = academics?['grade']?.toString() ?? 'N/A';
-          final subjects =
-              (academics?['subjects'] as List<dynamic>?) ?? [];
+          final subjects = (academics?['subjects'] as List<dynamic>?) ?? [];
 
           // ── Parse attendance ──
           final att = details['attendance'] as Map<String, dynamic>?;
@@ -608,15 +804,12 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
               int.tryParse(att?['presentDays']?.toString() ?? '0') ?? 0;
           final absentDays =
               int.tryParse(att?['absentDays']?.toString() ?? '0') ?? 0;
-          final attPct =
-              totalDays > 0 ? (presentDays / totalDays * 100) : 0.0;
-          final monthly =
-              (att?['monthly'] as List<dynamic>?) ?? [];
+          final attPct = totalDays > 0 ? (presentDays / totalDays * 100) : 0.0;
+          final monthly = (att?['monthly'] as List<dynamic>?) ?? [];
 
           // ── Parse fees ──
           final fees = details['fees'] as Map<String, dynamic>?;
-          final feeOv =
-              fees?['overview'] as Map<String, dynamic>?;
+          final feeOv = fees?['overview'] as Map<String, dynamic>?;
           final totalFees = (feeOv?['total'] ?? 0) as num;
           final paidFees = (feeOv?['paid'] ?? 0) as num;
           final pendingFees = (feeOv?['pending'] ?? 0) as num;
@@ -647,16 +840,18 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                               color: Colors.white.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  width: 2),
+                                color: Colors.white.withValues(alpha: 0.3),
+                                width: 2,
+                              ),
                             ),
                             child: Center(
                               child: Text(
                                 fullName[0].toUpperCase(),
                                 style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.bold),
+                                  color: Colors.white,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -665,11 +860,14 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(fullName,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold)),
+                                Text(
+                                  fullName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   [
@@ -678,15 +876,22 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                                       'Class $grade',
                                   ].join('  •  '),
                                   style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.75),
-                                      fontSize: 12),
+                                    color: Colors.white.withValues(alpha: 0.75),
+                                    fontSize: 12,
+                                  ),
                                 ),
-                                if (batchName != null && batchName.isNotEmpty) ...[
+                                if (batchName != null &&
+                                    batchName.isNotEmpty) ...[
                                   const SizedBox(height: 2),
-                                  Text(batchName,
-                                      style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.6),
-                                          fontSize: 11)),
+                                  Text(
+                                    batchName,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ],
                               ],
                             ),
@@ -697,18 +902,25 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                       // 3 quick stat chips
                       Row(
                         children: [
-                          _statChip('${overallPct.toStringAsFixed(1)}%', 'Overall',
-                              Icons.bar_chart_rounded),
-                          const SizedBox(width: 8),
-                          _statChip(academicGrade, 'Grade',
-                              Icons.school_rounded,
-                              color: _gradeColor(academicGrade)),
+                          _statChip(
+                            '${overallPct.toStringAsFixed(1)}%',
+                            'Overall',
+                            Icons.bar_chart_rounded,
+                          ),
                           const SizedBox(width: 8),
                           _statChip(
-                              '${attPct.toStringAsFixed(1)}%',
-                              'Attendance',
-                              Icons.calendar_today_rounded,
-                              color: _attColor(attPct)),
+                            academicGrade,
+                            'Grade',
+                            Icons.school_rounded,
+                            color: _gradeColor(academicGrade),
+                          ),
+                          const SizedBox(width: 8),
+                          _statChip(
+                            '${attPct.toStringAsFixed(1)}%',
+                            'Attendance',
+                            Icons.calendar_today_rounded,
+                            color: _attColor(attPct),
+                          ),
                         ],
                       ),
                     ],
@@ -722,7 +934,9 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                   delegate: SliverChildListDelegate([
                     // ─── Academic Performance ───
                     _sectionHeader(
-                        'Academic Performance', Icons.menu_book_rounded),
+                      'Academic Performance',
+                      Icons.menu_book_rounded,
+                    ),
                     const SizedBox(height: 12),
                     if (subjects.isEmpty)
                       _emptyState('No test results recorded yet.')
@@ -741,28 +955,20 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                             const Divider(height: 24),
                             // Per-subject bars
                             ...subjects.asMap().entries.map((e) {
-                              final s =
-                                  e.value as Map<String, dynamic>;
+                              final s = e.value as Map<String, dynamic>;
                               final marks = (s['marks'] ?? 0) as num;
-                              final total =
-                                  ((s['total'] ?? 1) as num).toInt();
-                              final pct = total > 0
-                                  ? marks / total
-                                  : 0.0;
+                              final total = ((s['total'] ?? 1) as num).toInt();
+                              final pct = total > 0 ? marks / total : 0.0;
                               final pctStr = total > 0
                                   ? '${(pct * 100).toStringAsFixed(1)}%'
                                   : 'N/A';
                               return Padding(
-                                padding: const EdgeInsets.only(
-                                    bottom: 14),
+                                padding: const EdgeInsets.only(bottom: 14),
                                 child: _subjectBar(
-                                  name: s['name']?.toString() ??
-                                      'Subject',
+                                  name: s['name']?.toString() ?? 'Subject',
                                   pct: pct.toDouble(),
-                                  displayPct:
-                                      '$marks/$total ($pctStr)',
-                                  grade:
-                                      s['grade']?.toString() ?? '—',
+                                  displayPct: '$marks/$total ($pctStr)',
+                                  grade: s['grade']?.toString() ?? '—',
                                 ),
                               );
                             }),
@@ -774,8 +980,9 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
 
                     // ─── Attendance ───
                     _sectionHeader(
-                        'Attendance Insights',
-                        Icons.calendar_month_rounded),
+                      'Attendance Insights',
+                      Icons.calendar_month_rounded,
+                    ),
                     const SizedBox(height: 12),
                     _whiteCard(
                       child: Column(
@@ -793,21 +1000,19 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                                     CircularProgressIndicator(
                                       value: attPct / 100,
                                       strokeWidth: 9,
-                                      backgroundColor:
-                                          Colors.grey.shade100,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
-                                              _attColor(attPct)),
+                                      backgroundColor: Colors.grey.shade100,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        _attColor(attPct),
+                                      ),
                                     ),
                                     Center(
                                       child: Text(
                                         '${attPct.toStringAsFixed(1)}%',
                                         style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight:
-                                                FontWeight.bold,
-                                            color:
-                                                AppColors.primaryDark),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primaryDark,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -816,26 +1021,28 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                               const SizedBox(width: 20),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     _attStatRow(
-                                        Icons.check_circle_rounded,
-                                        'Present',
-                                        '$presentDays days',
-                                        AppColors.success),
+                                      Icons.check_circle_rounded,
+                                      'Present',
+                                      '$presentDays days',
+                                      AppColors.success,
+                                    ),
                                     const SizedBox(height: 8),
                                     _attStatRow(
-                                        Icons.cancel_rounded,
-                                        'Absent',
-                                        '$absentDays days',
-                                        AppColors.error),
+                                      Icons.cancel_rounded,
+                                      'Absent',
+                                      '$absentDays days',
+                                      AppColors.error,
+                                    ),
                                     const SizedBox(height: 8),
                                     _attStatRow(
-                                        Icons.circle_outlined,
-                                        'Total Working',
-                                        '$totalDays days',
-                                        Colors.grey),
+                                      Icons.circle_outlined,
+                                      'Total Working',
+                                      '$totalDays days',
+                                      Colors.grey,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -846,25 +1053,23 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                             const Divider(height: 28),
                             const Align(
                               alignment: Alignment.centerLeft,
-                              child: Text('Monthly Breakdown',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primaryDark)),
+                              child: Text(
+                                'Monthly Breakdown',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryDark,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 12),
                             ...monthly.take(6).map((m) {
                               final mn = m as Map<String, dynamic>;
-                              final mPresent =
-                                  (mn['present'] ?? 0) as int;
-                              final mTotal =
-                                  ((mn['total'] ?? 1) as int);
-                              final mPct = mTotal > 0
-                                  ? mPresent / mTotal
-                                  : 0.0;
+                              final mPresent = (mn['present'] ?? 0) as int;
+                              final mTotal = ((mn['total'] ?? 1) as int);
+                              final mPct = mTotal > 0 ? mPresent / mTotal : 0.0;
                               return Padding(
-                                padding:
-                                    const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
                                   children: [
                                     SizedBox(
@@ -876,25 +1081,22 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                                                 .first ??
                                             '',
                                         style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey),
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                     ),
                                     Expanded(
                                       child: ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(6),
-                                        child:
-                                            LinearProgressIndicator(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: LinearProgressIndicator(
                                           value: mPct,
                                           minHeight: 8,
-                                          backgroundColor:
-                                              Colors.grey.shade100,
+                                          backgroundColor: Colors.grey.shade100,
                                           valueColor:
-                                              AlwaysStoppedAnimation<
-                                                  Color>(
-                                            _attColor(mPct * 100),
-                                          ),
+                                              AlwaysStoppedAnimation<Color>(
+                                                _attColor(mPct * 100),
+                                              ),
                                         ),
                                       ),
                                     ),
@@ -905,11 +1107,10 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                                         '${(mPct * 100).toStringAsFixed(0)}%',
                                         textAlign: TextAlign.right,
                                         style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight:
-                                                FontWeight.w600,
-                                            color: _attColor(
-                                                mPct * 100)),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: _attColor(mPct * 100),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -926,8 +1127,9 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                     // ─── Fee Status ───
                     if (totalFees > 0) ...[
                       _sectionHeader(
-                          'Fee Status',
-                          Icons.account_balance_wallet_rounded),
+                        'Fee Status',
+                        Icons.account_balance_wallet_rounded,
+                      ),
                       const SizedBox(height: 12),
                       _whiteCard(
                         child: Column(
@@ -940,7 +1142,7 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                                 gradient: const LinearGradient(
                                   colors: [
                                     Color(0xFF1F2E27),
-                                    Color(0xFF2E6656)
+                                    Color(0xFF2E6656),
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(14),
@@ -955,49 +1157,54 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                                         Text(
                                           'Total Fees',
                                           style: TextStyle(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.6),
-                                              fontSize: 11),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                            fontSize: 11,
+                                          ),
                                         ),
                                         Text(
                                           '₹$totalFees',
                                           style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 22,
-                                              fontWeight:
-                                                  FontWeight.bold),
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
                                   Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.end,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
                                         'Paid',
                                         style: TextStyle(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.6),
-                                            fontSize: 11),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          fontSize: 11,
+                                        ),
                                       ),
                                       Text(
                                         '₹$paidFees',
                                         style: const TextStyle(
-                                            color: Color(0xFFA87D26),
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16),
+                                          color: Color(0xFFA87D26),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                       if (pendingFees > 0) ...[
                                         const SizedBox(height: 2),
                                         Text(
                                           'Pending ₹$pendingFees',
                                           style: TextStyle(
-                                              color: AppColors.error
-                                                  .withValues(alpha: 0.85),
-                                              fontSize: 11,
-                                              fontWeight:
-                                                  FontWeight.w600),
+                                            color: AppColors.error.withValues(
+                                              alpha: 0.85,
+                                            ),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -1010,16 +1217,18 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                               Row(
                                 children: [
                                   const Icon(
-                                      Icons.event_rounded,
-                                      size: 16,
-                                      color: Colors.orange),
+                                    Icons.event_rounded,
+                                    size: 16,
+                                    color: Colors.orange,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Next Due: ${_formatDate(nextDue)}',
                                     style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.orange),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.orange,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1031,8 +1240,8 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                               child: LinearProgressIndicator(
                                 value: totalFees > 0
                                     ? (paidFees / totalFees)
-                                        .clamp(0.0, 1.0)
-                                        .toDouble()
+                                          .clamp(0.0, 1.0)
+                                          .toDouble()
                                     : 0,
                                 minHeight: 8,
                                 backgroundColor: Colors.grey.shade100,
@@ -1049,7 +1258,9 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                                   ? '${(paidFees / totalFees * 100).toStringAsFixed(1)}% paid'
                                   : '0% paid',
                               style: const TextStyle(
-                                  fontSize: 11, color: Colors.grey),
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -1063,17 +1274,23 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
                       height: 54,
                       child: ElevatedButton.icon(
                         onPressed: () => _generatePdf(details, ref),
-                        icon: const Icon(Icons.download_rounded,
-                            color: Colors.white),
-                        label: const Text('Download PDF Report',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold)),
+                        icon: const Icon(
+                          Icons.download_rounded,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Download PDF Report',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryDark,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           elevation: 2,
                         ),
                       ),
@@ -1104,11 +1321,14 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
           child: Icon(icon, size: 16, color: AppColors.primary),
         ),
         const SizedBox(width: 10),
-        Text(title,
-            style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark)),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryDark,
+          ),
+        ),
       ],
     );
   }
@@ -1122,17 +1342,22 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4)),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: child,
     );
   }
 
-  Widget _statChip(String value, String label, IconData icon,
-      {Color color = Colors.white}) {
+  Widget _statChip(
+    String value,
+    String label,
+    IconData icon, {
+    Color color = Colors.white,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1145,15 +1370,21 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
           children: [
             Icon(icon, size: 14, color: color),
             const SizedBox(height: 3),
-            Text(value,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold)),
-            Text(label,
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.65),
-                    fontSize: 9)),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.65),
+                fontSize: 9,
+              ),
+            ),
           ],
         ),
       ),
@@ -1175,26 +1406,29 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Text(name,
-                  style: TextStyle(
-                      fontSize: isOverall ? 14 : 13,
-                      fontWeight: isOverall
-                          ? FontWeight.bold
-                          : FontWeight.w500,
-                      color: AppColors.primaryDark)),
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: isOverall ? 14 : 13,
+                  fontWeight: isOverall ? FontWeight.bold : FontWeight.w500,
+                  color: AppColors.primaryDark,
+                ),
+              ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(grade,
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: color)),
+              child: Text(
+                grade,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
             ),
           ],
         ),
@@ -1209,26 +1443,29 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(displayPct,
-            style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(
+          displayPct,
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
+        ),
       ],
     );
   }
 
-  Widget _attStatRow(
-      IconData icon, String label, String value, Color color) {
+  Widget _attStatRow(IconData icon, String label, String value, Color color) {
     return Row(
       children: [
         Icon(icon, size: 16, color: color),
         const SizedBox(width: 8),
-        Text(label,
-            style: const TextStyle(fontSize: 13, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
         const Spacer(),
-        Text(value,
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryDark,
+          ),
+        ),
       ],
     );
   }
@@ -1245,8 +1482,10 @@ class _StudentReportScreenState extends ConsumerState<StudentReportScreen> {
         children: [
           Icon(Icons.inbox_rounded, size: 40, color: Colors.grey.shade300),
           const SizedBox(height: 8),
-          Text(message,
-              style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
         ],
       ),
     );

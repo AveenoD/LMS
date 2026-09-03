@@ -277,6 +277,84 @@ export async function createStudent(tenantId: number, actorUserId: number, input
   });
 }
 
+export interface ImportStudentRow {
+  fullName: string;
+  phone: string;
+  password: string;
+  parentName?: string;
+  parentPhone: string;
+  grade?: string;
+  rollNo?: string;
+  batchName: string;
+}
+
+export interface ImportStudentsResult {
+  successCount: number;
+  failureCount: number;
+  failures: { row: number; fullName: string; reason: string }[];
+}
+
+/**
+ * Bulk-creates students from parsed spreadsheet rows. Every row is
+ * independent: a bad row (invalid batch, duplicate phone, etc.) is skipped
+ * and reported, the rest still import — one typo shouldn't block an entire
+ * institute's roster. All lookups/writes are scoped to `tenantId`, same as
+ * `createStudent`, so a row can never target another tenant's batch or
+ * collide with another tenant's phone number.
+ */
+export async function importStudents(
+  tenantId: number,
+  actorUserId: number,
+  rows: ImportStudentRow[]
+): Promise<ImportStudentsResult> {
+  const batchRes = await query<{ id: number; name: string }>(
+    `SELECT id, name FROM batches WHERE tenant_id = $1`,
+    [tenantId]
+  );
+  const batchByName = new Map(batchRes.rows.map((b) => [b.name.trim().toLowerCase(), b.id]));
+
+  const result: ImportStudentsResult = { successCount: 0, failureCount: 0, failures: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2; // +1 for header row, +1 for 1-indexing
+    const row = rows[i];
+    const fail = (reason: string) => {
+      result.failureCount++;
+      result.failures.push({ row: rowNum, fullName: row.fullName || '(blank)', reason });
+    };
+
+    try {
+      if (!row.fullName?.trim()) { fail('Full name is required'); continue; }
+      if (!/^\d{10,15}$/.test(row.phone || '')) { fail('Phone must be 10-15 digits'); continue; }
+      if (!/^\d{10,15}$/.test(row.parentPhone || '')) { fail('Parent phone must be 10-15 digits'); continue; }
+      if (!row.password || row.password.length < 6) { fail('Password must be at least 6 characters'); continue; }
+      if (!row.batchName?.trim()) { fail('Batch is required'); continue; }
+
+      const batchId = batchByName.get(row.batchName.trim().toLowerCase());
+      if (!batchId) { fail(`Batch "${row.batchName}" not found`); continue; }
+
+      const dup = await query(`SELECT 1 FROM users WHERE tenant_id = $1 AND phone = $2`, [tenantId, row.phone]);
+      if (dup.rowCount) { fail(`Phone ${row.phone} already exists`); continue; }
+
+      await createStudent(tenantId, actorUserId, {
+        fullName: row.fullName.trim(),
+        phone: row.phone.trim(),
+        password: row.password,
+        parentName: row.parentName?.trim() || undefined,
+        parentPhone: row.parentPhone.trim(),
+        grade: row.grade?.trim() || undefined,
+        rollNo: row.rollNo?.trim() || undefined,
+        batchId,
+      });
+      result.successCount++;
+    } catch (err) {
+      fail(err instanceof ApiError ? err.message : 'Unexpected error creating this student');
+    }
+  }
+
+  return result;
+}
+
 export async function updateStudent(tenantId: number, actorUserId: number, id: number, input: Partial<CreateStudentInput>) {
   const { fullName, phone, password, parentName, parentPhone, grade, rollNo, batchId } = input;
 

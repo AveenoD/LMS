@@ -26,9 +26,9 @@ import TrustBadge from "@/components/ui/TrustBadge";
 import DemoBookingForm from "@/components/sections/DemoBookingForm";
 
 export const metadata: Metadata = {
-  title: "Book a Demo - EdTech OS",
+  title: "Book a Demo - Campus",
   description:
-    "See EdTech OS in action and discover how it can simplify operations, save time, and help your institute grow.",
+    "See Campus in action and discover how it can simplify operations, save time, and help your institute grow.",
 };
 
 const DEMO_TRUST_BADGES = [
@@ -83,13 +83,13 @@ export default function DemoPage() {
             {/* Left Content */}
             <div className="max-w-xl">
               <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-display font-bold text-ink-green leading-[1.1] mb-2">
-                See EdTech OS in Action
+                See Campus in Action
               </h1>
               <h2 className="text-3xl sm:text-4xl lg:text-[46px] font-display font-bold text-brass-gold leading-[1.1] mb-6">
                 A Quick Demo for You.
               </h2>
               <p className="text-base sm:text-lg text-ink-green/70 font-body leading-relaxed mb-10">
-                Explore how EdTech OS can simplify operations, save time and
+                Explore how Campus can simplify operations, save time and
                 help your institute grow.
               </p>
 
@@ -157,7 +157,7 @@ export default function DemoPage() {
               <div className="relative w-full aspect-[4/3] max-w-[700px] mx-auto lg:ml-auto">
                 <Image
                   src="/demo-page.png"
-                  alt="EdTech OS Dashboard"
+                  alt="Campus Dashboard"
                   fill
                   className="object-contain drop-shadow-2xl mix-blend-multiply"
                   priority
@@ -252,7 +252,7 @@ export default function DemoPage() {
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden flex-shrink-0 bg-chalk-teal border-4 border-white/20 hidden sm:block relative shadow-xl">
                 <Image
                   src="/support_avatar.png"
-                  alt="EdTech OS Support Expert"
+                  alt="Campus Support Expert"
                   fill
                   className="object-cover"
                 />

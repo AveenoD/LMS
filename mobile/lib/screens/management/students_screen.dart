@@ -4,6 +4,7 @@ import '../../providers/management_providers.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_textfield.dart';
 import '../../widgets/management_overview_tile.dart';
+import '../../widgets/import_students_bottom_sheet.dart';
 import 'student_details_screen.dart';
 
 class StudentsScreen extends ConsumerStatefulWidget {
@@ -39,28 +40,54 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           children: [
             // Fixed Green Header
             Padding(
-              padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 10.0, bottom: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.only(
+                left: 20.0,
+                right: 12.0,
+                top: 10.0,
+                bottom: 20.0,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Students',
-                    style: TextStyle(
-                      fontFamily: 'Playfair Display',
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Students',
+                          style: TextStyle(
+                            fontFamily: 'Playfair Display',
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Manage and track all students',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Manage and track all students',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+                  IconButton(
+                    tooltip: 'Import Students',
+                    icon: const Icon(
+                      Icons.file_upload_outlined,
+                      color: Colors.white,
+                    ),
+                    onPressed: () => showImportStudentsSheet(
+                      context,
+                      () => ref.invalidate(studentsProvider),
+                    ),
                   ),
                 ],
               ),
             ),
-            
+
             // White Container with fixed parts and scrollable list
             Expanded(
               child: Container(
@@ -76,17 +103,28 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   children: [
                     // Search Bar
                     Padding(
-                      padding: const EdgeInsets.only(top: 20.0, left: 16.0, right: 16.0, bottom: 16.0),
+                      padding: const EdgeInsets.only(
+                        top: 20.0,
+                        left: 16.0,
+                        right: 16.0,
+                        bottom: 16.0,
+                      ),
                       child: SizedBox(
                         height: 48,
                         child: TextField(
                           controller: _searchController,
                           decoration: InputDecoration(
                             hintText: 'Search by name, roll no, class...',
-                            prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: Colors.grey,
+                            ),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear, color: Colors.grey),
+                                    icon: const Icon(
+                                      Icons.clear,
+                                      color: Colors.grey,
+                                    ),
                                     onPressed: () {
                                       _searchController.clear();
                                       setState(() => _searchQuery = '');
@@ -95,7 +133,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 : null,
                             filled: true,
                             fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 0,
+                              horizontal: 16,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide.none,
@@ -109,30 +150,52 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         ),
                       ),
                     ),
-                    
+
                     // Class filters
                     batchesAsync.when(
                       loading: () => const SizedBox.shrink(),
                       error: (err, stack) => const SizedBox.shrink(),
                       data: (batches) {
-                        final allStudentsCount = studentsAsync.value?.length ?? 0;
+                        final allStudentsCount =
+                            studentsAsync.value?.length ?? 0;
                         return SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: Row(
                             children: [
-                              _buildFilterChip('All Students', allStudentsCount.toString(), _selectedBatchName == 'All Students', onTap: () {
-                                setState(() => _selectedBatchName = 'All Students');
-                              }),
+                              _buildFilterChip(
+                                'All Students',
+                                allStudentsCount.toString(),
+                                _selectedBatchName == 'All Students',
+                                onTap: () {
+                                  setState(
+                                    () => _selectedBatchName = 'All Students',
+                                  );
+                                },
+                              ),
                               const SizedBox(width: 8),
                               ...batches.map((batch) {
-                                final batchName = batch['name']?.toString() ?? 'Unnamed';
-                                final batchStudentCount = studentsAsync.value?.where((s) => s['batchName'] == batchName).length ?? 0;
+                                final batchName =
+                                    batch['name']?.toString() ?? 'Unnamed';
+                                final batchStudentCount =
+                                    studentsAsync.value
+                                        ?.where(
+                                          (s) => s['batchName'] == batchName,
+                                        )
+                                        .length ??
+                                    0;
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 8.0),
-                                  child: _buildFilterChip(batchName, batchStudentCount.toString(), _selectedBatchName == batchName, onTap: () {
-                                    setState(() => _selectedBatchName = batchName);
-                                  }),
+                                  child: _buildFilterChip(
+                                    batchName,
+                                    batchStudentCount.toString(),
+                                    _selectedBatchName == batchName,
+                                    onTap: () {
+                                      setState(
+                                        () => _selectedBatchName = batchName,
+                                      );
+                                    },
+                                  ),
                                 );
                               }),
                             ],
@@ -141,7 +204,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Management Overview
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -150,29 +213,60 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         error: (err, stack) => const SizedBox.shrink(),
                         data: (students) {
                           final totalStudents = students.length;
-                          final totalPendingFees = students.fold<num>(0, (sum, item) => sum + ((item['pendingFees'] as num?) ?? 0));
-                          
+                          final totalPendingFees = students.fold<num>(
+                            0,
+                            (sum, item) =>
+                                sum + ((item['pendingFees'] as num?) ?? 0),
+                          );
+
                           return Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
-                                BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
                               ],
                             ),
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: _buildStatItem('Total Students', totalStudents.toString(), Icons.people_outline, const Color(0xFF2E6656)),
+                                  child: _buildStatItem(
+                                    'Total Students',
+                                    totalStudents.toString(),
+                                    Icons.people_outline,
+                                    const Color(0xFF2E6656),
+                                  ),
                                 ),
-                                Container(width: 1, height: 40, color: Colors.grey.shade200),
-                                Expanded(
-                                  child: _buildStatItem('Present Today', '0', Icons.how_to_reg, const Color(0xFF2E6656)),
+                                Container(
+                                  width: 1,
+                                  height: 40,
+                                  color: Colors.grey.shade200,
                                 ),
-                                Container(width: 1, height: 40, color: Colors.grey.shade200),
                                 Expanded(
-                                  child: _buildStatItem('Pending Fees', '₹$totalPendingFees', Icons.account_balance_wallet_outlined, Colors.red),
+                                  child: _buildStatItem(
+                                    'Present Today',
+                                    '0',
+                                    Icons.how_to_reg,
+                                    const Color(0xFF2E6656),
+                                  ),
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 40,
+                                  color: Colors.grey.shade200,
+                                ),
+                                Expanded(
+                                  child: _buildStatItem(
+                                    'Pending Fees',
+                                    '₹$totalPendingFees',
+                                    Icons.account_balance_wallet_outlined,
+                                    Colors.red,
+                                  ),
                                 ),
                               ],
                             ),
@@ -185,145 +279,245 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     // Scrollable Student List
                     Expanded(
                       child: studentsAsync.when(
-                        loading: () => const Center(child: Padding(padding: EdgeInsets.all(20.0), child: CircularProgressIndicator())),
-                        error: (err, stack) => Center(child: Padding(padding: EdgeInsets.all(20.0), child: Text('Error: $err'))),
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        error: (err, stack) => Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Text('Error: $err'),
+                          ),
+                        ),
                         data: (students) {
                           final filteredStudents = students.where((student) {
-                            final batchMatch = _selectedBatchName == 'All Students' || student['batchName'] == _selectedBatchName;
+                            final batchMatch =
+                                _selectedBatchName == 'All Students' ||
+                                student['batchName'] == _selectedBatchName;
                             if (!batchMatch) return false;
 
-                            final name = (student['fullName'] ?? '').toString().toLowerCase();
-                            final rollNo = (student['rollNo'] ?? '').toString().toLowerCase();
+                            final name = (student['fullName'] ?? '')
+                                .toString()
+                                .toLowerCase();
+                            final rollNo = (student['rollNo'] ?? '')
+                                .toString()
+                                .toLowerCase();
                             final q = _searchQuery.toLowerCase();
                             return name.contains(q) || rollNo.contains(q);
                           }).toList();
 
                           if (students.isEmpty) {
-                            return const Center(child: Padding(padding: EdgeInsets.all(40.0), child: Text('No students found.')));
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(40.0),
+                                child: Text('No students found.'),
+                              ),
+                            );
                           } else if (filteredStudents.isEmpty) {
-                            return Center(child: Padding(padding: EdgeInsets.all(40.0), child: Text('No results for "$_searchQuery"')));
+                            return Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(40.0),
+                                child: Text('No results for "$_searchQuery"'),
+                              ),
+                            );
                           }
 
                           return ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: filteredStudents.length,
                             itemBuilder: (context, index) {
-                          final student = filteredStudents[index] as Map<String, dynamic>;
-                          final rollNo = student['rollNo'] ?? 'N/A';
-                          final grade = student['grade'] ?? 'N/A';
-                          final batchName = student['batchName']?.toString() ?? 'N/A';
-                          final phone = student['phone']?.toString() ?? 'N/A';
-                          final pendingFees = student['pendingFees'] ?? 0;
-                          final attendance = student['attendance'] ?? 0;
-                          
-                          return InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => StudentDetailsScreen(student: student),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Top Row
-                                  Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor: const Color(0xFF1F2E27).withValues(alpha: 0.08),
-                                        child: const Icon(Icons.person, color: Color(0xFF1F2E27)),
+                              final student =
+                                  filteredStudents[index]
+                                      as Map<String, dynamic>;
+                              final rollNo = student['rollNo'] ?? 'N/A';
+                              final grade = student['grade'] ?? 'N/A';
+                              final batchName =
+                                  student['batchName']?.toString() ?? 'N/A';
+                              final phone =
+                                  student['phone']?.toString() ?? 'N/A';
+                              final pendingFees = student['pendingFees'] ?? 0;
+                              final attendance = student['attendance'] ?? 0;
+
+                              return InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => StudentDetailsScreen(
+                                        student: student,
                                       ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.03,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Top Row
+                                      Row(
                                         children: [
-                                          Text(
-                                            student['fullName'] ?? 'Unknown',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1F2E27)),
+                                          CircleAvatar(
+                                            radius: 24,
+                                            backgroundColor: const Color(
+                                              0xFF1F2E27,
+                                            ).withValues(alpha: 0.08),
+                                            child: const Icon(
+                                              Icons.person,
+                                              color: Color(0xFF1F2E27),
+                                            ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'Roll No: $rollNo • Class $grade',
-                                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  student['fullName'] ??
+                                                      'Unknown',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                    color: Color(0xFF1F2E27),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Roll No: $rollNo • Class $grade',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ),
+                                      const SizedBox(height: 16),
 
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                
-                                // Tags Row
-                                Row(
-                                  children: [
-                                    _buildTag(Icons.calendar_today, 'Batch', batchName),
-                                    const SizedBox(width: 12),
-                                    _buildTag(Icons.phone, 'Phone', phone),
-                                  ],
-                                ),
-                                
-                                const SizedBox(height: 16),
-                                const Divider(height: 1, color: Color(0xFFF0F0F0)),
-                                const SizedBox(height: 16),
-                                
-                                // Bottom Row
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // Fees Pending
-                                    Row(
-                                      children: [
-                                        Text('Fees Pending ', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                                        Text('₹$pendingFees', style: const TextStyle(fontSize: 13, color: Colors.red, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                    
-                                    // Attendance & Arrow
-                                    Row(
-                                      children: [
-                                        Text('Attendance ', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                                        const SizedBox(width: 8),
-                                        Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            SizedBox(
-                                              width: 36,
-                                              height: 36,
-                                              child: CircularProgressIndicator(
-                                                value: attendance / 100,
-                                                backgroundColor: Colors.grey.shade200,
-                                                color: const Color(0xFF2E6656),
-                                                strokeWidth: 4,
+                                      // Tags Row
+                                      Row(
+                                        children: [
+                                          _buildTag(
+                                            Icons.calendar_today,
+                                            'Batch',
+                                            batchName,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          _buildTag(
+                                            Icons.phone,
+                                            'Phone',
+                                            phone,
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 16),
+                                      const Divider(
+                                        height: 1,
+                                        color: Color(0xFFF0F0F0),
+                                      ),
+                                      const SizedBox(height: 16),
+
+                                      // Bottom Row
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          // Fees Pending
+                                          Row(
+                                            children: [
+                                              Text(
+                                                'Fees Pending ',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey.shade600,
+                                                ),
                                               ),
-                                            ),
-                                            Text('$attendance%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                                          ],
-                                        ),
-                                        const SizedBox(width: 16),
-                                        const Icon(Icons.chevron_right, color: Colors.grey),
-                                      ],
-                                    ),
-                                  ],
+                                              Text(
+                                                '₹$pendingFees',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.red,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+
+                                          // Attendance & Arrow
+                                          Row(
+                                            children: [
+                                              Text(
+                                                'Attendance ',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 36,
+                                                    height: 36,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          value:
+                                                              attendance / 100,
+                                                          backgroundColor:
+                                                              Colors
+                                                                  .grey
+                                                                  .shade200,
+                                                          color: const Color(
+                                                            0xFF2E6656,
+                                                          ),
+                                                          strokeWidth: 4,
+                                                        ),
+                                                  ),
+                                                  Text(
+                                                    '$attendance%',
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(width: 16),
+                                              const Icon(
+                                                Icons.chevron_right,
+                                                color: Colors.grey,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
+                              );
                             },
                           );
                         },
@@ -348,7 +542,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String count, bool isSelected, {VoidCallback? onTap}) {
+  Widget _buildFilterChip(
+    String label,
+    String count,
+    bool isSelected, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -360,8 +559,21 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         ),
         child: Column(
           children: [
-            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF1F2E27))),
-            Text('($count)', style: TextStyle(fontSize: 11, color: isSelected ? Colors.white70 : Colors.grey.shade600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : const Color(0xFF1F2E27),
+              ),
+            ),
+            Text(
+              '($count)',
+              style: TextStyle(
+                fontSize: 11,
+                color: isSelected ? Colors.white70 : Colors.grey.shade600,
+              ),
+            ),
           ],
         ),
       ),
@@ -383,8 +595,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 9, color: Colors.grey.shade600)),
-              Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27))),
+              Text(
+                label,
+                style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2E27),
+                ),
+              ),
             ],
           ),
         ],
@@ -392,26 +614,51 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Widget _buildStatItem(String title, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(title, style: TextStyle(fontSize: 11, color: Colors.grey.shade600), textAlign: TextAlign.center),
+        Text(
+          title,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Map<String, dynamic> student) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> student,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove student?'),
-        content: Text('${student['fullName'] ?? 'This student'} will be removed permanently.'),
+        content: Text(
+          '${student['fullName'] ?? 'This student'} will be removed permanently.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remove', style: TextStyle(color: Colors.red)),
@@ -424,22 +671,34 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       await deleteStudent(ref.read(apiServiceProvider), student['id'] as int);
       ref.invalidate(studentsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student removed')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Student removed')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
 }
 
-Future<void> showAddStudentDialog(BuildContext context, WidgetRef ref, {Map<String, dynamic>? student}) async {
+Future<void> showAddStudentDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  Map<String, dynamic>? student,
+}) async {
   final batches = await ref.read(batchesProvider.future);
   if (!context.mounted) return;
   if (batches.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create a batch first — a student must be enrolled in one.')),
+      const SnackBar(
+        content: Text(
+          'Create a batch first — a student must be enrolled in one.',
+        ),
+      ),
     );
     return;
   }
@@ -447,7 +706,10 @@ Future<void> showAddStudentDialog(BuildContext context, WidgetRef ref, {Map<Stri
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => AddStudentDialog(batches: batches.cast<Map<String, dynamic>>(), student: student),
+    builder: (_) => AddStudentDialog(
+      batches: batches.cast<Map<String, dynamic>>(),
+      student: student,
+    ),
   );
 }
 
@@ -509,7 +771,9 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
         (widget.student == null && _password.text.isEmpty) ||
         _parentPhone.text.trim().isEmpty ||
         _batchId == null) {
-      setState(() => _error = 'Please fill all required fields (marked with *).');
+      setState(
+        () => _error = 'Please fill all required fields (marked with *).',
+      );
       return;
     }
     setState(() {
@@ -538,9 +802,13 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
           password: _password.text,
           parentPhone: _parentPhone.text.trim(),
           batchId: _batchId!,
-          parentName: _parentName.text.trim().isEmpty ? null : _parentName.text.trim(),
+          parentName: _parentName.text.trim().isEmpty
+              ? null
+              : _parentName.text.trim(),
           grade: _grade.text.trim().isEmpty ? null : _grade.text.trim(),
-          rollNo: _autoGenerateRoll ? null : (_rollNo.text.trim().isEmpty ? null : _rollNo.text.trim()),
+          rollNo: _autoGenerateRoll
+              ? null
+              : (_rollNo.text.trim().isEmpty ? null : _rollNo.text.trim()),
         );
       }
       ref.invalidate(studentsProvider);
@@ -570,10 +838,20 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1F2E27))),
-              Text(subtitle, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Color(0xFF1F2E27),
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -603,11 +881,22 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isRequired) const Text('*', style: TextStyle(color: Colors.red, fontSize: 16)),
+              if (isRequired)
+                const Text(
+                  '*',
+                  style: TextStyle(color: Colors.red, fontSize: 16),
+                ),
               if (isPassword)
                 IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey.shade600, size: 20),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.grey.shade600,
+                    size: 20,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
               if (!isPassword) const SizedBox(width: 16),
             ],
@@ -622,7 +911,10 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 40),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        top: 40,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: Color(0xFFF8F9FA), // Light background like screenshot
@@ -637,7 +929,10 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 height: 4,
                 width: 40,
-                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             // Header
@@ -655,17 +950,28 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                       CircleAvatar(
                         backgroundColor: const Color(0xFFF4F6F3),
                         radius: 24,
-                        child: const Icon(Icons.person, color: Color(0xFF1F2E27), size: 28),
+                        child: const Icon(
+                          Icons.person,
+                          color: Color(0xFF1F2E27),
+                          size: 28,
+                        ),
                       ),
                       Positioned(
                         bottom: 0,
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.all(2),
-                          decoration: const BoxDecoration(color: Color(0xFFA87D26), shape: BoxShape.circle),
-                          child: const Icon(Icons.add, color: Colors.white, size: 12),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFA87D26),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 12,
+                          ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                   const SizedBox(width: 16),
@@ -674,26 +980,47 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.student != null ? 'Edit Student' : 'Add New Student',
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1F2E27)),
+                          widget.student != null
+                              ? 'Edit Student'
+                              : 'Add New Student',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1F2E27),
+                          ),
                         ),
                         const SizedBox(height: 4),
-                        Text(widget.student != null ? 'Update the details of the student' : 'Fill in the details to add a new student', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                        Text(
+                          widget.student != null
+                              ? 'Update the details of the student'
+                              : 'Fill in the details to add a new student',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   IconButton(
                     icon: Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.close, size: 18, color: Colors.black87),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.black87,
+                      ),
                     ),
                     onPressed: () => Navigator.pop(context),
-                  )
+                  ),
                 ],
               ),
             ),
-            
+
             // Content
             Flexible(
               child: SingleChildScrollView(
@@ -703,13 +1030,36 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                     // Section 1
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Column(
                         children: [
-                          _buildSectionHeader(Icons.person_outline, 'Personal Information', 'Basic details of the student'),
-                          _buildInputField(controller: _fullName, hint: 'Student Full Name', prefixIcon: Icons.person_outline, isRequired: true),
-                          _buildInputField(controller: _phone, hint: 'Phone Number (10-15 digits)', prefixIcon: Icons.phone_outlined, isRequired: true),
-                          _buildInputField(controller: _password, hint: 'Password (min. 6 characters)', prefixIcon: Icons.lock_outline, isRequired: true, isPassword: true),
+                          _buildSectionHeader(
+                            Icons.person_outline,
+                            'Personal Information',
+                            'Basic details of the student',
+                          ),
+                          _buildInputField(
+                            controller: _fullName,
+                            hint: 'Student Full Name',
+                            prefixIcon: Icons.person_outline,
+                            isRequired: true,
+                          ),
+                          _buildInputField(
+                            controller: _phone,
+                            hint: 'Phone Number (10-15 digits)',
+                            prefixIcon: Icons.phone_outlined,
+                            isRequired: true,
+                          ),
+                          _buildInputField(
+                            controller: _password,
+                            hint: 'Password (min. 6 characters)',
+                            prefixIcon: Icons.lock_outline,
+                            isRequired: true,
+                            isPassword: true,
+                          ),
                         ],
                       ),
                     ),
@@ -718,24 +1068,50 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                     // Section 2
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Column(
                         children: [
-                          _buildSectionHeader(Icons.school_outlined, 'Academic Information', 'Class and enrollment details'),
+                          _buildSectionHeader(
+                            Icons.school_outlined,
+                            'Academic Information',
+                            'Class and enrollment details',
+                          ),
                           Row(
                             children: [
                               Expanded(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
-                                          Icon(Icons.school_outlined, size: 16, color: Colors.grey.shade600),
+                                          Icon(
+                                            Icons.school_outlined,
+                                            size: 16,
+                                            color: Colors.grey.shade600,
+                                          ),
                                           const SizedBox(width: 8),
-                                          Text('Class', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                          Text(
+                                            'Class',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       TextField(
@@ -743,7 +1119,10 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                                         decoration: const InputDecoration(
                                           hintText: 'Select Class',
                                           isDense: true,
-                                          contentPadding: EdgeInsets.only(top: 4, bottom: 4),
+                                          contentPadding: EdgeInsets.only(
+                                            top: 4,
+                                            bottom: 4,
+                                          ),
                                           border: InputBorder.none,
                                         ),
                                       ),
@@ -754,16 +1133,35 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
-                                          Icon(Icons.people_outline, size: 16, color: Colors.grey.shade600),
+                                          Icon(
+                                            Icons.people_outline,
+                                            size: 16,
+                                            color: Colors.grey.shade600,
+                                          ),
                                           const SizedBox(width: 8),
-                                          Text('Batch *', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                                          Text(
+                                            'Batch *',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                       DropdownButtonHideUnderline(
@@ -772,11 +1170,25 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                                           isDense: true,
                                           value: _batchId,
                                           hint: const Text('Select Batch'),
-                                          icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                                          icon: const Icon(
+                                            Icons.keyboard_arrow_down,
+                                            size: 18,
+                                          ),
                                           items: widget.batches
-                                              .map((b) => DropdownMenuItem<int>(value: b['id'] as int, child: Text(b['name']?.toString() ?? '', style: const TextStyle(fontSize: 14))))
+                                              .map(
+                                                (b) => DropdownMenuItem<int>(
+                                                  value: b['id'] as int,
+                                                  child: Text(
+                                                    b['name']?.toString() ?? '',
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
                                               .toList(),
-                                          onChanged: (v) => setState(() => _batchId = v),
+                                          onChanged: (v) =>
+                                              setState(() => _batchId = v),
                                         ),
                                       ),
                                     ],
@@ -787,7 +1199,11 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                           ),
                           const SizedBox(height: 12),
                           if (!_autoGenerateRoll)
-                            _buildInputField(controller: _rollNo, hint: 'Enter roll number', prefixIcon: Icons.tag),
+                            _buildInputField(
+                              controller: _rollNo,
+                              hint: 'Enter roll number',
+                              prefixIcon: Icons.tag,
+                            ),
                           Row(
                             children: [
                               Checkbox(
@@ -800,9 +1216,12 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                                   });
                                 },
                               ),
-                              const Text('Auto generate roll number', style: TextStyle(fontSize: 14)),
+                              const Text(
+                                'Auto generate roll number',
+                                style: TextStyle(fontSize: 14),
+                              ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -811,30 +1230,51 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                     // Section 3
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Column(
                         children: [
-                          _buildSectionHeader(Icons.family_restroom, 'Parent / Guardian Information', 'For communication and notifications'),
-                          _buildInputField(controller: _parentName, hint: 'Parent / Guardian Name (optional)', prefixIcon: Icons.person_outline),
-                          _buildInputField(controller: _parentPhone, hint: 'Parent WhatsApp Number *', prefixIcon: Icons.phone_outlined, isRequired: true),
+                          _buildSectionHeader(
+                            Icons.family_restroom,
+                            'Parent / Guardian Information',
+                            'For communication and notifications',
+                          ),
+                          _buildInputField(
+                            controller: _parentName,
+                            hint: 'Parent / Guardian Name (optional)',
+                            prefixIcon: Icons.person_outline,
+                          ),
+                          _buildInputField(
+                            controller: _parentPhone,
+                            hint: 'Parent WhatsApp Number *',
+                            prefixIcon: Icons.phone_outlined,
+                            isRequired: true,
+                          ),
                         ],
                       ),
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
-                      Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-                    ]
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-            
+
             // Footer Buttons
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(24),
+                ),
               ),
               child: Row(
                 children: [
@@ -844,9 +1284,17 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -856,16 +1304,33 @@ class _AddStudentDialogState extends ConsumerState<AddStudentDialog> {
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFFA87D26),
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _saving
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(widget.student != null ? 'Update Student' : 'Add Student', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              widget.student != null
+                                  ? 'Update Student'
+                                  : 'Add Student',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

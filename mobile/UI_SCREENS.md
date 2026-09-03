@@ -1,4 +1,4 @@
-# EdTech OS — Complete UI Screen Specifications
+# Campus — Complete UI Screen Specifications
 > **Agent Instructions:** Read the ENTIRE Design System (Section 0) first.
 > Build each screen using ONLY the tokens defined here.
 > No gradients. No red for actions. One brass-gold CTA per screen.
@@ -109,7 +109,7 @@ Scaffold(bg=inkGreen)
 CENTER:
   Logo SVG white 80x80
   SizedBox h:16
-  "EdTech OS"  Playfair Display 36 Bold white
+  "Campus"  Playfair Display 36 Bold white
   "Run your institute. Delight every student."  PJS 14 white70%
 BOTTOM pb:48:
   CircularProgressIndicator(color=brassGold strokeWidth=2)
@@ -127,7 +127,7 @@ Scaffold(bg=paper)
 
 TOP PANEL (inkGreen, borderRadius bottom:32, pad H:24 top:60 bottom:40):
   Logo white 48x48
-  "EdTech OS"  PD 28 Bold white
+  "Campus"  PD 28 Bold white
   Tagline  PJS 13 white70%
 
 CARD (white, margin H:24, radius:24, shadow:elevatedShadow, pad:24):
@@ -144,7 +144,7 @@ CARD (white, margin H:24, radius:24, shadow:elevatedShadow, pad:24):
 
   SizedBox h:24
   PRIMARY BUTTON "Sign In ->" (full width)
-  "Powered by EdTech OS"  caption center textSecond
+  "Powered by Campus"  caption center textSecond
 ```
 Error: Bottom snackbar bg=redInk10 text=redInk. Never red field borders except validation.
 
@@ -158,7 +158,7 @@ APIs: GET /superadmin/analytics | GET /superadmin/leads?limit=3
 
 ```
 Scaffold(bg=paper)
-AppBar(inkGreen): "EdTech OS" | actions:[NotifBadge(count=unread), CircleAvatar]
+AppBar(inkGreen): "Campus" | actions:[NotifBadge(count=unread), CircleAvatar]
 
 Body SingleChildScrollView pad:16:
 

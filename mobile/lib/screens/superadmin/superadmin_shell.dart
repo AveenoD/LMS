@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'analytics_screen.dart';
+import 'superadmin_profile_screen.dart';
 import 'tenants_screen.dart';
 import 'plans_screen.dart';
 import 'subscriptions_screen.dart';
@@ -30,6 +31,7 @@ class SuperAdminShell extends StatelessWidget {
           iconWidget: const _MoreIconWithUnreadBadge(),
           screen: const MoreMenuScreen(
             items: [
+              MoreMenuItem(icon: Icons.person, label: 'Profile', destination: SuperAdminProfileScreen()),
               MoreMenuItem(icon: Icons.inbox, label: 'Leads', destination: LeadsScreen()),
               MoreMenuItem(icon: Icons.campaign, label: 'Send Announcement', destination: BroadcastAdminsScreen()),
             ],

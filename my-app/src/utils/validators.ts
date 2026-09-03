@@ -1,5 +1,5 @@
 /**
- * Form validation utilities for EdTech OS
+ * Form validation utilities for Campus
  */
 
 export function validateEmail(email: string): boolean {
